@@ -164,6 +164,84 @@ export class MemStorage implements IStorage {
       this.openings.set(opening.id, opening);
     });
     this.currentOpeningId = 3;
+
+    // Add sample games to showcase analysis features
+    const sampleGames = [
+      {
+        id: this.currentGameId++,
+        userId: 1,
+        whitePlayer: "ChessPlayer2023",
+        blackPlayer: "IM Patel (2234)",
+        result: "1-0",
+        opening: "Sicilian Defense, Najdorf Variation",
+        timeControl: "90+30",
+        pgn: `1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Be3 e6 7.f3 b5 8.Qd2 Bb7 9.O-O-O Nbd7 10.h4 Rc8 11.Kb1 Be7 12.g4 h6 13.h5 Qc7 14.Bh3 Nc5 15.f4 Nfd7 16.g5 hxg5 17.fxg5 Bxg5 18.Qf2 Bxe3 19.Qxe3 f6 20.Nf5 exf5 21.exf5 Ne5 22.Nd5 Bxd5 23.Rxd5 Qc6 24.Rd4 Rc7 25.Re1 Kf7 26.Qg3 Re8 27.Bg4 Nxg4 28.Rxg4 Re5 29.h6 Rxf5 30.hxg7 Rxg7 31.Qh4 1-0`,
+        moves: ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6", "Be3", "e6"],
+        gameSource: "offline",
+        tournamentName: "Mumbai Open 2024",
+        date: new Date("2024-01-20"),
+        analysisData: {
+          accuracy: { white: 89, black: 72 },
+          blunders: { white: 0, black: 2 },
+          mistakes: { white: 1, black: 4 },
+          bestMoves: { white: 12, black: 6 }
+        },
+        uploadedAt: new Date("2024-01-21")
+      },
+      {
+        id: this.currentGameId++,
+        userId: 1,
+        whitePlayer: "FM Singh (2187)",
+        blackPlayer: "ChessPlayer2023",
+        result: "1-0",
+        opening: "Queen's Gambit Declined",
+        timeControl: "90+30",
+        pgn: `1.d4 d5 2.c4 e6 3.Nc3 Nf6 4.cxd5 exd5 5.Bg5 Be7 6.e3 O-O 7.Bd3 Nbd7 8.Qc2 h6 9.Bh4 Re8 10.Nge2 c6 11.O-O Nf8 12.f3 Be6 13.Rad1 Qd7 14.Bg3 Red8 15.Kh1 Rac8 16.Ng1 Nh5 17.Bf2 Nhg6 18.Nge2 Bf5 19.Bxf5 Qxf5 20.Qxf5 Nxf5 21.g3 Ngh4 22.Kg2 g6 23.Rd2 Kg7 24.Rfd1 Rc7 25.Ne4 dxe4 26.fxe4 Nxe3+ 27.Bxe3 Rxd2+ 28.Rxd2 Nf3 29.Rd3 Nxd4 30.Bxd4+ f6 31.Rd1 1-0`,
+        moves: ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "cxd5", "exd5", "Bg5", "Be7"],
+        gameSource: "offline",
+        tournamentName: "Delhi Championship 2023",
+        date: new Date("2023-12-05"),
+        analysisData: {
+          accuracy: { white: 94, black: 64 },
+          blunders: { white: 0, black: 3 },
+          mistakes: { white: 0, black: 6 },
+          bestMoves: { white: 18, black: 4 }
+        },
+        uploadedAt: new Date("2023-12-06")
+      },
+      {
+        id: this.currentGameId++,
+        userId: 1,
+        whitePlayer: "ChessPlayer2023",
+        blackPlayer: "Sharma (1945)",
+        result: "1-0",
+        opening: "Italian Game",
+        timeControl: "15+10",
+        pgn: `1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3 Nf6 5.d4 exd4 6.cxd4 Bb4+ 7.Bd2 Bxd2+ 8.Nbxd2 d5 9.exd5 Nxd5 10.Qb3 Na5 11.Qa4+ Nc6 12.Qb3 Na5 13.Qa4+ c6 14.Bb5 Qd6 15.Ne4 Qf4 16.Ng3 O-O 17.O-O Bg4 18.Bxc6 Nxc6 19.Qxg4 Qxg4 20.h3 Qh4 21.Nh5 g6 22.Nf4 Nxf4 23.Ng5 Qf6 24.Nxf7 Rxf7 25.Rfe1 Re8 26.Rxe8+ Qxe8 27.g3 Ne2+ 28.Kg2 Qe4+ 29.f3 Qe3 30.Rf1 Qe2+ 31.Rf2 Qe1 32.g4 h5 33.gxh5 gxh5 34.Kh2 1-0`,
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "c3", "Nf6", "d4", "exd4"],
+        gameSource: "online",
+        tournamentName: null,
+        date: new Date("2024-01-15"),
+        analysisData: {
+          accuracy: { white: 87, black: 71 },
+          blunders: { white: 0, black: 1 },
+          mistakes: { white: 2, black: 3 },
+          bestMoves: { white: 15, black: 8 }
+        },
+        uploadedAt: new Date("2024-01-15")
+      }
+    ];
+
+    sampleGames.forEach(gameData => {
+      const game: Game = {
+        ...gameData,
+        opening: gameData.opening,
+        timeControl: gameData.timeControl,
+        tournamentName: gameData.tournamentName,
+        analysisData: gameData.analysisData
+      };
+      this.games.set(game.id, game);
+    });
   }
 
   // User methods
