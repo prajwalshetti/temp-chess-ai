@@ -11,7 +11,6 @@ export function Navigation() {
     { href: "/", label: "Home", icon: Crown },
     { href: "/games", label: "Games DB", icon: Database },
     { href: "/scout", label: "Opponent Scout", icon: Search },
-    { href: "/analysis", label: "Deep Analysis", icon: Brain },
     { href: "/learn", label: "Learn Chess", icon: GraduationCap },
     { href: "/account", label: "Account", icon: User },
   ];
