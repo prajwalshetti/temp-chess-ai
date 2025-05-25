@@ -482,21 +482,21 @@ export default function GamesDatabase() {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Position Score</span>
                         <span className={`font-semibold ${
-                          analysis.evaluation > 0 ? 'text-green-600' : 
-                          analysis.evaluation < 0 ? 'text-red-600' : 'text-gray-600'
+                          (analysis.evaluation || 0) > 0 ? 'text-green-600' : 
+                          (analysis.evaluation || 0) < 0 ? 'text-red-600' : 'text-gray-600'
                         }`}>
-                          {analysis.evaluation > 0 ? '+' : ''}{analysis.evaluation?.toFixed(1) || '0.0'}
+                          {(analysis.evaluation || 0) > 0 ? '+' : ''}{(analysis.evaluation || 0).toFixed(1)}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-chess-dark h-2 rounded-full transition-all" 
                           style={{ 
-                            width: `${Math.min(Math.max((analysis.evaluation + 2) / 4 * 100, 0), 100)}%` 
+                            width: `${Math.min(Math.max(((analysis.evaluation || 0) + 2) / 4 * 100, 0), 100)}%` 
                           }}
                         />
                       </div>
-                      {analysis.bestMoves && (
+                      {analysis.bestMoves && Array.isArray(analysis.bestMoves) && (
                         <div className="text-sm text-gray-600">
                           <div className="font-medium mb-2">Best continuation:</div>
                           <div className="font-mono text-chess-dark">
