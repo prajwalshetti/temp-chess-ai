@@ -24,11 +24,29 @@ export const games = pgTable("games", {
   timeControl: text("time_control"),
   pgn: text("pgn").notNull(),
   moves: jsonb("moves").$type<string[]>().notNull(),
+  gameSource: text("game_source").notNull().default("offline"), // "offline", "lichess", "chess.com"
+  tournamentName: text("tournament_name"),
+  tournamentRound: text("tournament_round"),
+  eventDate: timestamp("event_date"),
+  whiteRating: integer("white_rating"),
+  blackRating: integer("black_rating"),
   analysisData: jsonb("analysis_data").$type<{
     evaluation?: number;
     bestMoves?: string[];
     mistakes?: number;
     blunders?: number;
+    inaccuracies?: number;
+    missedTactics?: {
+      type: string;
+      move: string;
+      description: string;
+      position: string;
+    }[];
+    strongMoves?: {
+      move: string;
+      description: string;
+      position: string;
+    }[];
   }>(),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
@@ -65,18 +83,31 @@ export const playerStats = pgTable("player_stats", {
   lossesAsBlack: integer("losses_as_black").default(0),
   drawsAsWhite: integer("draws_as_white").default(0),
   drawsAsBlack: integer("draws_as_black").default(0),
+  // Performance by time control
+  rapidRating: integer("rapid_rating").default(1200),
+  blitzRating: integer("blitz_rating").default(1200),
+  classicalRating: integer("classical_rating").default(1200),
+  // Tactical insights
   tacticalStrengths: jsonb("tactical_strengths").$type<{
     forks: number;
     pins: number;
     skewers: number;
     backRank: number;
-  }>().default({ forks: 0, pins: 0, skewers: 0, backRank: 0 }),
+    discoveredAttacks: number;
+    deflection: number;
+  }>().default({ forks: 0, pins: 0, skewers: 0, backRank: 0, discoveredAttacks: 0, deflection: 0 }),
   tacticalWeaknesses: jsonb("tactical_weaknesses").$type<{
     missedForks: number;
     missedPins: number;
-    discoveryAttacks: number;
-    endgamePrecision: number;
-  }>().default({ missedForks: 0, missedPins: 0, discoveryAttacks: 0, endgamePrecision: 0 }),
+    missedSkewers: number;
+    hangingPieces: number;
+    poorEndgamePlay: number;
+    timeManagement: number;
+  }>().default({ missedForks: 0, missedPins: 0, missedSkewers: 0, hangingPieces: 0, poorEndgamePlay: 0, timeManagement: 0 }),
+  // Opening performance
+  openingPhaseScore: integer("opening_phase_score").default(50), // 0-100
+  middlegameScore: integer("middlegame_score").default(50),
+  endgameScore: integer("endgame_score").default(50),
 });
 
 export const openings = pgTable("openings", {
@@ -89,6 +120,43 @@ export const openings = pgTable("openings", {
   wins: integer("wins").default(0),
   losses: integer("losses").default(0),
   draws: integer("draws").default(0),
+});
+
+// New tables for opponent scouting and advanced analysis
+export const tournaments = pgTable("tournaments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  location: text("location"),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  format: text("format"), // "swiss", "round_robin", "knockout"
+  timeControl: text("time_control"),
+  rounds: integer("rounds").default(9),
+});
+
+export const tournamentParticipants = pgTable("tournament_participants", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").references(() => tournaments.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  startingRating: integer("starting_rating"),
+  finalRating: integer("final_rating"),
+  finalPosition: integer("final_position"),
+  points: integer("points").default(0),
+});
+
+export const opponentEncounters = pgTable("opponent_encounters", {
+  id: serial("id").primaryKey(),
+  playerId: integer("player_id").references(() => users.id).notNull(),
+  opponentId: integer("opponent_id").references(() => users.id).notNull(),
+  gamesPlayed: integer("games_played").default(0),
+  wins: integer("wins").default(0),
+  losses: integer("losses").default(0),
+  draws: integer("draws").default(0),
+  lastEncounter: timestamp("last_encounter"),
+  // Head-to-head insights
+  favoriteOpeningAgainst: text("favorite_opening_against"),
+  weaknessesExploited: jsonb("weaknesses_exploited").$type<string[]>().default([]),
+  strengthsToAvoid: jsonb("strengths_to_avoid").$type<string[]>().default([]),
 });
 
 // Insert schemas
@@ -119,6 +187,18 @@ export const insertOpeningSchema = createInsertSchema(openings).omit({
   id: true,
 });
 
+export const insertTournamentSchema = createInsertSchema(tournaments).omit({
+  id: true,
+});
+
+export const insertTournamentParticipantSchema = createInsertSchema(tournamentParticipants).omit({
+  id: true,
+});
+
+export const insertOpponentEncounterSchema = createInsertSchema(opponentEncounters).omit({
+  id: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -132,3 +212,9 @@ export type PlayerStats = typeof playerStats.$inferSelect;
 export type InsertPlayerStats = z.infer<typeof insertPlayerStatsSchema>;
 export type Opening = typeof openings.$inferSelect;
 export type InsertOpening = z.infer<typeof insertOpeningSchema>;
+export type Tournament = typeof tournaments.$inferSelect;
+export type InsertTournament = z.infer<typeof insertTournamentSchema>;
+export type TournamentParticipant = typeof tournamentParticipants.$inferSelect;
+export type InsertTournamentParticipant = z.infer<typeof insertTournamentParticipantSchema>;
+export type OpponentEncounter = typeof opponentEncounters.$inferSelect;
+export type InsertOpponentEncounter = z.infer<typeof insertOpponentEncounterSchema>;

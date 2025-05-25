@@ -1,8 +1,10 @@
 import { 
-  users, games, puzzles, puzzleAttempts, playerStats, openings,
+  users, games, puzzles, puzzleAttempts, playerStats, openings, tournaments, tournamentParticipants, opponentEncounters,
   type User, type InsertUser, type Game, type InsertGame, 
   type Puzzle, type InsertPuzzle, type PuzzleAttempt, type InsertPuzzleAttempt,
-  type PlayerStats, type InsertPlayerStats, type Opening, type InsertOpening
+  type PlayerStats, type InsertPlayerStats, type Opening, type InsertOpening,
+  type Tournament, type InsertTournament, type TournamentParticipant, type InsertTournamentParticipant,
+  type OpponentEncounter, type InsertOpponentEncounter
 } from "@shared/schema";
 
 export interface IStorage {

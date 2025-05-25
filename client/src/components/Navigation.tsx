@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Crown, Database, GraduationCap, User, Plus } from "lucide-react";
+import { Crown, Database, GraduationCap, User, Plus, Search, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Navigation() {
@@ -8,6 +8,8 @@ export function Navigation() {
   const navItems = [
     { href: "/", label: "Home", icon: Crown },
     { href: "/games", label: "Games DB", icon: Database },
+    { href: "/scout", label: "Opponent Scout", icon: Search },
+    { href: "/analysis", label: "Deep Analysis", icon: Brain },
     { href: "/learn", label: "Learn Chess", icon: GraduationCap },
     { href: "/account", label: "Account", icon: User },
   ];
