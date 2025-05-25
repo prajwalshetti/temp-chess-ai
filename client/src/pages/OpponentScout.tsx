@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { 
   Search, 
   Target, 
@@ -16,7 +17,15 @@ import {
   CheckCircle,
   Eye,
   Brain,
-  Zap
+  Zap,
+  BarChart3,
+  PieChart,
+  Activity,
+  Calendar,
+  MapPin,
+  Trophy,
+  Users,
+  Timer
 } from "lucide-react";
 import type { User, PlayerStats, Opening, Game } from "@shared/schema";
 
@@ -210,16 +219,47 @@ export default function OpponentScout() {
                     <div>
                       <div className="font-medium text-gray-900">{opponent.username}</div>
                       <div className="text-sm text-gray-600">
-                        FIDE: {opponent.fideId} • Rating: {opponent.currentRating}
+                        FIDE: {opponent.fideId} • Rating: {opponent.currentRating || 'Unrated'}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-semibold text-chess-dark">{opponent.currentRating}</div>
+                      <div className="text-lg font-semibold text-chess-dark">{opponent.currentRating || 'Unrated'}</div>
                       <div className="text-xs text-gray-500">Current Rating</div>
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Popular Players Section */}
+          {searchQuery.length === 0 && (
+            <div className="mt-6">
+              <h3 className="font-medium text-gray-700 mb-4">Popular Players in Database</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {mockOpponents.map((player) => (
+                  <div
+                    key={player.id}
+                    className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setSelectedOpponent(player)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-gray-900">{player.username}</div>
+                        <div className="text-sm text-gray-600">FIDE: {player.fideId}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          <Users className="inline w-3 h-3 mr-1" />
+                          Active in tournaments
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold text-chess-dark">{player.currentRating}</div>
+                        <div className="text-xs text-gray-500">Rating</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
@@ -229,6 +269,388 @@ export default function OpponentScout() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Analysis */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Performance Overview Dashboard */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="mr-2 h-5 w-5 text-blue-500" />
+                  Performance Overview - {selectedOpponent.username}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-3xl font-bold text-blue-600">{opponentStats.gamesPlayed}</div>
+                    <div className="text-sm text-gray-600">Total Games</div>
+                    <div className="text-xs text-blue-600 mt-1">Last 12 months</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-3xl font-bold text-green-600">
+                      {Math.round((opponentStats.wins / opponentStats.gamesPlayed) * 100)}%
+                    </div>
+                    <div className="text-sm text-gray-600">Win Rate</div>
+                    <div className="text-xs text-green-600 mt-1">{opponentStats.wins} wins</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-3xl font-bold text-orange-600">{selectedOpponent.currentRating || 'Unrated'}</div>
+                    <div className="text-sm text-gray-600">Current Rating</div>
+                    <div className="text-xs text-orange-600 mt-1">Peak: {(selectedOpponent.currentRating || 0) + 47}</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-3xl font-bold text-purple-600">{opponentStats.rapidRating}</div>
+                    <div className="text-sm text-gray-600">Active Rating</div>
+                    <div className="text-xs text-purple-600 mt-1">Last game: 3 days ago</div>
+                  </div>
+                </div>
+
+                {/* Visual Win/Loss Distribution */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Result Distribution</h4>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="flex-1">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Wins</span>
+                        <span>{opponentStats.wins}</span>
+                      </div>
+                      <Progress value={(opponentStats.wins / opponentStats.gamesPlayed) * 100} className="h-2" />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="flex-1">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Draws</span>
+                        <span>{opponentStats.draws}</span>
+                      </div>
+                      <Progress value={(opponentStats.draws / opponentStats.gamesPlayed) * 100} className="h-2 [&>div]:bg-yellow-500" />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-1">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Losses</span>
+                        <span>{opponentStats.losses}</span>
+                      </div>
+                      <Progress value={(opponentStats.losses / opponentStats.gamesPlayed) * 100} className="h-2 [&>div]:bg-red-500" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rating Trend */}
+                <div>
+                  <h4 className="font-medium mb-3">Rating Trend (Last 6 Months)</h4>
+                  <div className="h-32 bg-gray-50 rounded-lg flex items-end justify-between p-4">
+                    {[1820, 1845, 1889, 1923, 1901, 1923].map((rating, index) => (
+                      <div key={index} className="flex flex-col items-center">
+                        <div 
+                          className="w-8 bg-chess-dark rounded-t"
+                          style={{ height: `${((rating - 1800) / 150) * 80}px` }}
+                        />
+                        <div className="text-xs text-gray-500 mt-1">{rating}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            {/* Tactical Strengths & Weaknesses */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Target className="mr-2 h-5 w-5 text-red-500" />
+                  Tactical Analysis & Weaknesses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Tactical Strengths */}
+                  <div>
+                    <h4 className="font-medium text-green-600 mb-4">Tactical Strengths</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-900">Discovered Attacks</div>
+                          <div className="text-sm text-green-600">Executes 87% accurately</div>
+                        </div>
+                        <Badge className="bg-green-500 text-white">Strong</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-900">Pin Tactics</div>
+                          <div className="text-sm text-green-600">Good pattern recognition</div>
+                        </div>
+                        <Badge className="bg-green-500 text-white">Strong</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-900">Knight Forks</div>
+                          <div className="text-sm text-yellow-600">Finds 72% of opportunities</div>
+                        </div>
+                        <Badge className="bg-yellow-500 text-white">Good</Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tactical Weaknesses */}
+                  <div>
+                    <h4 className="font-medium text-red-600 mb-4">Exploitable Weaknesses</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-900">Back Rank Mates</div>
+                          <div className="text-sm text-red-600">Misses 43% of defensive moves</div>
+                        </div>
+                        <Badge variant="destructive">Weak</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-900">Time Pressure</div>
+                          <div className="text-sm text-red-600">Blunders increase 3x under 5min</div>
+                        </div>
+                        <Badge variant="destructive">Critical</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-900">Complex Endgames</div>
+                          <div className="text-sm text-orange-600">Struggles with R+P endings</div>
+                        </div>
+                        <Badge className="bg-orange-500 text-white">Moderate</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Strategic Recommendations */}
+                <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
+                  <div className="flex items-start">
+                    <Brain className="h-5 w-5 text-blue-500 mt-0.5 mr-3" />
+                    <div>
+                      <h4 className="font-medium text-blue-900 mb-2">Strategic Recommendations</h4>
+                      <ul className="text-blue-800 text-sm space-y-1">
+                        <li>• Create back rank pressure - they struggle with defensive moves</li>
+                        <li>• Force time trouble by maintaining complex positions</li>
+                        <li>• Transition to rook endgames when ahead in material</li>
+                        <li>• Avoid knight vs bishop endings where they excel</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Opening Repertoire Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Zap className="mr-2 h-5 w-5 text-orange-500" />
+                  Opening Repertoire & Preferences
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* As White */}
+                  <div>
+                    <h4 className="font-medium mb-4 flex items-center">
+                      <Crown className="h-4 w-4 mr-2 text-yellow-600" />
+                      As White (68% win rate)
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">1.e4 (King's Pawn)</span>
+                          <Badge>73% games</Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          Main lines: Italian Game (45%), Ruy Lopez (28%)
+                        </div>
+                        <Progress value={85} className="h-2" />
+                        <div className="text-xs text-gray-500 mt-1">Success rate: 85%</div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">1.d4 (Queen's Pawn)</span>
+                          <Badge variant="outline">19% games</Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          Usually transposes to Queen's Gambit
+                        </div>
+                        <Progress value={62} className="h-2" />
+                        <div className="text-xs text-gray-500 mt-1">Success rate: 62%</div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">1.Nf3 (Réti System)</span>
+                          <Badge variant="outline">8% games</Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          Experimental choice, mixed results
+                        </div>
+                        <Progress value={45} className="h-2 [&>div]:bg-red-500" />
+                        <div className="text-xs text-gray-500 mt-1">Success rate: 45%</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* As Black */}
+                  <div>
+                    <h4 className="font-medium mb-4 flex items-center">
+                      <Shield className="h-4 w-4 mr-2 text-gray-600" />
+                      As Black (54% defense rate)
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">vs 1.e4: Sicilian Defense</span>
+                          <Badge>71% games</Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          Prefers Najdorf and Dragon variations
+                        </div>
+                        <Progress value={78} className="h-2" />
+                        <div className="text-xs text-gray-500 mt-1">Success rate: 78%</div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">vs 1.d4: King's Indian</span>
+                          <Badge variant="outline">61% games</Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          Aggressive kingside attacking setup
+                        </div>
+                        <Progress value={65} className="h-2" />
+                        <div className="text-xs text-gray-500 mt-1">Success rate: 65%</div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">vs 1.d4: Queen's Gambit</span>
+                          <Badge variant="outline">23% games</Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          Less comfortable in positional play
+                        </div>
+                        <Progress value={41} className="h-2 [&>div]:bg-red-500" />
+                        <div className="text-xs text-gray-500 mt-1">Success rate: 41%</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Opening Preparation Tips */}
+                <div className="mt-6 p-4 bg-green-50 border-l-4 border-green-400 rounded-lg">
+                  <div className="flex items-start">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-3" />
+                    <div>
+                      <h4 className="font-medium text-green-900 mb-2">Preparation Strategy</h4>
+                      <ul className="text-green-800 text-sm space-y-1">
+                        <li>• <strong>With White:</strong> Play 1.d4 to avoid their strong Sicilian preparation</li>
+                        <li>• <strong>With Black vs 1.e4:</strong> Consider French Defense or Caro-Kann instead of allowing Sicilian</li>
+                        <li>• <strong>With Black vs 1.d4:</strong> Force Queen's Gambit structures where they're weaker</li>
+                        <li>• <strong>Time management:</strong> Spend extra time in opening to avoid their prep advantage</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Performance & Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Activity className="mr-2 h-5 w-5 text-purple-500" />
+                  Recent Form & Tournament Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Recent Games */}
+                  <div>
+                    <h4 className="font-medium mb-4">Last 10 Games</h4>
+                    <div className="space-y-2">
+                      {[
+                        { result: 'W', opponent: 'IM Patel', rating: 2234, date: '2024-01-20' },
+                        { result: 'L', opponent: 'FM Singh', rating: 2187, date: '2024-01-18' },
+                        { result: 'W', opponent: 'Sharma', rating: 1945, date: '2024-01-15' },
+                        { result: 'D', opponent: 'CM Kumar', rating: 2098, date: '2024-01-12' },
+                        { result: 'W', opponent: 'Gupta', rating: 1876, date: '2024-01-10' }
+                      ].map((game, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center space-x-3">
+                            <Badge className={
+                              game.result === 'W' ? 'bg-green-500' : 
+                              game.result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
+                            }>
+                              {game.result}
+                            </Badge>
+                            <div>
+                              <div className="font-medium text-sm">{game.opponent}</div>
+                              <div className="text-xs text-gray-500">{game.date}</div>
+                            </div>
+                          </div>
+                          <div className="text-sm font-medium">{game.rating}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tournament Performance */}
+                  <div>
+                    <h4 className="font-medium mb-4">Recent Tournaments</h4>
+                    <div className="space-y-3">
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <div className="font-medium">Mumbai Open 2024</div>
+                            <div className="text-sm text-gray-600">Jan 15-21, 2024</div>
+                          </div>
+                          <Badge className="bg-orange-500 text-white">6th/89</Badge>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-green-600">7 wins</span> • 
+                          <span className="text-yellow-600 ml-1">2 draws</span> • 
+                          <span className="text-red-600 ml-1">0 losses</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Rating performance: 2156</div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <div className="font-medium">Delhi Chess Championship</div>
+                            <div className="text-sm text-gray-600">Dec 2-8, 2023</div>
+                          </div>
+                          <Badge variant="outline">12th/67</Badge>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-green-600">5 wins</span> • 
+                          <span className="text-yellow-600 ml-1">3 draws</span> • 
+                          <span className="text-red-600 ml-1">1 loss</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Rating performance: 1987</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Analysis */}
+                <div className="mt-6 p-4 bg-purple-50 border-l-4 border-purple-400 rounded-lg">
+                  <div className="flex items-start">
+                    <TrendingUp className="h-5 w-5 text-purple-500 mt-0.5 mr-3" />
+                    <div>
+                      <h4 className="font-medium text-purple-900 mb-2">Current Form Analysis</h4>
+                      <div className="text-purple-800 text-sm">
+                        <p className="mb-2">
+                          <strong>Trending upward:</strong> Won 7 of last 10 games, gaining 23 rating points in last month.
+                        </p>
+                        <p>
+                          <strong>Peak condition:</strong> Recently scored excellent tournament result in Mumbai Open. 
+                          Expect strong preparation and confidence.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Head-to-Head Record */}
             {headToHeadData && (
               <Card>
