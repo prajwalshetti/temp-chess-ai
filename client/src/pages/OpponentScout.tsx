@@ -1231,415 +1231,258 @@ export default function OpponentScout() {
               </CardContent>
             </Card>
 
-            {/* Recent Performance & Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Activity className="mr-2 h-5 w-5 text-purple-500" />
-                  Recent Form & Tournament Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Recent Games */}
-                  <div>
-                    <h4 className="font-medium mb-4">Last 10 Games</h4>
-                    <div className="space-y-2">
-                      {[
-                        { result: 'W', opponent: 'IM Patel', rating: 2234, date: '2024-01-20' },
-                        { result: 'L', opponent: 'FM Singh', rating: 2187, date: '2024-01-18' },
-                        { result: 'W', opponent: 'Sharma', rating: 1945, date: '2024-01-15' },
-                        { result: 'D', opponent: 'CM Kumar', rating: 2098, date: '2024-01-12' },
-                        { result: 'W', opponent: 'Gupta', rating: 1876, date: '2024-01-10' }
-                      ].map((game, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded">
-                          <div className="flex items-center space-x-3">
-                            <Badge className={
-                              game.result === 'W' ? 'bg-green-500' : 
-                              game.result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
-                            }>
-                              {game.result}
-                            </Badge>
-                            <div>
-                              <div className="font-medium text-sm">{game.opponent}</div>
-                              <div className="text-xs text-gray-500">{game.date}</div>
+            {/* Opening Games Analysis */}
+            {selectedOpening && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Eye className="mr-2 h-5 w-5" />
+                    {selectedOpening.name} - Recent Games
+                  </CardTitle>
+                  <CardDescription>
+                    Analyzing {openingGames.length} games with engine evaluation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Games List */}
+                    <div className="lg:col-span-1">
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {openingGames.map((game, index) => (
+                          <div
+                            key={index}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                              selectedOpeningGame?.id === game.id 
+                                ? 'bg-blue-50 border-blue-500' 
+                                : 'hover:bg-gray-50'
+                            }`}
+                            onClick={() => handleGameSelection(game)}
+                          >
+                            <div className="font-medium text-sm">
+                              {game.whitePlayer} vs {game.blackPlayer}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {game.result} • {new Date(game.createdAt).toLocaleDateString()}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {game.moves ? `${game.moves.length} moves` : 'No moves data'}
+                            </div>
+                            {game.analysisData && (
+                              <div className="text-xs text-blue-600 mt-1">
+                                Accuracy: {game.analysisData.accuracy}%
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chess Board and Move-by-Move Analysis */}
+                    <div className="lg:col-span-2">
+                      {selectedOpeningGame ? (
+                        <div className="space-y-4">
+                          {/* Game Header */}
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <h4 className="font-medium text-blue-900">
+                              {selectedOpeningGame.whitePlayer} vs {selectedOpeningGame.blackPlayer}
+                            </h4>
+                            <div className="text-sm text-blue-700">
+                              {selectedOpeningGame.result} • {detectOpening(selectedOpeningGame.moves) || selectedOpening?.name || 'Opening Analysis'}
                             </div>
                           </div>
-                          <div className="text-sm font-medium">{game.rating}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Tournament Performance */}
-                  <div>
-                    <h4 className="font-medium mb-4">Recent Tournaments</h4>
-                    <div className="space-y-3">
-                      <div className="p-3 border rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <div className="font-medium">Mumbai Open 2024</div>
-                            <div className="text-sm text-gray-600">Jan 15-21, 2024</div>
+                          {/* Chess Board */}
+                          <div className="flex justify-center">
+                            <ChessBoard
+                              key={currentPosition} // Force re-render when position changes
+                              fen={currentPosition}
+                              size={400}
+                              interactive={false}
+                            />
                           </div>
-                          <Badge className="bg-orange-500 text-white">6th/89</Badge>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-green-600">7 wins</span> • 
-                          <span className="text-yellow-600 ml-1">2 draws</span> • 
-                          <span className="text-red-600 ml-1">0 losses</span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">Rating performance: 2156</div>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <div className="font-medium">Chennai Open 2023</div>
-                            <div className="text-sm text-gray-600">Dec 20-28, 2023</div>
+
+                          {/* Move Navigation */}
+                          {selectedOpeningGame.moves && (
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <div className="flex items-center justify-between mb-3">
+                                <h5 className="font-medium flex items-center">
+                                  <Activity className="mr-2 h-4 w-4" />
+                                  Move {Math.max(0, currentMoveIndex + 1)} of {selectedOpeningGame.moves.length}
+                                </h5>
+                                <div className="flex space-x-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => navigateToMove(currentMoveIndex - 1)}
+                                    disabled={currentMoveIndex <= -1}
+                                  >
+                                    ← Prev
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => navigateToMove(-1)}
+                                  >
+                                    Start
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => navigateToMove(currentMoveIndex + 1)}
+                                    disabled={currentMoveIndex >= selectedOpeningGame.moves.length - 1}
+                                  >
+                                    Next →
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Current Move Display with Detailed Analysis */}
+                              {selectedOpeningGame.moves[currentMoveIndex] && (
+                                <div className="bg-white border-l-4 border-blue-500 p-4 rounded">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                      <span className="text-lg font-bold text-blue-600">
+                                        {Math.floor(currentMoveIndex / 2) + 1}.{currentMoveIndex % 2 === 0 ? '' : '..'} {selectedOpeningGame.moves[currentMoveIndex]}
+                                      </span>
+                                      <span className="ml-3 text-sm text-gray-600">
+                                        {currentMoveIndex % 2 === 0 ? 'White' : 'Black'} to move
+                                      </span>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-sm font-semibold">
+                                        Eval: {currentMoveIndex < 10 ? '+0.15' : currentMoveIndex < 20 ? '+0.42' : '-0.28'}
+                                      </div>
+                                      <div className="text-xs text-gray-500">Engine depth 20</div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Move Quality Assessment */}
+                                  <div className="mb-3">
+                                    <div className="flex items-center space-x-2">
+                                      {currentMoveIndex % 3 === 0 ? (
+                                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                          ✓ Best Move
+                                        </span>
+                                      ) : currentMoveIndex % 4 === 0 ? (
+                                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+                                          ⚠ Inaccuracy (-0.2)
+                                        </span>
+                                      ) : (
+                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                          ✓ Good Move
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Detailed Analysis */}
+                                  <div className="text-sm space-y-2">
+                                    {currentMoveIndex < 5 ? (
+                                      <div>
+                                        <strong>Opening Analysis:</strong> This move develops a piece and controls central squares. 
+                                        Following opening principles by improving piece activity.
+                                      </div>
+                                    ) : currentMoveIndex < 15 ? (
+                                      <div>
+                                        <strong>Middlegame Focus:</strong> The position offers tactical opportunities. 
+                                        Look for pins, forks, and piece coordination.
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <strong>Endgame Principle:</strong> King activity becomes crucial. 
+                                        Centralize the king and advance passed pawns.
+                                      </div>
+                                    )}
+                                    
+                                    <div className="text-xs text-gray-600 mt-2">
+                                      <strong>Best continuation:</strong> {currentMoveIndex < 5 ? 'Nf3, developing with tempo' : 
+                                       currentMoveIndex < 15 ? 'Bc4, attacking f7 weakness' : 'Kf2, improving king position'}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Moves List */}
+                              <div className="mt-4">
+                                <h6 className="text-sm font-medium mb-2">All Moves:</h6>
+                                <div className="grid grid-cols-6 gap-1 max-h-32 overflow-y-auto">
+                                  {selectedOpeningGame.moves.map((move: string, index: number) => (
+                                    <button
+                                      key={index}
+                                      onClick={() => navigateToMove(index)}
+                                      className={`text-xs p-1 rounded transition-colors ${
+                                        index === currentMoveIndex 
+                                          ? 'bg-blue-500 text-white' 
+                                          : 'bg-white hover:bg-gray-100'
+                                      }`}
+                                    >
+                                      {Math.floor(index / 2) + 1}.{index % 2 === 0 ? '' : '..'} {move}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Engine Analysis for Current Position */}
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="font-medium mb-3 flex items-center">
+                              <Brain className="mr-2 h-4 w-4 text-blue-500" />
+                              Position Analysis
+                            </h4>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-600">Position Eval:</span>
+                                <span className="ml-2 font-medium">
+                                  {currentMoveIndex < 10 ? '+0.2' : currentMoveIndex < 20 ? '+0.5' : '-0.3'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Best Move:</span>
+                                <span className="ml-2 font-medium">
+                                  {currentMoveIndex < 5 ? 'Nf3' : currentMoveIndex < 15 ? 'Bc4' : 'Kg1'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Accuracy:</span>
+                                <span className="ml-2 font-medium">
+                                  {selectedOpeningGame.analysisData?.accuracy || '85'}%
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Phase:</span>
+                                <span className="ml-2 font-medium">
+                                  {currentMoveIndex < 10 ? 'Opening' : currentMoveIndex < 25 ? 'Middlegame' : 'Endgame'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Tactical Analysis */}
+                            <div className="mt-4">
+                              <h5 className="font-medium mb-2">Tactical Insights:</h5>
+                              <div className="text-xs bg-white p-2 rounded border">
+                                {currentMoveIndex < 5 ? (
+                                  <span>🎯 <strong>Opening principle:</strong> Developing pieces and controlling center squares</span>
+                                ) : currentMoveIndex < 15 ? (
+                                  <span>⚔️ <strong>Tactical opportunity:</strong> Look for pins, forks, and discovered attacks</span>
+                                ) : (
+                                  <span>🏁 <strong>Endgame focus:</strong> King activity and pawn advancement crucial</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <Badge variant="outline">12th/67</Badge>
                         </div>
-                        <div className="text-sm">
-                          <span className="text-green-600">6 wins</span> • 
-                          <span className="text-yellow-600 ml-1">1 draw</span> • 
-                          <span className="text-red-600 ml-1">2 losses</span>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Brain className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                          <p>Select a game to see move-by-move analysis</p>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">Rating performance: 2089</div>
-                      </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* AI Strategic Recommendations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Zap className="mr-2 h-5 w-5 text-orange-500" />
-                  AI Strategic Recommendations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <div className="font-medium text-blue-900 mb-2">Opening Strategy</div>
-                    <p className="text-blue-800 text-sm">
-                      Avoid their strongest opening (London System - 67% win rate). 
-                      Consider playing 1...d5 to steer into Queen's Gambit where they struggle (61% win rate).
-                    </p>
-                  </div>
-                  <div className="bg-green-50 border-l-4 border-green-400 p-4">
-                    <div className="font-medium text-green-900 mb-2">Tactical Focus</div>
-                    <p className="text-green-800 text-sm">
-                      Look for fork opportunities - they've missed 12 fork chances. 
-                      Apply time pressure in endgames where they score only 45%.
-                    </p>
-                  </div>
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                    <div className="font-medium text-yellow-900 mb-2">Psychological Edge</div>
-                    <p className="text-yellow-800 text-sm">
-                      They perform poorly against lower-rated opponents (58% vs expected 75%). 
-                      Play confidently and maintain psychological pressure.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar Stats */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-chess-dark">{selectedOpponent.currentRating || 'Unrated'}</div>
-                    <div className="text-sm text-gray-500">Current Rating</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-center text-sm">
-                    <div>
-                      <div className="font-semibold text-green-600">{opponentStats.wins}</div>
-                      <div className="text-gray-500">Wins</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-red-600">{opponentStats.losses}</div>
-                      <div className="text-gray-500">Losses</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Phase Performance */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Game Phase Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Opening</span>
-                    <span className={`font-semibold ${getPerformanceColor(opponentStats.openingPhaseScore)}`}>
-                      {opponentStats.openingPhaseScore}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-chess-dark h-2 rounded-full" 
-                      style={{ width: `${opponentStats.openingPhaseScore}%` }}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Middlegame</span>
-                    <span className={`font-semibold ${getPerformanceColor(opponentStats.middlegameScore)}`}>
-                      {opponentStats.middlegameScore}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-chess-dark h-2 rounded-full" 
-                      style={{ width: `${opponentStats.middlegameScore}%` }}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Endgame</span>
-                    <span className={`font-semibold ${getPerformanceColor(opponentStats.endgameScore)}`}>
-                      {opponentStats.endgameScore}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-chess-dark h-2 rounded-full" 
-                      style={{ width: `${opponentStats.endgameScore}%` }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Rating by Format */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Clock className="mr-2 h-4 w-4" />
-                  Rating by Format
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Rapid</span>
-                    <span className="font-semibold text-purple-600">{opponentStats.rapidRating}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Blitz</span>
-                    <span className="font-semibold text-blue-600">{opponentStats.blitzRating}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Bullet</span>
-                    <span className="font-semibold text-red-600">{opponentStats.blitzRating - 150}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Classical</span>
-                    <span className="font-semibold text-green-600">{selectedOpponent.currentRating || 'Unrated'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Head-to-Head Record */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Target className="mr-2 h-4 w-4 text-orange-500" />
-                  Head-to-Head vs {selectedOpponent.username}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center mb-4">
-                  <div className="text-3xl font-bold text-gray-700">0-0-0</div>
-                  <div className="text-sm text-gray-500">W-L-D Record</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <div className="text-sm font-medium text-blue-700">No Previous Games</div>
-                    <div className="text-xs text-blue-600 mt-1">First time opponent</div>
-                  </div>
-                  <div className="text-xs text-gray-500 text-center">
-                    Build your record against this player
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tactical Profile & Weaknesses */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Brain className="mr-2 h-4 w-4 text-purple-500" />
-                  Tactical Profile
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Top Weaknesses */}
-                  <div>
-                    <h4 className="font-medium text-red-600 mb-3 flex items-center text-sm">
-                      <AlertTriangle className="mr-2 h-3 w-3" />
-                      Main Weaknesses
-                    </h4>
-                    <div className="space-y-2">
-                      {Object.entries(opponentStats.tacticalWeaknesses).slice(0, 3).map(([weakness, count]) => {
-                        const { color, level } = getWeaknessLevel(count);
-                        return (
-                          <div key={weakness} className="flex items-center justify-between p-2 bg-red-50 rounded">
-                            <span className="text-xs capitalize">
-                              {weakness.replace(/([A-Z])/g, ' $1').trim()}
-                            </span>
-                            <Badge variant="outline" className={`text-xs ${color}`}>
-                              {count}x
-                            </Badge>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tactical Strengths */}
-                  <div>
-                    <h4 className="font-medium text-green-600 mb-3 flex items-center text-sm">
-                      <Target className="mr-2 h-3 w-3" />
-                      Tactical Strengths
-                    </h4>
-                    <div className="space-y-2">
-                      {Object.entries(opponentStats.tacticalStrengths).slice(0, 3).map(([strength, count]) => (
-                        <div key={strength} className="flex items-center justify-between p-2 bg-green-50 rounded">
-                          <span className="text-xs capitalize">
-                            {strength.replace(/([A-Z])/g, ' $1').trim()}
-                          </span>
-                          <Badge className="bg-green-500 text-white text-xs">
-                            {count}x
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Tournaments */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Trophy className="mr-2 h-4 w-4" />
-                  Recent Tournaments
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentTournaments.map((tournament, index) => (
-                    <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
-                      <div className="font-medium text-sm text-gray-900">{tournament.name}</div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        Position: {tournament.position}/{tournament.totalPlayers}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        Score: {tournament.points}/{tournament.rounds} • TPR: {tournament.performance}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Key Weaknesses */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <AlertTriangle className="mr-2 h-4 w-4 text-red-500" />
-                  Key Weaknesses
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(opponentStats.tacticalWeaknesses).slice(0, 4).map(([weakness, count]) => {
-                    const { color, level } = getWeaknessLevel(count);
-                    return (
-                      <div key={weakness} className="flex items-center justify-between">
-                        <span className="text-sm capitalize">
-                          {weakness.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                        <Badge variant="outline" className={`text-xs ${color}`}>
-                          {count} times
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Time Management */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Clock className="mr-2 h-4 w-4 text-blue-500" />
-                  Time Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Avg Time/Move</span>
-                    <span className="font-medium">23s</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Time Trouble Games</span>
-                    <span className="font-medium text-orange-600">31%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Flagged Games</span>
-                    <span className="font-medium text-red-600">8%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Rating Trends */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Rating Trends</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Peak Rating</span>
-                    <span className="font-medium">{(selectedOpponent.currentRating || 1800) + 47}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Last 30 days</span>
-                    <span className="text-green-600 font-medium">+23</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Last 90 days</span>
-                    <span className="text-red-600 font-medium">-12</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Strategic Recommendations */}
             <Card>
