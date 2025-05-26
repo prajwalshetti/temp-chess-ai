@@ -1392,13 +1392,34 @@ export default function OpponentScout() {
                     <div>
                       <h4 className="font-medium text-purple-900 mb-2">Current Form Analysis</h4>
                       <div className="text-purple-800 text-sm">
-                        <p className="mb-2">
-                          <strong>Trending upward:</strong> Won 7 of last 10 games, gaining 23 rating points in last month.
-                        </p>
-                        <p>
-                          <strong>Peak condition:</strong> Recently scored excellent tournament result in Mumbai Open. 
-                          Expect strong preparation and confidence.
-                        </p>
+                        {lichessGames.length > 0 ? (
+                          <>
+                            <p className="mb-2">
+                              <strong>Recent Performance:</strong> {(() => {
+                                const last10 = lichessGames.slice(0, 10);
+                                const playerWins = last10.filter(game => {
+                                  const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
+                                  return (playerColor === 'white' && game.result === '1-0') || 
+                                         (playerColor === 'black' && game.result === '0-1');
+                                }).length;
+                                return `Won ${playerWins} of last ${last10.length} games`;
+                              })()} ({Math.round((lichessGames.slice(0, 10).filter(game => {
+                                const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
+                                return (playerColor === 'white' && game.result === '1-0') || 
+                                       (playerColor === 'black' && game.result === '0-1');
+                              }).length / Math.min(10, lichessGames.length)) * 100)}% win rate).
+                            </p>
+                            <p>
+                              <strong>Tournament Activity:</strong> {lichessTournaments.length > 0 ? (
+                                `Active player with ${lichessTournaments.length} recent tournaments. Latest: ${lichessTournaments[0]?.name} (${lichessTournaments[0]?.position}/${lichessTournaments[0]?.players}).`
+                              ) : (
+                                'Limited recent tournament activity - may focus on casual play.'
+                              )}
+                            </p>
+                          </>
+                        ) : (
+                          <p>Loading current form analysis from Lichess data...</p>
+                        )}
                       </div>
                     </div>
                   </div>
