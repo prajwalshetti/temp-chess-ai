@@ -1121,6 +1121,7 @@ export default function OpponentScout() {
                           {/* Chess Board */}
                           <div className="flex justify-center">
                             <ChessBoard
+                              key={currentPosition} // Force re-render when position changes
                               fen={currentPosition}
                               size={400}
                               interactive={false}
