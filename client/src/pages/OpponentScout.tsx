@@ -963,95 +963,17 @@ export default function OpponentScout() {
                                   </div>
                                 </div>
 
-                                {/* Detailed Tactical Analysis */}
+                                {/* Tactical Analysis */}
                                 <div className="mt-4">
-                                  <h5 className="font-medium mb-3">Tactical Insights:</h5>
-                                  
-                                  {/* Move Analysis - Similar to DecodeChess */}
-                                  <div className="space-y-3">
-                                    {/* Current Move Analysis */}
-                                    <div className="bg-white border-l-4 border-blue-500 p-3 rounded">
-                                      <div className="font-medium text-sm mb-2">
-                                        {selectedOpeningGame.moves[currentMoveIndex]} {currentMoveIndex < 5 ? 'is a book move' : currentMoveIndex < 15 ? 'is accurate' : 'is inaccurate'} 
-                                        ({currentMoveIndex < 10 ? '+0.2' : currentMoveIndex < 20 ? '+0.5' : '-0.3'}). 
-                                        {currentMoveIndex < 5 ? ' It follows opening principles effectively.' : 
-                                         currentMoveIndex < 15 ? ' It maintains a slight advantage.' : 
-                                         ' It allows opponent counterplay.'}
-                                      </div>
-                                      
-                                      <div className="text-xs space-y-2">
-                                        <div className="flex items-start">
-                                          <span className="text-red-600 mr-2">Cons:</span>
-                                          <div>
-                                            {currentMoveIndex < 5 ? (
-                                              <div>• {selectedOpeningGame.moves[currentMoveIndex]} does not prevent opponent's natural development</div>
-                                            ) : currentMoveIndex < 15 ? (
-                                              <div>• {selectedOpeningGame.moves[currentMoveIndex]} allows opponent tactical possibilities</div>
-                                            ) : (
-                                              <div>• {selectedOpeningGame.moves[currentMoveIndex]} weakens king safety and loses material advantage</div>
-                                            )}
-                                          </div>
-                                        </div>
-                                        
-                                        <div className="flex items-start">
-                                          <span className="text-green-600 mr-2">Pros:</span>
-                                          <div>
-                                            {currentMoveIndex < 5 ? (
-                                              <div>• {selectedOpeningGame.moves[currentMoveIndex]} develops pieces and controls center squares</div>
-                                            ) : currentMoveIndex < 15 ? (
-                                              <div>• {selectedOpeningGame.moves[currentMoveIndex]} creates tactical threats and improves piece coordination</div>
-                                            ) : (
-                                              <div>• {selectedOpeningGame.moves[currentMoveIndex]} activates pieces for counterplay</div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="mt-3 pt-2 border-t">
-                                        <div className="text-xs">
-                                          <span className="font-medium">The best move is </span>
-                                          <span className="font-bold text-blue-600">
-                                            {currentMoveIndex < 5 ? 'Nf3' : currentMoveIndex < 15 ? 'Be2' : 'Kg1'}
-                                          </span>
-                                          <span>. It:</span>
-                                        </div>
-                                        <div className="text-xs mt-1 space-y-1">
-                                          {currentMoveIndex < 5 ? (
-                                            <>
-                                              <div>• Develops the knight to its optimal square</div>
-                                              <div>• Controls important central squares e5 and d4</div>
-                                              <div>• Prepares castling and maintains opening initiative</div>
-                                            </>
-                                          ) : currentMoveIndex < 15 ? (
-                                            <>
-                                              <div>• Improves bishop development and king safety</div>
-                                              <div>• Maintains central control and piece coordination</div>
-                                              <div>• Prevents opponent tactical threats</div>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <div>• Secures king safety in a critical position</div>
-                                              <div>• Allows rook activation and defensive resources</div>
-                                              <div>• Prevents immediate tactical threats</div>
-                                            </>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Strategic Assessment */}
-                                    <div className="bg-gray-50 p-3 rounded">
-                                      <div className="font-medium text-xs mb-2">Strategic Assessment:</div>
-                                      <div className="text-xs">
-                                        {currentMoveIndex < 5 ? (
-                                          <span>Opening phase - Focus on piece development, center control, and king safety. Typical opening patterns suggest continuing with natural development.</span>
-                                        ) : currentMoveIndex < 15 ? (
-                                          <span>Middle game transition - Tactical themes include piece coordination, pawn structure, and initiative. Look for tactical motifs like pins, forks, and discoveries.</span>
-                                        ) : (
-                                          <span>Complex middle game - Material imbalances and tactical complications. King safety becomes critical, and precise calculation is required.</span>
-                                        )}
-                                      </div>
-                                    </div>
+                                  <h5 className="font-medium mb-2">Tactical Insights:</h5>
+                                  <div className="text-xs bg-white p-2 rounded border">
+                                    {currentMoveIndex < 5 ? (
+                                      <span>🎯 <strong>Opening principle:</strong> Developing pieces and controlling center squares</span>
+                                    ) : currentMoveIndex < 15 ? (
+                                      <span>⚔️ <strong>Tactical opportunity:</strong> Look for pins, forks, and discovered attacks</span>
+                                    ) : (
+                                      <span>🏁 <strong>Endgame focus:</strong> King activity and pawn advancement crucial</span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1070,228 +992,56 @@ export default function OpponentScout() {
               </Card>
             )}
 
-            {/* Head-to-Head Record */}
-            {headToHeadData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Eye className="mr-2 h-5 w-5 text-blue-500" />
-                    Head-to-Head Record vs {selectedOpponent.username}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <div className="text-center mb-4">
-                        <div className="text-3xl font-bold text-gray-900 mb-2">
-                          {headToHeadData.gamesPlayed}
-                        </div>
-                        <div className="text-sm text-gray-600">Games Played</div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                        <div>
-                          <div className="font-semibold text-green-600">{headToHeadData.playerWins}</div>
-                          <div className="text-gray-500">Your Wins</div>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-600">{headToHeadData.draws}</div>
-                          <div className="text-gray-500">Draws</div>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-red-600">{headToHeadData.opponentWins}</div>
-                          <div className="text-gray-500">Their Wins</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="font-medium mb-3">Last Encounter</h4>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <div className="font-medium">{headToHeadData.lastEncounter.date}</div>
-                        <div className="text-sm text-gray-600">{headToHeadData.lastEncounter.result}</div>
-                        <div className="text-sm">Your Best Opening Against Them:</div>
-                        <div className="font-medium text-blue-600">{headToHeadData.bestOpening}</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Tactical Profile & Weaknesses */}
+            {/* Recent Performance & Form */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Brain className="mr-2 h-5 w-5 text-purple-500" />
-                  Tactical Profile & Weaknesses
+                  <Activity className="mr-2 h-5 w-5 text-purple-500" />
+                  Recent Form & Tournament Results
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Weaknesses to Exploit */}
+                  {/* Recent Games */}
                   <div>
-                    <h4 className="font-medium text-red-600 mb-4 flex items-center">
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Weaknesses to Exploit
-                    </h4>
-                    <div className="space-y-3">
-                      {Object.entries(opponentStats.tacticalWeaknesses).slice(0, 6).map(([weakness, count]) => {
-                        const { color, level } = getWeaknessLevel(count);
+                    <h4 className="font-medium mb-4">Last 10 Games</h4>
+                    <div className="space-y-2">
+                      {lichessGames.slice(0, 10).map((game, index) => {
+                        const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
+                        const opponent = playerColor === 'white' ? game.blackPlayer : game.whitePlayer;
+                        const opponentRating = playerColor === 'white' ? game.blackRating : game.whiteRating;
+                        const result = game.result === '1-0' ? (playerColor === 'white' ? 'W' : 'L') :
+                                     game.result === '0-1' ? (playerColor === 'black' ? 'W' : 'L') : 'D';
+                        
                         return (
-                          <div key={weakness} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                            <div>
-                              <div className="font-medium text-gray-900 capitalize">
-                                {weakness.replace(/([A-Z])/g, ' $1').trim()}
+                          <div key={index} className="flex items-center justify-between p-2 border rounded">
+                            <div className="flex items-center space-x-3">
+                              <Badge className={
+                                result === 'W' ? 'bg-green-500' : 
+                                result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
+                              }>
+                                {result}
+                              </Badge>
+                              <div>
+                                <div className="font-medium text-sm">{opponent}</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(game.createdAt).toLocaleDateString()}
+                                </div>
                               </div>
-                              <div className={`text-sm ${color}`}>{level} weakness</div>
                             </div>
-                            <Badge variant="destructive">{count}</Badge>
+                            <div className="text-sm font-medium">{opponentRating}</div>
                           </div>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Their Strengths */}
+                  {/* Tournament Performance */}
                   <div>
-                    <h4 className="font-medium text-green-600 mb-4 flex items-center">
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Their Strengths
-                    </h4>
+                    <h4 className="font-medium mb-4">Recent Tournaments</h4>
                     <div className="space-y-3">
-                      {Object.entries(opponentStats.tacticalStrengths).map(([strength, count]) => (
-                        <div key={strength} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                          <div>
-                            <div className="font-medium text-gray-900 capitalize">
-                              {strength.replace(/([A-Z])/g, ' $1').trim()}
-                            </div>
-                            <div className="text-sm text-green-600">Strong execution</div>
-                          </div>
-                          <Badge variant="default" className="bg-green-500">{count}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Strategic Recommendations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Zap className="mr-2 h-5 w-5 text-orange-500" />
-                  AI Strategic Recommendations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <div className="font-medium text-blue-900 mb-2">Opening Strategy</div>
-                    <p className="text-blue-800 text-sm">
-                      Avoid their strongest opening (London System - 67% win rate). 
-                      Consider playing 1...d5 to steer into Queen's Gambit where they struggle (61% win rate).
-                    </p>
-                  </div>
-                  <div className="bg-green-50 border-l-4 border-green-400 p-4">
-                    <div className="font-medium text-green-900 mb-2">Tactical Focus</div>
-                    <p className="text-green-800 text-sm">
-                      Look for fork opportunities - they've missed 12 fork chances. 
-                      Apply time pressure in endgames where they score only 45%.
-                    </p>
-                  </div>
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                    <div className="font-medium text-yellow-900 mb-2">Time Management</div>
-                    <p className="text-yellow-800 text-sm">
-                      They struggle with time management (25 time trouble instances). 
-                      Aim for complex middlegame positions.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar Stats */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-chess-dark">{selectedOpponent.currentRating}</div>
-                    <div className="text-sm text-gray-500">Current Rating</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-center text-sm">
-                    <div>
-                      <div className="font-semibold text-green-600">{opponentStats.wins}</div>
-                      <div className="text-gray-500">Wins</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-red-600">{opponentStats.losses}</div>
-                      <div className="text-gray-500">Losses</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Phase Performance */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Game Phase Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Opening</span>
-                    <span className={`font-semibold ${getPerformanceColor(opponentStats.openingPhaseScore)}`}>
-                      {opponentStats.openingPhaseScore}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-chess-dark h-2 rounded-full" 
-                      style={{ width: `${opponentStats.openingPhaseScore}%` }}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Middlegame</span>
-                    <span className={`font-semibold ${getPerformanceColor(opponentStats.middlegameScore)}`}>
-                      {opponentStats.middlegameScore}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-chess-dark h-2 rounded-full" 
-                      style={{ width: `${opponentStats.middlegameScore}%` }}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Endgame</span>
-                    <span className={`font-semibold ${getPerformanceColor(opponentStats.endgameScore)}`}>
-                      {opponentStats.endgameScore}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-chess-dark h-2 rounded-full" 
-                      style={{ width: `${opponentStats.endgameScore}%` }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                      {lichessTournaments.length > 0 ? (
+                        lichessTournaments.slice(0, 5).map((tournament, index) => (
                           <div key={index} className="p-3 border rounded-lg">
                             <div className="flex justify-between items-start mb-2">
                               <div>
@@ -1707,7 +1457,53 @@ export default function OpponentScout() {
               </Card>
             )}
 
-
+            {/* Recent Performance & Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Activity className="mr-2 h-5 w-5 text-purple-500" />
+                  Recent Form & Tournament Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {lichessTournaments.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {lichessTournaments.slice(0, 6).map((tournament, index) => (
+                        <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium text-sm truncate mr-2">{tournament.name}</div>
+                            <Badge variant={tournament.status === 'finished' ? 'default' : 'secondary'}>
+                              {tournament.status}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <div>📅 {new Date(tournament.date).toLocaleDateString()}</div>
+                            <div>⏱️ {tournament.timeControl}</div>
+                            <div>👥 {tournament.players} players</div>
+                            {tournament.userPosition && (
+                              <div className="text-blue-600 font-medium">
+                                🏆 Position: #{tournament.userPosition}
+                              </div>
+                            )}
+                            {tournament.userPerformance && (
+                              <div className="text-green-600 font-medium">
+                                📊 Performance: {tournament.userPerformance}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Trophy className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                    <p>No recent tournament data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Strategic Recommendations */}
             <Card>
@@ -1821,9 +1617,194 @@ export default function OpponentScout() {
               </CardContent>
             </Card>
 
+            {/* Rating by Format */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Clock className="mr-2 h-4 w-4" />
+                  Rating by Format
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Rapid</span>
+                    <span className="font-semibold text-purple-600">{opponentStats.rapidRating}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Blitz</span>
+                    <span className="font-semibold text-blue-600">{opponentStats.blitzRating}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Bullet</span>
+                    <span className="font-semibold text-red-600">{opponentStats.blitzRating - 150}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Classical</span>
+                    <span className="font-semibold text-green-600">{selectedOpponent.currentRating}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
+            {/* Head-to-Head Record */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Target className="mr-2 h-4 w-4 text-orange-500" />
+                  Head-to-Head vs {selectedOpponent.username}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center mb-4">
+                  <div className="text-3xl font-bold text-gray-700">0-0-0</div>
+                  <div className="text-sm text-gray-500">W-L-D Record</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <div className="text-sm font-medium text-blue-700">No Previous Games</div>
+                    <div className="text-xs text-blue-600 mt-1">First time opponent</div>
+                  </div>
+                  <div className="text-xs text-gray-500 text-center">
+                    Build your record against this player
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
+            {/* Tactical Profile & Weaknesses */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="mr-2 h-4 w-4 text-purple-500" />
+                  Tactical Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Top Weaknesses */}
+                  <div>
+                    <h4 className="font-medium text-red-600 mb-3 flex items-center text-sm">
+                      <AlertTriangle className="mr-2 h-3 w-3" />
+                      Main Weaknesses
+                    </h4>
+                    <div className="space-y-2">
+                      {Object.entries(opponentStats.tacticalWeaknesses).slice(0, 3).map(([weakness, count]) => {
+                        const { color, level } = getWeaknessLevel(count);
+                        return (
+                          <div key={weakness} className="flex items-center justify-between p-2 bg-red-50 rounded">
+                            <span className="text-xs capitalize">
+                              {weakness.replace(/([A-Z])/g, ' $1').trim()}
+                            </span>
+                            <Badge variant="outline" className={`text-xs ${color}`}>
+                              {count}x
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
+                  {/* Tactical Strengths */}
+                  <div>
+                    <h4 className="font-medium text-green-600 mb-3 flex items-center text-sm">
+                      <Target className="mr-2 h-3 w-3" />
+                      Tactical Strengths
+                    </h4>
+                    <div className="space-y-2">
+                      {Object.entries(opponentStats.tacticalStrengths).slice(0, 3).map(([strength, count]) => (
+                        <div key={strength} className="flex items-center justify-between p-2 bg-green-50 rounded">
+                          <span className="text-xs capitalize">
+                            {strength.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                          <Badge className="bg-green-500 text-white text-xs">
+                            {count}x
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Tournaments */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Recent Tournaments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentTournaments.map((tournament, index) => (
+                    <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
+                      <div className="font-medium text-sm text-gray-900">{tournament.name}</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        Position: {tournament.position}/{tournament.totalPlayers}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        Score: {tournament.points}/{tournament.rounds} • TPR: {tournament.performance}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Key Weaknesses */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <AlertTriangle className="mr-2 h-4 w-4 text-red-500" />
+                  Key Weaknesses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(opponentStats.tacticalWeaknesses).slice(0, 4).map(([weakness, count]) => {
+                    const { color, level } = getWeaknessLevel(count);
+                    return (
+                      <div key={weakness} className="flex items-center justify-between">
+                        <span className="text-sm capitalize">
+                          {weakness.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <Badge variant="outline" className={`text-xs ${color}`}>
+                          {count} times
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Time Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Clock className="mr-2 h-4 w-4 text-blue-500" />
+                  Time Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Avg Time/Move</span>
+                    <span className="font-medium">23s</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Time Trouble Games</span>
+                    <span className="font-medium text-orange-600">31%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Flagged Games</span>
+                    <span className="font-medium text-red-600">8%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Rating Trends */}
             <Card>
