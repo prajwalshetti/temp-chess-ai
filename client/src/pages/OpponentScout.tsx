@@ -44,33 +44,90 @@ export default function OpponentScout() {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [currentPosition, setCurrentPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
+  // Detect opening from moves
+  const detectOpening = (moves: string[]) => {
+    if (!moves || moves.length < 3) return "Opening Analysis";
+    
+    const moveStr = moves.slice(0, 6).join(' ').toLowerCase();
+    
+    // Scotch Opening variations
+    if (moveStr.includes('e4 e5 nf3') && moveStr.includes('d4')) {
+      return "Scotch Opening";
+    }
+    if (moveStr.includes('e4 e5 nf3 nc6 d4')) {
+      return "Scotch Game";
+    }
+    
+    // Italian Game
+    if (moveStr.includes('e4 e5 nf3 nc6 bc4')) {
+      return "Italian Game";
+    }
+    
+    // Spanish Opening (Ruy Lopez)
+    if (moveStr.includes('e4 e5 nf3 nc6 bb5')) {
+      return "Spanish Opening (Ruy Lopez)";
+    }
+    
+    // French Defense
+    if (moveStr.includes('e4 e6')) {
+      return "French Defense";
+    }
+    
+    // Sicilian Defense
+    if (moveStr.includes('e4 c5')) {
+      return "Sicilian Defense";
+    }
+    
+    // Queen's Gambit
+    if (moveStr.includes('d4 d5 c4')) {
+      return "Queen's Gambit";
+    }
+    
+    // King's Indian Defense
+    if (moveStr.includes('d4 nf6 c4 g6')) {
+      return "King's Indian Defense";
+    }
+    
+    // English Opening
+    if (moves[0].toLowerCase() === 'c4') {
+      return "English Opening";
+    }
+    
+    // Basic categorization
+    if (moves[0].toLowerCase() === 'e4') {
+      return "King's Pawn Opening";
+    }
+    if (moves[0].toLowerCase() === 'd4') {
+      return "Queen's Pawn Opening";
+    }
+    if (moves[0].toLowerCase() === 'nf3') {
+      return "Réti Opening";
+    }
+    
+    return moves[0] + " Opening";
+  };
+
   // Handle opening click to show recent games
   const handleOpeningClick = (opening: any) => {
     setSelectedOpening(opening);
     
-    // Filter games for this specific opening (e.g., e4 games)
+    // Filter games for this specific opening
     const gamesWithOpening = lichessGames.filter(game => {
-      if (opening.name.toLowerCase().includes('e4') || opening.name.toLowerCase().includes("king's pawn")) {
-        return game.moves && game.moves.length > 0 && game.moves[0] === 'e4';
-      }
-      if (opening.name.toLowerCase().includes('d4') || opening.name.toLowerCase().includes("queen's pawn")) {
-        return game.moves && game.moves.length > 0 && game.moves[0] === 'd4';
-      }
-      if (opening.name.toLowerCase().includes('nf3')) {
-        return game.moves && game.moves.length > 0 && game.moves[0] === 'Nf3';
-      }
-      // For other openings, match by name
-      return game.opening && game.opening.toLowerCase().includes(opening.name.toLowerCase());
-    }).slice(0, 10); // Limit to 10 games
+      if (!game.moves || game.moves.length === 0) return false;
+      
+      const gameOpening = detectOpening(game.moves);
+      return gameOpening.toLowerCase().includes(opening.name.toLowerCase()) ||
+             opening.name.toLowerCase().includes(gameOpening.toLowerCase());
+    }).slice(0, 10);
     
     setOpeningGames(gamesWithOpening);
-    setSelectedOpeningGame(null); // Reset selected game
+    setSelectedOpeningGame(null);
   };
 
   // Handle game selection for move-by-move analysis
   const handleGameSelection = (game: any) => {
     setSelectedOpeningGame(game);
-    setCurrentMoveIndex(0);
+    setCurrentMoveIndex(-1); // Start at -1 so first move shows starting position
     setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   };
 
@@ -83,14 +140,28 @@ export default function OpponentScout() {
     // Calculate the position after the specified move
     try {
       const chess = new Chess();
+      
+      // If moveIndex is -1 or 0, show starting position
+      if (moveIndex < 0) {
+        setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        return;
+      }
+      
+      // Play moves up to the current index
       for (let i = 0; i <= moveIndex; i++) {
         if (selectedOpeningGame.moves[i]) {
-          chess.move(selectedOpeningGame.moves[i]);
+          const move = selectedOpeningGame.moves[i];
+          try {
+            chess.move(move);
+          } catch (moveError) {
+            console.log(`Invalid move: ${move} at index ${i}`);
+            break;
+          }
         }
       }
       setCurrentPosition(chess.fen());
     } catch (error) {
-      // If move calculation fails, show starting position
+      console.log("Error calculating position:", error);
       setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
   };
@@ -1024,7 +1095,7 @@ export default function OpponentScout() {
                               {selectedOpeningGame.whitePlayer} vs {selectedOpeningGame.blackPlayer}
                             </h4>
                             <div className="text-sm text-blue-700">
-                              {selectedOpeningGame.result} • {selectedOpeningGame.opening || 'Opening Analysis'}
+                              {selectedOpeningGame.result} • {detectOpening(selectedOpeningGame.moves) || selectedOpening?.name || 'Opening Analysis'}
                             </div>
                           </div>
 
@@ -1043,28 +1114,28 @@ export default function OpponentScout() {
                               <div className="flex items-center justify-between mb-3">
                                 <h5 className="font-medium flex items-center">
                                   <Activity className="mr-2 h-4 w-4" />
-                                  Move {currentMoveIndex + 1} of {selectedOpeningGame.moves.length}
+                                  Move {Math.max(0, currentMoveIndex + 1)} of {selectedOpeningGame.moves.length}
                                 </h5>
                                 <div className="flex space-x-2">
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => navigateToMove(Math.max(0, currentMoveIndex - 1))}
-                                    disabled={currentMoveIndex === 0}
+                                    onClick={() => navigateToMove(currentMoveIndex - 1)}
+                                    disabled={currentMoveIndex <= -1}
                                   >
                                     ← Prev
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => navigateToMove(0)}
+                                    onClick={() => navigateToMove(-1)}
                                   >
                                     Start
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => navigateToMove(Math.min(selectedOpeningGame.moves.length - 1, currentMoveIndex + 1))}
+                                    onClick={() => navigateToMove(currentMoveIndex + 1)}
                                     disabled={currentMoveIndex >= selectedOpeningGame.moves.length - 1}
                                   >
                                     Next →
