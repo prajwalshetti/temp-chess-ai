@@ -274,32 +274,47 @@ export default function OpponentScout() {
     endgameScore: 45
   } : null;
 
-  const opponentOpenings = selectedOpponent && lichessInsights ? 
-    lichessInsights.openingRepertoire : 
-    selectedOpponent ? [
-      {
-        id: 1,
-        userId: selectedOpponent.id,
-        name: "Queen's Gambit Declined",
-        moves: "1.d4 d5 2.c4 e6",
-        color: "black",
-        gamesPlayed: 18,
-        wins: 11,
-        losses: 4,
-        draws: 3
-      },
-      {
-        id: 2,
-        userId: selectedOpponent.id,
-        name: "London System",
-        moves: "1.d4 Nf6 2.Bf4",
-        color: "white", 
-        gamesPlayed: 24,
-        wins: 16,
-        losses: 5,
-        draws: 3
+  // Generate real opening repertoire from Lichess games
+  const opponentOpenings = lichessGames.length > 0 ? (() => {
+    const openingStats: { [key: string]: { name: string, games: any[], wins: number, losses: number, draws: number, color: string } } = {};
+    
+    lichessGames.forEach(game => {
+      if (!game.moves || game.moves.length === 0) return;
+      
+      const opening = detectOpening(game.moves);
+      const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
+      const playerWon = (playerColor === 'white' && game.result === '1-0') || 
+                        (playerColor === 'black' && game.result === '0-1');
+      const isDraw = game.result === '1/2-1/2';
+      
+      if (!openingStats[opening]) {
+        openingStats[opening] = { 
+          name: opening, 
+          games: [], 
+          wins: 0, 
+          losses: 0, 
+          draws: 0,
+          color: playerColor 
+        };
       }
-    ] : [];
+      
+      openingStats[opening].games.push(game);
+      if (playerWon) openingStats[opening].wins++;
+      else if (isDraw) openingStats[opening].draws++;
+      else openingStats[opening].losses++;
+    });
+    
+    return Object.keys(openingStats).map((key, index) => ({
+      id: index + 1,
+      name: openingStats[key].name,
+      moves: openingStats[key].games[0]?.moves?.slice(0, 4).join(' ') || '',
+      color: openingStats[key].color,
+      gamesPlayed: openingStats[key].games.length,
+      wins: openingStats[key].wins,
+      losses: openingStats[key].losses,
+      draws: openingStats[key].draws
+    })).sort((a, b) => b.gamesPlayed - a.gamesPlayed);
+  })() : [];
 
   // Head-to-head analysis
   const headToHeadData = selectedOpponent ? {
