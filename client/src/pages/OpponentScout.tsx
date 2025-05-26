@@ -1210,9 +1210,6 @@ export default function OpponentScout() {
                     <Eye className="mr-2 h-5 w-5" />
                     {selectedOpening.name} - Recent Games
                   </CardTitle>
-                  <CardDescription>
-                    Analyzing {openingGames.length} games with engine evaluation
-                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
