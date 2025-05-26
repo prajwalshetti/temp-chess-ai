@@ -1408,8 +1408,8 @@ export default function OpponentScout() {
 
 
 
-            {/* Head-to-Head Record */}
-            {headToHeadData && (
+            {/* Head-to-Head Record - Hidden */}
+            {false && headToHeadData && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
