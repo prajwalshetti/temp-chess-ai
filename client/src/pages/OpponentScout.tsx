@@ -521,7 +521,36 @@ export default function OpponentScout() {
         </CardContent>
       </Card>
 
-      {selectedOpponent && opponentStats && (
+      {/* Loading State */}
+      {isLoadingLichess && (
+        <Card>
+          <CardContent className="text-center py-16">
+            <div className="animate-spin mx-auto mb-6 h-16 w-16 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+            <div className="text-xl font-semibold text-gray-700 mb-3">Analyzing {searchQuery}'s Chess Games</div>
+            <div className="text-gray-600 mb-4">Fetching recent games and tactical patterns from Lichess</div>
+            <div className="text-sm text-gray-500 mb-6">This may take 15-20 seconds for comprehensive analysis</div>
+            
+            <div className="max-w-md mx-auto bg-blue-50 p-4 rounded-lg border">
+              <div className="space-y-2 text-sm text-blue-700">
+                <div className="flex items-center justify-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                  <span>Downloading last 50 games...</span>
+                </div>
+                <div className="flex items-center justify-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                  <span>Analyzing opening repertoire...</span>
+                </div>
+                <div className="flex items-center justify-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                  <span>Generating tactical insights...</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoadingLichess && selectedOpponent && opponentStats && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Analysis */}
           <div className="lg:col-span-2 space-y-6">
