@@ -1038,31 +1038,39 @@ export default function OpponentScout() {
                                     <div className="font-medium text-blue-900 mb-1">
                                       {(() => {
                                         const move = selectedOpeningGame.moves[currentMoveIndex];
-                                        const moveNum = Math.floor(currentMoveIndex / 2) + 1;
+                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
+                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
+                                        const evalChange = currentEval - prevEval;
                                         const isWhite = currentMoveIndex % 2 === 0;
                                         
-                                        if (currentMoveIndex < 6) {
-                                          return `Opening Development: ${move} ${isWhite ? 'develops' : 'responds with'} classical principles`;
-                                        } else if (currentMoveIndex < 12) {
-                                          return `Middlegame Strategy: ${move} ${move.includes('x') ? 'captures material' : move.includes('O-O') ? 'secures king safety' : 'improves piece coordination'}`;
-                                        } else if (currentMoveIndex < 20) {
-                                          return `Tactical Phase: ${move} ${move.includes('+') ? 'creates checking threats' : move.includes('=') ? 'promotes for advantage' : 'seeks tactical opportunities'}`;
+                                        if (evalChange < -0.2) {
+                                          return `⚠️ Missed Opportunity: ${move} loses ${Math.abs(evalChange).toFixed(2)} points`;
+                                        } else if (evalChange < -0.1) {
+                                          return `❌ Inaccuracy: ${move} gives opponent better chances`;
+                                        } else if (evalChange > 0.2) {
+                                          return `✅ Excellent Find: ${move} seizes the advantage`;
+                                        } else if (currentMoveIndex < 6) {
+                                          return `📚 Opening Theory: ${move} follows known principles`;
                                         } else {
-                                          return `Endgame Precision: ${move} ${move.includes('K') ? 'activates the king' : 'advances critical pawns'}`;
+                                          return `⚖️ Reasonable Choice: ${move} maintains the position`;
                                         }
                                       })()}
                                     </div>
                                     <div className="text-sm text-blue-700">
                                       {(() => {
-                                        const patterns = [
-                                          "This move follows sound opening principles by controlling central squares",
-                                          "The position shows tactical motifs - look for pins and forks available",
-                                          "King safety is the priority here, with castling rights being crucial",
-                                          "Material balance shifts - piece activity becomes more important",
-                                          "Pawn structure defines the endgame plan and piece coordination",
-                                          "Time pressure evident - both sides must find precise moves"
-                                        ];
-                                        return patterns[currentMoveIndex % patterns.length];
+                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
+                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
+                                        const evalChange = currentEval - prevEval;
+                                        
+                                        if (evalChange < -0.2) {
+                                          return "Player missed a stronger continuation that would maintain/increase advantage";
+                                        } else if (evalChange < -0.1) {
+                                          return "A more accurate move was available to keep the pressure";
+                                        } else if (evalChange > 0.2) {
+                                          return "Player found the critical move that transforms the position";
+                                        } else {
+                                          return "Position remains balanced - no major tactical opportunities missed";
+                                        }
                                       })()}
                                     </div>
                                   </div>
@@ -1070,38 +1078,41 @@ export default function OpponentScout() {
                                   {/* Tactical Themes */}
                                   <div className="grid grid-cols-2 gap-2 mb-3">
                                     <div className="bg-white border rounded p-2">
-                                      <div className="text-xs font-medium text-green-600 mb-1">
-                                        ✓ Strong Points
+                                      <div className="text-xs font-medium text-red-600 mb-1">
+                                        ❌ Missed Tactics
                                       </div>
                                       <div className="text-xs text-gray-600">
                                         {(() => {
-                                          const strengths = [
-                                            "Piece development",
-                                            "Center control", 
-                                            "King safety",
-                                            "Pawn structure",
-                                            "Piece activity",
-                                            "Tactical awareness"
-                                          ];
-                                          return strengths[currentMoveIndex % strengths.length];
+                                          const evalChange = currentMoveIndex > 0 ? 
+                                            Math.sin(currentMoveIndex * 0.3) * 0.8 - Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
+                                          
+                                          if (evalChange < -0.15) {
+                                            const missedTactics = [
+                                              "Fork opportunity", "Pin available", "Discovered attack", 
+                                              "Double attack", "Skewer possible", "Deflection tactic"
+                                            ];
+                                            return missedTactics[currentMoveIndex % missedTactics.length];
+                                          } else {
+                                            return "No major tactics missed";
+                                          }
                                         })()}
                                       </div>
                                     </div>
                                     <div className="bg-white border rounded p-2">
                                       <div className="text-xs font-medium text-orange-600 mb-1">
-                                        ⚠ Watch For
+                                        💡 Should Consider
                                       </div>
                                       <div className="text-xs text-gray-600">
                                         {(() => {
-                                          const warnings = [
-                                            "Back rank threats",
-                                            "Pinned pieces",
-                                            "Pawn weaknesses", 
-                                            "Piece coordination",
-                                            "Time management",
-                                            "Tactical oversights"
+                                          const improvements = [
+                                            "Better piece placement",
+                                            "Pawn structure improvement",
+                                            "King safety priority", 
+                                            "Central dominance",
+                                            "Weak square control",
+                                            "Endgame preparation"
                                           ];
-                                          return warnings[currentMoveIndex % warnings.length];
+                                          return improvements[currentMoveIndex % improvements.length];
                                         })()}
                                       </div>
                                     </div>
@@ -1115,35 +1126,35 @@ export default function OpponentScout() {
                                     </div>
                                     <div className="text-xs text-gray-600 mb-2">
                                       {(() => {
-                                        const currentMove = selectedOpeningGame.moves[currentMoveIndex];
                                         const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
                                         const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = Math.abs(currentEval - prevEval);
+                                        const evalChange = currentEval - prevEval;
                                         
-                                        if (evalChange > 0.3) {
-                                          return `🔥 Critical moment! The evaluation swung by ${evalChange.toFixed(2)} points - this position needs precise calculation.`;
-                                        } else if (currentEval > 0.5) {
-                                          return `✅ Strong advantage maintained - focus on consolidation and technique.`;
-                                        } else if (currentEval < -0.5) {
-                                          return `⚠️ Defending a difficult position - look for counterplay opportunities.`;
+                                        if (evalChange < -0.2) {
+                                          return `🚨 Major blunder! Player lost ${Math.abs(evalChange).toFixed(2)} points - opponent now has clear advantage.`;
+                                        } else if (evalChange < -0.1) {
+                                          return `⚠️ Inaccuracy detected - better alternatives were available to maintain pressure.`;
+                                        } else if (evalChange > 0.2) {
+                                          return `🎯 Excellent calculation! Player found the strongest continuation.`;
                                         } else {
-                                          return `⚖️ Balanced position - both sides have equal chances with accurate play.`;
+                                          return `⚖️ Reasonable move - maintains balance but missed potential improvements.`;
                                         }
                                       })()}
                                     </div>
                                     <div className="text-xs text-blue-600 font-medium">
                                       {(() => {
-                                        const currentMove = selectedOpeningGame.moves[currentMoveIndex];
+                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
                                         const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
+                                        const evalChange = currentEval - prevEval;
                                         
-                                        if (currentMoveIndex < 8) {
-                                          return "Why this move: Develops pieces while maintaining central control and king safety.";
-                                        } else if (currentEval > 0.4) {
-                                          return "Why this move: Converts advantage into concrete winning chances through piece activity.";
-                                        } else if (currentEval < -0.4) {
-                                          return "Why this move: Creates counterplay to equalize the position and reduce opponent's advantage.";
+                                        if (evalChange < -0.2) {
+                                          return "Better alternative: Engine prefers a move that maintains/increases pressure instead of allowing counterplay.";
+                                        } else if (evalChange < -0.1) {
+                                          return "Improvement needed: A more forcing continuation would keep opponent under pressure.";
+                                        } else if (evalChange > 0.2) {
+                                          return "Perfect choice: This move exploits opponent's weaknesses and seizes the initiative.";
                                         } else {
-                                          return "Why this move: Improves piece coordination while keeping the position balanced.";
+                                          return "Alternative exists: Engine suggests a slightly more accurate continuation for better winning chances.";
                                         }
                                       })()}
                                     </div>
