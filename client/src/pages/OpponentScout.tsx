@@ -1200,48 +1200,7 @@ export default function OpponentScout() {
               </CardContent>
             </Card>
 
-            {/* Opening Repertoire */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Opening Repertoire Analysis</CardTitle>
-                <CardDescription>Click any opening to see recent games with engine evaluation</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {opponentOpenings.map((opening: any) => {
-                    const winRate = Math.round((opening.wins / opening.gamesPlayed) * 100);
-                    return (
-                      <div 
-                        key={opening.id} 
-                        className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                          selectedOpening?.id === opening.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => handleOpeningClick(opening)}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center">
-                            {opening.color === 'white' ? (
-                              <Crown className="mr-2 h-4 w-4 text-yellow-500" />
-                            ) : (
-                              <Shield className="mr-2 h-4 w-4 text-gray-800" />
-                            )}
-                            <span className="font-medium">{opening.name}</span>
-                            <Eye className="ml-2 h-3 w-3 text-gray-400" />
-                          </div>
-                          <Badge className={winRate >= 70 ? "bg-red-500" : winRate >= 50 ? "bg-yellow-500" : "bg-green-500"}>
-                            {winRate}% win rate
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-gray-600 mb-2">{opening.moves}</div>
-                        <div className="text-xs text-gray-500">
-                          {opening.gamesPlayed} games: {opening.wins}W-{opening.losses}L-{opening.draws}D
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+
 
             {/* Opening Games Analysis */}
             {selectedOpening && (
