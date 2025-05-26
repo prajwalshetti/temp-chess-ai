@@ -19,6 +19,7 @@ function Router() {
       <Route path="/games" component={GamesDatabase} />
       <Route path="/profile" component={PlayerProfile} />
       <Route path="/scout" component={OpponentScout} />
+      <Route path="/opponent-scout" component={OpponentScout} />
       <Route path="/learn" component={LearnChess} />
       <Route path="/account" component={Account} />
       <Route component={NotFound} />
