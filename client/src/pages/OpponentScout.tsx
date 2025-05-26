@@ -1640,41 +1640,6 @@ export default function OpponentScout() {
     </div>
   );
 }
-                              </div>
-                              <div>
-                                <span className="text-gray-600">Phase:</span>
-                                <span className="ml-2 font-medium">
-                                  {currentMoveIndex < 10 ? 'Opening' : currentMoveIndex < 25 ? 'Middlegame' : 'Endgame'}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Tactical Analysis */}
-                            <div className="mt-4">
-                              <h5 className="font-medium mb-2">Tactical Insights:</h5>
-                              <div className="text-xs bg-white p-2 rounded border">
-                                {currentMoveIndex < 5 ? (
-                                  <span>🎯 <strong>Opening principle:</strong> Developing pieces and controlling center squares</span>
-                                ) : currentMoveIndex < 15 ? (
-                                  <span>⚔️ <strong>Tactical opportunity:</strong> Look for pins, forks, and discovered attacks</span>
-                                ) : (
-                                  <span>🏁 <strong>Endgame focus:</strong> King activity and pawn advancement crucial</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <Brain className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                          <p>Select a game to see move-by-move analysis</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Strategic Recommendations */}
             <Card>
