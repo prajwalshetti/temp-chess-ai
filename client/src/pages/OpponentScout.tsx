@@ -28,6 +28,7 @@ import {
   Timer
 } from "lucide-react";
 import type { User, PlayerStats, Opening, Game } from "@shared/schema";
+import { ChessBoard } from "@/components/ChessBoard";
 
 export default function OpponentScout() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,6 +37,24 @@ export default function OpponentScout() {
   const [lichessGames, setLichessGames] = useState<any[]>([]);
   const [isLoadingLichess, setIsLoadingLichess] = useState(false);
   const [lichessInsights, setLichessInsights] = useState<any>(null);
+  const [selectedOpening, setSelectedOpening] = useState<any>(null);
+  const [openingGames, setOpeningGames] = useState<any[]>([]);
+  const [selectedOpeningGame, setSelectedOpeningGame] = useState<any>(null);
+
+  // Handle opening click to show recent games
+  const handleOpeningClick = (opening: any) => {
+    setSelectedOpening(opening);
+    
+    // Filter games for this specific opening
+    const gamesWithOpening = lichessGames.filter(game => 
+      game.opening && game.opening.toLowerCase().includes(opening.name.toLowerCase())
+    );
+    
+    setOpeningGames(gamesWithOpening);
+    if (gamesWithOpening.length > 0) {
+      setSelectedOpeningGame(gamesWithOpening[0]);
+    }
+  };
 
   // Handle Lichess search
   const handleLichessSearch = async () => {
@@ -871,13 +890,20 @@ export default function OpponentScout() {
             <Card>
               <CardHeader>
                 <CardTitle>Opening Repertoire Analysis</CardTitle>
+                <CardDescription>Click any opening to see recent games with engine evaluation</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {opponentOpenings.map((opening) => {
+                  {opponentOpenings.map((opening: any) => {
                     const winRate = Math.round((opening.wins / opening.gamesPlayed) * 100);
                     return (
-                      <div key={opening.id} className="border border-gray-200 rounded-lg p-4">
+                      <div 
+                        key={opening.id} 
+                        className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                          selectedOpening?.id === opening.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => handleOpeningClick(opening)}
+                      >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center">
                             {opening.color === 'white' ? (
@@ -886,6 +912,7 @@ export default function OpponentScout() {
                               <Shield className="mr-2 h-4 w-4 text-gray-800" />
                             )}
                             <span className="font-medium">{opening.name}</span>
+                            <Eye className="ml-2 h-3 w-3 text-gray-400" />
                           </div>
                           <Badge className={winRate >= 70 ? "bg-red-500" : winRate >= 50 ? "bg-yellow-500" : "bg-green-500"}>
                             {winRate}% win rate
@@ -901,6 +928,113 @@ export default function OpponentScout() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Opening Games Analysis */}
+            {selectedOpening && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Eye className="mr-2 h-5 w-5" />
+                    {selectedOpening.name} - Recent Games
+                  </CardTitle>
+                  <CardDescription>
+                    Analyzing {openingGames.length} games with engine evaluation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Games List */}
+                    <div className="lg:col-span-1">
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {openingGames.map((game, index) => (
+                          <div
+                            key={index}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                              selectedOpeningGame?.id === game.id 
+                                ? 'bg-blue-50 border-blue-500' 
+                                : 'hover:bg-gray-50'
+                            }`}
+                            onClick={() => setSelectedOpeningGame(game)}
+                          >
+                            <div className="font-medium text-sm">
+                              {game.whitePlayer} vs {game.blackPlayer}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {game.result} • {new Date(game.createdAt).toLocaleDateString()}
+                            </div>
+                            {game.analysisData && (
+                              <div className="text-xs text-blue-600 mt-1">
+                                Accuracy: {game.analysisData.accuracy}%
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chess Board and Analysis */}
+                    <div className="lg:col-span-2">
+                      {selectedOpeningGame ? (
+                        <div className="space-y-4">
+                          <div className="flex justify-center">
+                            <ChessBoard
+                              fen={selectedOpeningGame.finalPosition || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"}
+                              size={400}
+                              interactive={false}
+                            />
+                          </div>
+                          
+                          {selectedOpeningGame.analysisData && (
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h4 className="font-medium mb-3 flex items-center">
+                                <Brain className="mr-2 h-4 w-4 text-blue-500" />
+                                Engine Analysis
+                              </h4>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-600">Accuracy:</span>
+                                  <span className="ml-2 font-medium">{selectedOpeningGame.analysisData.accuracy}%</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Mistakes:</span>
+                                  <span className="ml-2 font-medium">{selectedOpeningGame.analysisData.mistakes}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Blunders:</span>
+                                  <span className="ml-2 font-medium">{selectedOpeningGame.analysisData.blunders}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Tactical Opportunities:</span>
+                                  <span className="ml-2 font-medium">{selectedOpeningGame.analysisData.tacticalOpportunities || 0}</span>
+                                </div>
+                              </div>
+                              
+                              {selectedOpeningGame.analysisData.keyMoments && (
+                                <div className="mt-4">
+                                  <h5 className="font-medium mb-2">Key Moments:</h5>
+                                  <div className="space-y-2">
+                                    {selectedOpeningGame.analysisData.keyMoments.slice(0, 3).map((moment: any, idx: number) => (
+                                      <div key={idx} className="text-xs bg-white p-2 rounded border">
+                                        <span className="font-medium">Move {moment.moveNumber}:</span> {moment.description}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Brain className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                          <p>Select a game to see engine analysis</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Strategic Recommendations */}
             <Card>
