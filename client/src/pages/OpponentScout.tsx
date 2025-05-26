@@ -1337,10 +1337,43 @@ export default function OpponentScout() {
               </CardContent>
             </Card>
 
-            {/* Recent Tournament Performance */}
+            {/* Rating by Format */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Tournaments</CardTitle>
+                <CardTitle className="flex items-center">
+                  <Clock className="mr-2 h-4 w-4" />
+                  Rating by Format
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Rapid</span>
+                    <span className="font-semibold text-purple-600">{opponentStats.rapidRating}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Blitz</span>
+                    <span className="font-semibold text-blue-600">{opponentStats.blitzRating}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Bullet</span>
+                    <span className="font-semibold text-red-600">{opponentStats.bulletRating}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Classical</span>
+                    <span className="font-semibold text-green-600">{selectedOpponent.currentRating}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Tournaments */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Recent Tournaments
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -1355,6 +1388,59 @@ export default function OpponentScout() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Key Weaknesses */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <AlertTriangle className="mr-2 h-4 w-4 text-red-500" />
+                  Key Weaknesses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(opponentStats.tacticalWeaknesses).slice(0, 4).map(([weakness, count]) => {
+                    const { color, level } = getWeaknessLevel(count);
+                    return (
+                      <div key={weakness} className="flex items-center justify-between">
+                        <span className="text-sm capitalize">
+                          {weakness.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <Badge variant="outline" className={`text-xs ${color}`}>
+                          {count} times
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Time Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Clock className="mr-2 h-4 w-4 text-blue-500" />
+                  Time Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Avg Time/Move</span>
+                    <span className="font-medium">23s</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Time Trouble Games</span>
+                    <span className="font-medium text-orange-600">31%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Flagged Games</span>
+                    <span className="font-medium text-red-600">8%</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
