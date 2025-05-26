@@ -178,17 +178,20 @@ export default function OpponentScout() {
 
     setIsLoadingLichess(true);
     try {
-      const [gamesResponse, insightsResponse] = await Promise.all([
+      const [gamesResponse, insightsResponse, tournamentsResponse] = await Promise.all([
         fetch(`/api/lichess/user/${searchQuery}/games?max=50`),
-        fetch(`/api/lichess/user/${searchQuery}/insights`)
+        fetch(`/api/lichess/user/${searchQuery}/insights`),
+        fetch(`/api/lichess/user/${searchQuery}/tournaments`)
       ]);
       
       if (gamesResponse.ok && insightsResponse.ok) {
         const gamesData = await gamesResponse.json();
         const insightsData = await insightsResponse.json();
+        const tournamentsData = tournamentsResponse.ok ? await tournamentsResponse.json() : { tournaments: [] };
         
         setLichessGames(gamesData.games);
         setLichessInsights(insightsData);
+        setLichessTournaments(tournamentsData.tournaments);
         
         // Create a mock opponent profile from Lichess data
         setSelectedOpponent({
@@ -996,29 +999,33 @@ export default function OpponentScout() {
                   <div>
                     <h4 className="font-medium mb-4">Last 10 Games</h4>
                     <div className="space-y-2">
-                      {[
-                        { result: 'W', opponent: 'IM Patel', rating: 2234, date: '2024-01-20' },
-                        { result: 'L', opponent: 'FM Singh', rating: 2187, date: '2024-01-18' },
-                        { result: 'W', opponent: 'Sharma', rating: 1945, date: '2024-01-15' },
-                        { result: 'D', opponent: 'CM Kumar', rating: 2098, date: '2024-01-12' },
-                        { result: 'W', opponent: 'Gupta', rating: 1876, date: '2024-01-10' }
-                      ].map((game, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded">
-                          <div className="flex items-center space-x-3">
-                            <Badge className={
-                              game.result === 'W' ? 'bg-green-500' : 
-                              game.result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
-                            }>
-                              {game.result}
-                            </Badge>
-                            <div>
-                              <div className="font-medium text-sm">{game.opponent}</div>
-                              <div className="text-xs text-gray-500">{game.date}</div>
+                      {lichessGames.slice(0, 10).map((game, index) => {
+                        const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
+                        const opponent = playerColor === 'white' ? game.blackPlayer : game.whitePlayer;
+                        const opponentRating = playerColor === 'white' ? game.blackRating : game.whiteRating;
+                        const result = game.result === '1-0' ? (playerColor === 'white' ? 'W' : 'L') :
+                                     game.result === '0-1' ? (playerColor === 'black' ? 'W' : 'L') : 'D';
+                        
+                        return (
+                          <div key={index} className="flex items-center justify-between p-2 border rounded">
+                            <div className="flex items-center space-x-3">
+                              <Badge className={
+                                result === 'W' ? 'bg-green-500' : 
+                                result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
+                              }>
+                                {result}
+                              </Badge>
+                              <div>
+                                <div className="font-medium text-sm">{opponent}</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(game.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
                             </div>
+                            <div className="text-sm font-medium">{opponentRating}</div>
                           </div>
-                          <div className="text-sm font-medium">{game.rating}</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1026,36 +1033,40 @@ export default function OpponentScout() {
                   <div>
                     <h4 className="font-medium mb-4">Recent Tournaments</h4>
                     <div className="space-y-3">
-                      <div className="p-3 border rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <div className="font-medium">Mumbai Open 2024</div>
-                            <div className="text-sm text-gray-600">Jan 15-21, 2024</div>
+                      {lichessTournaments.length > 0 ? (
+                        lichessTournaments.slice(0, 5).map((tournament, index) => (
+                          <div key={index} className="p-3 border rounded-lg">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <div className="font-medium">{tournament.name}</div>
+                                <div className="text-sm text-gray-600">
+                                  {new Date(tournament.date).toLocaleDateString()} • {tournament.format}
+                                </div>
+                              </div>
+                              <Badge className="bg-orange-500 text-white">
+                                {tournament.position}/{tournament.players}
+                              </Badge>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600">Score: {tournament.score}</span> • 
+                              <span className="text-gray-600 ml-1">{tournament.timeControl}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Performance: {tournament.performance}
+                            </div>
                           </div>
-                          <Badge className="bg-orange-500 text-white">6th/89</Badge>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-green-600">7 wins</span> • 
-                          <span className="text-yellow-600 ml-1">2 draws</span> • 
-                          <span className="text-red-600 ml-1">0 losses</span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">Rating performance: 2156</div>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <div className="font-medium">Delhi Chess Championship</div>
-                            <div className="text-sm text-gray-600">Dec 2-8, 2023</div>
+                        ))
+                      ) : (
+                        <div className="p-3 border rounded-lg bg-gray-50">
+                          <div className="text-center text-gray-600">
+                            <Trophy className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                            <p className="text-sm">No recent tournament data available</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Tournament history may be private or limited
+                            </p>
                           </div>
-                          <Badge variant="outline">12th/67</Badge>
                         </div>
-                        <div className="text-sm">
-                          <span className="text-green-600">5 wins</span> • 
-                          <span className="text-yellow-600 ml-1">3 draws</span> • 
-                          <span className="text-red-600 ml-1">1 loss</span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">Rating performance: 1987</div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
