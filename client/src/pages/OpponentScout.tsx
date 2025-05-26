@@ -1256,7 +1256,7 @@ export default function OpponentScout() {
                             </Badge>
                           </div>
                           <div className="text-xs text-gray-600 space-y-1">
-                            <div>📅 {tournament.date.toLocaleDateString()}</div>
+                            <div>📅 {new Date(tournament.date).toLocaleDateString()}</div>
                             <div>⏱️ {tournament.timeControl}</div>
                             <div>👥 {tournament.players} players</div>
                             {tournament.userPosition && (
