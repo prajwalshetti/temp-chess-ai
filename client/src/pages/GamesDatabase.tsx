@@ -32,10 +32,7 @@ import type { Game } from "@shared/schema";
 export default function GamesDatabase() {
   const [pgnInput, setPgnInput] = useState("");
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-  const [lichessUsername, setLichessUsername] = useState("");
-  const [lichessGames, setLichessGames] = useState<any[]>([]);
-  const [isLoadingLichess, setIsLoadingLichess] = useState(false);
-  const [viewMode, setViewMode] = useState<'uploaded' | 'lichess'>('uploaded');
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -109,41 +106,7 @@ export default function GamesDatabase() {
     uploadGameMutation.mutate(gameData);
   };
 
-  const handleLichessSearch = async () => {
-    if (!lichessUsername.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a Lichess username",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    setIsLoadingLichess(true);
-    try {
-      const response = await fetch(`/api/lichess/user/${lichessUsername}/games?max=50`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch games: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setLichessGames(data.games);
-      setViewMode('lichess');
-      
-      toast({
-        title: "Success",
-        description: `Loaded ${data.games.length} games from Lichess with AI analysis`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch Lichess games",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingLichess(false);
-    }
-  };
 
   const handleGameSelect = (game: Game) => {
     try {
@@ -225,189 +188,80 @@ export default function GamesDatabase() {
         <p className="text-gray-600">Upload, analyze, and learn from your chess games</p>
       </div>
 
-      {/* Game Source Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6">
-        <button
-          onClick={() => setViewMode('uploaded')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'uploaded' 
-              ? 'bg-white text-chess-dark shadow-sm' 
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          📁 Uploaded Games
-        </button>
-        <button
-          onClick={() => setViewMode('lichess')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'lichess' 
-              ? 'bg-white text-chess-dark shadow-sm' 
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          ♔ Lichess Analysis
-        </button>
-      </div>
-
-      {viewMode === 'uploaded' ? (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Upload Chess Game</CardTitle>
-            <CardDescription>
-              Upload a PGN file or paste game notation for analysis
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Textarea
-                placeholder="Paste your PGN here..."
-                value={pgnInput}
-                onChange={(e) => setPgnInput(e.target.value)}
-                rows={6}
-                className="font-mono text-sm"
-              />
-              <Button 
-                onClick={handleUploadGame}
-                disabled={uploadGameMutation.isPending}
-                className="bg-chess-dark hover:bg-chess-green"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                {uploadGameMutation.isPending ? "Uploading..." : "Upload Game"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Lichess Game Analysis</CardTitle>
-            <CardDescription>
-              Enter any Lichess username to analyze their last 50 games with AI insights
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Enter Lichess username..."
-                  value={lichessUsername}
-                  onChange={(e) => setLichessUsername(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleLichessSearch()}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handleLichessSearch}
-                  disabled={isLoadingLichess}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Brain className="mr-2 h-4 w-4" />
-                  {isLoadingLichess ? "Analyzing..." : "Analyze Games"}
-                </Button>
-              </div>
-              <p className="text-sm text-gray-600">
-                Get detailed tactical insights including missed forks, pins, and strategic recommendations
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Upload Game Section */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Upload Chess Game</CardTitle>
+          <CardDescription>
+            Upload a PGN file or paste game notation for analysis
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Paste your PGN here..."
+              value={pgnInput}
+              onChange={(e) => setPgnInput(e.target.value)}
+              rows={6}
+              className="font-mono text-sm"
+            />
+            <Button 
+              onClick={handleUploadGame}
+              disabled={uploadGameMutation.isPending}
+              className="bg-chess-dark hover:bg-chess-green"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {uploadGameMutation.isPending ? "Uploading..." : "Upload Game"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Games List */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>
-                {viewMode === 'uploaded' ? 'Your Games' : `${lichessUsername}'s Lichess Games`}
-              </CardTitle>
+              <CardTitle>Your Games</CardTitle>
             </CardHeader>
             <CardContent>
-              {viewMode === 'uploaded' ? (
-                // Uploaded games display
-                isLoading ? (
-                  <div className="text-center py-4">Loading games...</div>
-                ) : games && games.length > 0 ? (
-                  <div className="space-y-2">
-                    {games.map((game) => (
-                      <div
-                        key={game.id}
-                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                          selectedGame?.id === game.id 
-                            ? "bg-chess-light border-chess-dark" 
-                            : "hover:bg-gray-50"
-                        }`}
-                        onClick={() => handleGameSelect(game)}
-                      >
-                        <div className="font-medium text-sm">{game.whitePlayer} vs {game.blackPlayer}</div>
-                        <div className="text-xs text-gray-600">{game.result} • {game.opening}</div>
-                        <div className="flex items-center justify-between mt-1">
-                          <div className="text-xs text-gray-500">
-                            {game.gameSource === 'offline' ? '🏆 Tournament' : '💻 Online'} • {new Date(game.uploadedAt).toLocaleDateString()}
-                          </div>
-                          {game.analysisData && (
-                            <div className="flex items-center space-x-1">
-                              <Brain className="h-3 w-3 text-blue-500" />
-                              <span className="text-xs text-blue-600 font-medium">
-                                Analyzed
-                              </span>
-                            </div>
-                          )}
+              {isLoading ? (
+                <div className="text-center py-4">Loading games...</div>
+              ) : games && games.length > 0 ? (
+                <div className="space-y-2">
+                  {games.map((game) => (
+                    <div
+                      key={game.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedGame?.id === game.id 
+                          ? "bg-chess-light border-chess-dark" 
+                          : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => handleGameSelect(game)}
+                    >
+                      <div className="font-medium text-sm">{game.whitePlayer} vs {game.blackPlayer}</div>
+                      <div className="text-xs text-gray-600">{game.result} • {game.opening}</div>
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="text-xs text-gray-500">
+                          {game.gameSource === 'offline' ? '🏆 Tournament' : '💻 Online'} • {new Date(game.uploadedAt).toLocaleDateString()}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Upload className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                    <p className="text-sm">No games uploaded yet</p>
-                  </div>
-                )
-              ) : (
-                // Lichess games display
-                isLoadingLichess ? (
-                  <div className="text-center py-8">
-                    <Brain className="mx-auto h-8 w-8 mb-2 text-blue-500 animate-pulse" />
-                    <p className="text-sm text-gray-600">Analyzing Lichess games...</p>
-                    <p className="text-xs text-gray-500 mt-1">This may take a moment</p>
-                  </div>
-                ) : lichessGames.length > 0 ? (
-                  <div className="space-y-2">
-                    {lichessGames.map((game, index) => (
-                      <div
-                        key={game.id || index}
-                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                          selectedGame?.id === game.id 
-                            ? "bg-blue-50 border-blue-500" 
-                            : "hover:bg-gray-50"
-                        }`}
-                        onClick={() => setSelectedGame(game)}
-                      >
-                        <div className="font-medium text-sm">{game.whitePlayer} vs {game.blackPlayer}</div>
-                        <div className="text-xs text-gray-600">{game.result} • {game.opening}</div>
-                        <div className="flex items-center justify-between mt-1">
-                          <div className="text-xs text-gray-500">
-                            ♔ Lichess • {new Date(game.createdAt).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {game.analysisData && (
-                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
-                                {game.analysisData.accuracy}% accuracy
-                              </span>
-                            )}
-                            <span className="text-xs text-gray-500">
-                              {game.playerRating}
+                        {game.analysisData && (
+                          <div className="flex items-center space-x-1">
+                            <Brain className="h-3 w-3 text-blue-500" />
+                            <span className="text-xs text-blue-600 font-medium">
+                              Analyzed
                             </span>
                           </div>
-                        </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Brain className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                    <p className="text-sm">Enter a Lichess username to analyze games</p>
-                  </div>
-                )
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Upload className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                  <p className="text-sm">No games uploaded yet</p>
+                </div>
               )}
             </CardContent>
           </Card>
