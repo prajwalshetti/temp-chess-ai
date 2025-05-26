@@ -39,6 +39,7 @@ export default function OpponentScout() {
   const [lichessGames, setLichessGames] = useState<any[]>([]);
   const [isLoadingLichess, setIsLoadingLichess] = useState(false);
   const [lichessInsights, setLichessInsights] = useState<any>(null);
+  const [lichessTournaments, setLichessTournaments] = useState<any[]>([]);
   const [selectedOpening, setSelectedOpening] = useState<any>(null);
   const [openingGames, setOpeningGames] = useState<any[]>([]);
   const [selectedOpeningGame, setSelectedOpeningGame] = useState<any>(null);

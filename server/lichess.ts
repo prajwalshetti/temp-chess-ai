@@ -53,6 +53,40 @@ export interface ProcessedLichessGame {
   gameUrl: string;
 }
 
+export interface LichessTournament {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: number;
+  startsAt: number;
+  finishesAt?: number;
+  nbPlayers: number;
+  perf: {
+    name: string;
+  };
+  minutes: number;
+  system: string;
+  rated: boolean;
+  winner?: {
+    id: string;
+    name: string;
+    title?: string;
+  };
+}
+
+export interface ProcessedTournament {
+  id: string;
+  name: string;
+  date: Date;
+  format: string;
+  timeControl: string;
+  players: number;
+  status: string;
+  userPosition?: number;
+  userScore?: number;
+  userPerformance?: number;
+}
+
 export class LichessService {
   private apiToken: string;
   private baseUrl = 'https://lichess.org/api';
@@ -89,6 +123,49 @@ export class LichessService {
       console.error('Error fetching Lichess games:', error);
       throw error;
     }
+  }
+
+  async getUserTournaments(username: string, maxTournaments: number = 20): Promise<ProcessedTournament[]> {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/user/${username}/tournament/created?max=${maxTournaments}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiToken}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Lichess API error: ${response.status} ${response.statusText}`);
+      }
+
+      const tournaments: LichessTournament[] = await response.json();
+      return tournaments.map(tournament => this.processTournament(tournament, username));
+    } catch (error) {
+      console.error('Error fetching Lichess tournaments:', error);
+      // Return empty array if tournaments aren't available
+      return [];
+    }
+  }
+
+  private processTournament(tournament: LichessTournament, username: string): ProcessedTournament {
+    const timeControl = tournament.minutes ? `${tournament.minutes}min` : tournament.perf.name;
+    
+    return {
+      id: tournament.id,
+      name: tournament.name,
+      date: new Date(tournament.startsAt),
+      format: tournament.perf.name,
+      timeControl,
+      players: tournament.nbPlayers,
+      status: tournament.status,
+      // These would need additional API calls to get user-specific results
+      userPosition: undefined,
+      userScore: undefined,
+      userPerformance: undefined
+    };
   }
 
   private processGame(game: LichessGame): ProcessedLichessGame {
