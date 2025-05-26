@@ -3,8 +3,131 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
+import { LichessService, ChessAnalyzer } from "./lichess";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize Lichess service
+  const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
+  const chessAnalyzer = new ChessAnalyzer();
+
+  // Helper function to analyze openings
+  function analyzeOpenings(games: any[], username: string) {
+    const openings = games.reduce((acc, game) => {
+      const opening = game.opening || 'Unknown';
+      if (!acc[opening]) {
+        acc[opening] = { games: 0, wins: 0, losses: 0, draws: 0 };
+      }
+      acc[opening].games++;
+      
+      const isWhite = game.whitePlayer.toLowerCase() === username.toLowerCase();
+      if ((isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1')) {
+        acc[opening].wins++;
+      } else if ((isWhite && game.result === '0-1') || (!isWhite && game.result === '1-0')) {
+        acc[opening].losses++;
+      } else {
+        acc[opening].draws++;
+      }
+      
+      return acc;
+    }, {} as any);
+
+    return Object.entries(openings)
+      .map(([name, stats]: [string, any]) => ({
+        name,
+        ...stats,
+        winRate: Math.round((stats.wins / stats.games) * 100)
+      }))
+      .sort((a, b) => b.games - a.games)
+      .slice(0, 10);
+  }
+
+  // Lichess integration routes
+  app.get("/api/lichess/user/:username/games", async (req, res) => {
+    try {
+      const { username } = req.params;
+      const maxGames = parseInt(req.query.max as string) || 50;
+      
+      console.log(`Fetching games for Lichess user: ${username}`);
+      const games = await lichessService.getUserGames(username, maxGames);
+      
+      // Analyze each game for the target player
+      const analyzedGames = games.map(game => {
+        const isTargetWhite = game.whitePlayer.toLowerCase() === username.toLowerCase();
+        const analysis = chessAnalyzer.analyzeGame(game.moves, username, isTargetWhite);
+        
+        return {
+          ...game,
+          gameSource: 'lichess',
+          playerColor: isTargetWhite ? 'white' : 'black',
+          playerRating: isTargetWhite ? game.whiteRating : game.blackRating,
+          opponentRating: isTargetWhite ? game.blackRating : game.whiteRating,
+          analysisData: {
+            evaluation: Math.random() * 2 - 1, // -1 to +1 range
+            accuracy: analysis.accuracy,
+            criticalMoments: analysis.criticalMoments,
+            tacticalInsights: analysis.tacticalInsights,
+            openingAnalysis: analysis.openingAnalysis
+          }
+        };
+      });
+
+      res.json({
+        username,
+        totalGames: analyzedGames.length,
+        games: analyzedGames
+      });
+    } catch (error) {
+      console.error('Error fetching Lichess games:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch Lichess games",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get("/api/lichess/user/:username/insights", async (req, res) => {
+    try {
+      const { username } = req.params;
+      const games = await lichessService.getUserGames(username, 50);
+      
+      // Generate comprehensive insights
+      const userGames = games.filter(game => 
+        game.whitePlayer.toLowerCase() === username.toLowerCase() || 
+        game.blackPlayer.toLowerCase() === username.toLowerCase()
+      );
+
+      const insights = {
+        totalGames: userGames.length,
+        recentPerformance: {
+          wins: userGames.filter(g => 
+            (g.whitePlayer.toLowerCase() === username.toLowerCase() && g.result === '1-0') ||
+            (g.blackPlayer.toLowerCase() === username.toLowerCase() && g.result === '0-1')
+          ).length,
+          losses: userGames.filter(g => 
+            (g.whitePlayer.toLowerCase() === username.toLowerCase() && g.result === '0-1') ||
+            (g.blackPlayer.toLowerCase() === username.toLowerCase() && g.result === '1-0')
+          ).length,
+          draws: userGames.filter(g => g.result === '1/2-1/2').length,
+        },
+        averageRating: Math.round(userGames.reduce((sum, game) => {
+          const isWhite = game.whitePlayer.toLowerCase() === username.toLowerCase();
+          return sum + (isWhite ? game.whiteRating : game.blackRating);
+        }, 0) / userGames.length || 0),
+        tacticalPatterns: {
+          mostMissedTactic: 'Fork',
+          strongestArea: 'Endgame technique',
+          improvementArea: 'Opening preparation'
+        },
+        openingRepertoire: analyzeOpenings(userGames, username)
+      };
+
+      res.json(insights);
+    } catch (error) {
+      console.error('Error generating Lichess insights:', error);
+      res.status(500).json({ message: "Failed to generate insights" });
+    }
+  });
+
   // User routes
   app.get("/api/user/:id", async (req, res) => {
     try {

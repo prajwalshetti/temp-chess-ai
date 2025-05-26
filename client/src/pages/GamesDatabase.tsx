@@ -32,6 +32,10 @@ import type { Game } from "@shared/schema";
 export default function GamesDatabase() {
   const [pgnInput, setPgnInput] = useState("");
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [lichessUsername, setLichessUsername] = useState("");
+  const [lichessGames, setLichessGames] = useState<any[]>([]);
+  const [isLoadingLichess, setIsLoadingLichess] = useState(false);
+  const [viewMode, setViewMode] = useState<'uploaded' | 'lichess'>('uploaded');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
