@@ -141,7 +141,7 @@ export default function OpponentScout() {
     try {
       const chess = new Chess();
       
-      // If moveIndex is -1 or 0, show starting position
+      // If moveIndex is -1, show starting position
       if (moveIndex < 0) {
         setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         return;
@@ -151,15 +151,19 @@ export default function OpponentScout() {
       for (let i = 0; i <= moveIndex; i++) {
         if (selectedOpeningGame.moves[i]) {
           const move = selectedOpeningGame.moves[i];
+          console.log(`Playing move ${i}: ${move}`);
           try {
             chess.move(move);
+            console.log(`Position after move ${i}: ${chess.fen()}`);
           } catch (moveError) {
-            console.log(`Invalid move: ${move} at index ${i}`);
+            console.log(`Invalid move: ${move} at index ${i}`, moveError);
             break;
           }
         }
       }
-      setCurrentPosition(chess.fen());
+      const newPosition = chess.fen();
+      console.log(`Setting new position: ${newPosition}`);
+      setCurrentPosition(newPosition);
     } catch (error) {
       console.log("Error calculating position:", error);
       setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
