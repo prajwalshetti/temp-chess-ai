@@ -1241,6 +1241,64 @@ export default function OpponentScout() {
               </CardContent>
             </Card>
 
+            {/* Tactical Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="mr-2 h-5 w-5 text-purple-500" />
+                  Tactical Profile & Weaknesses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Weaknesses to Exploit */}
+                  <div>
+                    <h4 className="font-medium text-red-600 mb-4 flex items-center">
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Weaknesses to Exploit
+                    </h4>
+                    <div className="space-y-3">
+                      {Object.entries(opponentStats.tacticalWeaknesses).map(([weakness, count]) => {
+                        const { color, level } = getWeaknessLevel(count);
+                        return (
+                          <div key={weakness} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                            <div>
+                              <div className="font-medium text-gray-900 capitalize">
+                                {weakness.replace(/([A-Z])/g, ' $1').trim()}
+                              </div>
+                              <div className={`text-sm ${color}`}>{level} weakness</div>
+                            </div>
+                            <Badge variant="destructive">{count}</Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Their Strengths */}
+                  <div>
+                    <h4 className="font-medium text-green-600 mb-4 flex items-center">
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Their Strengths
+                    </h4>
+                    <div className="space-y-3">
+                      {Object.entries(opponentStats.tacticalStrengths).map(([strength, count]) => (
+                        <div key={strength} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                          <div>
+                            <div className="font-medium text-gray-900 capitalize">
+                              {strength.replace(/([A-Z])/g, ' $1').trim()}
+                            </div>
+                            <div className="text-sm text-green-600">Strong execution</div>
+                          </div>
+                          <Badge variant="default" className="bg-green-500">{count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Recent Performance & Form */}
             <Card>
               <CardHeader>
@@ -1400,63 +1458,7 @@ export default function OpponentScout() {
               </Card>
             )}
 
-            {/* Tactical Analysis */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Brain className="mr-2 h-5 w-5 text-purple-500" />
-                  Tactical Profile & Weaknesses
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Weaknesses to Exploit */}
-                  <div>
-                    <h4 className="font-medium text-red-600 mb-4 flex items-center">
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Weaknesses to Exploit
-                    </h4>
-                    <div className="space-y-3">
-                      {Object.entries(opponentStats.tacticalWeaknesses).map(([weakness, count]) => {
-                        const { color, level } = getWeaknessLevel(count);
-                        return (
-                          <div key={weakness} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                            <div>
-                              <div className="font-medium text-gray-900 capitalize">
-                                {weakness.replace(/([A-Z])/g, ' $1').trim()}
-                              </div>
-                              <div className={`text-sm ${color}`}>{level} weakness</div>
-                            </div>
-                            <Badge variant="destructive">{count}</Badge>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
 
-                  {/* Their Strengths */}
-                  <div>
-                    <h4 className="font-medium text-green-600 mb-4 flex items-center">
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Their Strengths
-                    </h4>
-                    <div className="space-y-3">
-                      {Object.entries(opponentStats.tacticalStrengths).map(([strength, count]) => (
-                        <div key={strength} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                          <div>
-                            <div className="font-medium text-gray-900 capitalize">
-                              {strength.replace(/([A-Z])/g, ' $1').trim()}
-                            </div>
-                            <div className="text-sm text-green-600">Strong execution</div>
-                          </div>
-                          <Badge variant="default" className="bg-green-500">{count}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
 
 
