@@ -985,8 +985,6 @@ export default function OpponentScout() {
               </CardContent>
             </Card>
 
-
-
             {/* Opening Games Analysis */}
             {selectedOpening && (
               <Card className="mt-6">
@@ -1236,6 +1234,54 @@ export default function OpponentScout() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Recent Performance & Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Activity className="mr-2 h-5 w-5 text-purple-500" />
+                  Recent Form & Tournament Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {lichessTournaments.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {lichessTournaments.slice(0, 6).map((tournament, index) => (
+                        <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium text-sm truncate mr-2">{tournament.name}</div>
+                            <Badge variant={tournament.status === 'finished' ? 'default' : 'secondary'}>
+                              {tournament.status}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <div>📅 {tournament.date.toLocaleDateString()}</div>
+                            <div>⏱️ {tournament.timeControl}</div>
+                            <div>👥 {tournament.players} players</div>
+                            {tournament.userPosition && (
+                              <div className="text-blue-600 font-medium">
+                                🏆 Position: #{tournament.userPosition}
+                              </div>
+                            )}
+                            {tournament.userPerformance && (
+                              <div className="text-green-600 font-medium">
+                                📊 Performance: {tournament.userPerformance}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Trophy className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                    <p>No recent tournament data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Strategic Recommendations */}
             <Card>
