@@ -32,6 +32,48 @@ import type { User, PlayerStats, Opening, Game } from "@shared/schema";
 export default function OpponentScout() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOpponent, setSelectedOpponent] = useState<User | null>(null);
+  const [searchType, setSearchType] = useState<'fide' | 'aicf' | 'lichess'>('lichess');
+  const [lichessGames, setLichessGames] = useState<any[]>([]);
+  const [isLoadingLichess, setIsLoadingLichess] = useState(false);
+  const [lichessInsights, setLichessInsights] = useState<any>(null);
+
+  // Handle Lichess search
+  const handleLichessSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setIsLoadingLichess(true);
+    try {
+      const [gamesResponse, insightsResponse] = await Promise.all([
+        fetch(`/api/lichess/user/${searchQuery}/games?max=50`),
+        fetch(`/api/lichess/user/${searchQuery}/insights`)
+      ]);
+      
+      if (gamesResponse.ok && insightsResponse.ok) {
+        const gamesData = await gamesResponse.json();
+        const insightsData = await insightsResponse.json();
+        
+        setLichessGames(gamesData.games);
+        setLichessInsights(insightsData);
+        
+        // Create a mock opponent profile from Lichess data
+        setSelectedOpponent({
+          id: Date.now(),
+          username: searchQuery,
+          email: `${searchQuery}@lichess.org`,
+          fideId: null,
+          aicfId: null,
+          lichessId: searchQuery,
+          currentRating: insightsData.averageRating,
+          puzzleRating: null,
+          createdAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching Lichess data:', error);
+    } finally {
+      setIsLoadingLichess(false);
+    }
+  };
 
   // Mock search results - in real app, this would search the database
   const mockOpponents = [
@@ -103,30 +145,32 @@ export default function OpponentScout() {
     endgameScore: 45
   } : null;
 
-  const opponentOpenings = selectedOpponent ? [
-    {
-      id: 1,
-      userId: selectedOpponent.id,
-      name: "Queen's Gambit Declined",
-      moves: "1.d4 d5 2.c4 e6",
-      color: "black",
-      gamesPlayed: 18,
-      wins: 11,
-      losses: 4,
-      draws: 3
-    },
-    {
-      id: 2,
-      userId: selectedOpponent.id,
-      name: "London System",
-      moves: "1.d4 Nf6 2.Bf4",
-      color: "white", 
-      gamesPlayed: 24,
-      wins: 16,
-      losses: 5,
-      draws: 3
-    }
-  ] : [];
+  const opponentOpenings = selectedOpponent && lichessInsights ? 
+    lichessInsights.openingRepertoire : 
+    selectedOpponent ? [
+      {
+        id: 1,
+        userId: selectedOpponent.id,
+        name: "Queen's Gambit Declined",
+        moves: "1.d4 d5 2.c4 e6",
+        color: "black",
+        gamesPlayed: 18,
+        wins: 11,
+        losses: 4,
+        draws: 3
+      },
+      {
+        id: 2,
+        userId: selectedOpponent.id,
+        name: "London System",
+        moves: "1.d4 Nf6 2.Bf4",
+        color: "white", 
+        gamesPlayed: 24,
+        wins: 16,
+        losses: 5,
+        draws: 3
+      }
+    ] : [];
 
   // Head-to-head analysis
   const headToHeadData = selectedOpponent ? {
@@ -188,17 +232,81 @@ export default function OpponentScout() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex space-x-4">
-            <Input
-              placeholder="Search by name, FIDE ID, AICF ID, or Lichess username"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1"
-            />
-            <Button className="bg-chess-dark hover:bg-chess-green">
-              <Target className="mr-2 h-4 w-4" />
-              Scout
-            </Button>
+          <div className="space-y-4">
+            {/* Search Type Radio Buttons */}
+            <div className="flex space-x-6">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="searchType"
+                  value="fide"
+                  checked={searchType === 'fide'}
+                  onChange={(e) => setSearchType('fide')}
+                  className="text-chess-dark"
+                />
+                <span className="text-sm font-medium">FIDE ID</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="searchType"
+                  value="aicf"
+                  checked={searchType === 'aicf'}
+                  onChange={(e) => setSearchType('aicf')}
+                  className="text-chess-dark"
+                />
+                <span className="text-sm font-medium">AICF ID</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="searchType"
+                  value="lichess"
+                  checked={searchType === 'lichess'}
+                  onChange={(e) => setSearchType('lichess')}
+                  className="text-chess-dark"
+                />
+                <span className="text-sm font-medium">Lichess Username</span>
+              </label>
+            </div>
+
+            {/* Search Input */}
+            <div className="flex space-x-4">
+              <Input
+                placeholder={
+                  searchType === 'fide' ? "Enter FIDE ID (e.g., 2345678)" :
+                  searchType === 'aicf' ? "Enter AICF ID (e.g., IN234567)" :
+                  "Enter Lichess username (e.g., damodar111)"
+                }
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && searchType === 'lichess' && handleLichessSearch()}
+                className="flex-1"
+              />
+              <Button 
+                onClick={searchType === 'lichess' ? handleLichessSearch : undefined}
+                disabled={isLoadingLichess}
+                className="bg-chess-dark hover:bg-chess-green"
+              >
+                {isLoadingLichess ? (
+                  <>
+                    <Brain className="mr-2 h-4 w-4 animate-pulse" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Target className="mr-2 h-4 w-4" />
+                    Scout
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {searchType === 'lichess' && (
+              <p className="text-sm text-gray-600">
+                Get detailed tactical insights and game analysis from their last 50 Lichess games
+              </p>
+            )}
           </div>
 
           {/* Search Results */}
