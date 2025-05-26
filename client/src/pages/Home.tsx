@@ -44,7 +44,7 @@ export default function Home() {
       description: "Search and analyze games against specific opponents",
       status: "Search database",
       color: "blue-500",
-      link: "/profile"
+      link: "/scout"
     },
     {
       icon: GraduationCap,
