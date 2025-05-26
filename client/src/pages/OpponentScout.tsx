@@ -652,64 +652,64 @@ export default function OpponentScout() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* What They're Good At */}
+                  {/* Tactical Strengths */}
                   <div>
                     <h4 className="font-medium text-green-600 mb-4 flex items-center">
-                      <span className="text-2xl mr-2">😊</span>
-                      What They're Good At
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Tactical Strengths
                     </h4>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                         <div>
-                          <div className="font-medium text-gray-900">🏰 Protecting Their King</div>
-                          <div className="text-sm text-green-600">They keep their king safe most of the time!</div>
+                          <div className="font-medium text-gray-900">♞ Knight Forks</div>
+                          <div className="text-sm text-green-600">Good at attacking two pieces at once with knight</div>
                         </div>
-                        <Badge className="bg-green-500 text-white">Good!</Badge>
+                        <Badge className="bg-green-500 text-white">Strong</Badge>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                         <div>
-                          <div className="font-medium text-gray-900">🎯 Finding Good Moves</div>
-                          <div className="text-sm text-green-600">They can spot when pieces are in danger</div>
+                          <div className="font-medium text-gray-900">📌 Pin Tactics</div>
+                          <div className="text-sm text-green-600">Can trap pieces that can't move safely</div>
                         </div>
-                        <Badge className="bg-green-500 text-white">Good!</Badge>
+                        <Badge className="bg-green-500 text-white">Strong</Badge>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                         <div>
-                          <div className="font-medium text-gray-900">♞ Horse Tricks</div>
-                          <div className="text-sm text-yellow-600">Sometimes they find clever knight moves</div>
+                          <div className="font-medium text-gray-900">🏰 King Safety</div>
+                          <div className="text-sm text-yellow-600">Usually castles and protects king well</div>
                         </div>
-                        <Badge className="bg-yellow-500 text-white">OK</Badge>
+                        <Badge className="bg-yellow-500 text-white">Good</Badge>
                       </div>
                     </div>
                   </div>
 
-                  {/* What They Need Help With */}
+                  {/* Tactical Weaknesses */}
                   <div>
                     <h4 className="font-medium text-red-600 mb-4 flex items-center">
-                      <span className="text-2xl mr-2">🤔</span>
-                      What They Need Help With
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Tactical Weaknesses
                     </h4>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                         <div>
-                          <div className="font-medium text-gray-900">⏰ Playing Too Fast</div>
-                          <div className="text-sm text-red-600">Makes more mistakes when time is running out</div>
+                          <div className="font-medium text-gray-900">⏰ Time Trouble</div>
+                          <div className="text-sm text-red-600">Makes blunders when clock pressure increases</div>
                         </div>
-                        <Badge variant="destructive">Watch Out!</Badge>
+                        <Badge variant="destructive">Critical</Badge>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                         <div>
-                          <div className="font-medium text-gray-900">🔍 Missing Dangers</div>
-                          <div className="text-sm text-red-600">Sometimes doesn't see when opponent can win pieces</div>
+                          <div className="font-medium text-gray-900">🎯 Hanging Pieces</div>
+                          <div className="text-sm text-red-600">Sometimes leaves pieces undefended</div>
                         </div>
-                        <Badge variant="destructive">Needs Work</Badge>
+                        <Badge variant="destructive">Weak</Badge>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                         <div>
-                          <div className="font-medium text-gray-900">🏁 Game Endings</div>
-                          <div className="text-sm text-orange-600">Gets confused when only a few pieces are left</div>
+                          <div className="font-medium text-gray-900">🏁 Endgame Technique</div>
+                          <div className="text-sm text-orange-600">Struggles with basic rook and pawn endings</div>
                         </div>
-                        <Badge className="bg-orange-500 text-white">Learning</Badge>
+                        <Badge className="bg-orange-500 text-white">Moderate</Badge>
                       </div>
                     </div>
                   </div>
