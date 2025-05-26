@@ -263,20 +263,20 @@ export default function OpponentScout() {
     blitzRating: selectedOpponent.currentRating - 100,
     classicalRating: selectedOpponent.currentRating + 50,
     tacticalStrengths: {
-      forks: 23,
       pins: 18,
-      skewers: 12,
-      backRank: 9,
       discoveredAttacks: 15,
-      deflection: 7
+      deflection: 7,
+      backRank: 9,
+      pawnBreaks: 11,
+      exchanges: 14
     },
     tacticalWeaknesses: {
       missedForks: 12,
-      missedPins: 8,
       missedSkewers: 15,
       hangingPieces: 22,
       poorEndgamePlay: 18,
-      timeManagement: 25
+      timeManagement: 25,
+      weakSquares: 16
     },
     openingPhaseScore: 72,
     middlegameScore: 68,
@@ -659,27 +659,37 @@ export default function OpponentScout() {
                       Tactical Strengths
                     </h4>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                        <div>
-                          <div className="font-medium text-gray-900">♞ Knight Forks</div>
-                          <div className="text-sm text-green-600">Good at attacking two pieces at once with knight</div>
-                        </div>
-                        <Badge className="bg-green-500 text-white">Strong</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                        <div>
-                          <div className="font-medium text-gray-900">📌 Pin Tactics</div>
-                          <div className="text-sm text-green-600">Can trap pieces that can't move safely</div>
-                        </div>
-                        <Badge className="bg-green-500 text-white">Strong</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                        <div>
-                          <div className="font-medium text-gray-900">🏰 King Safety</div>
-                          <div className="text-sm text-yellow-600">Usually castles and protects king well</div>
-                        </div>
-                        <Badge className="bg-yellow-500 text-white">Good</Badge>
-                      </div>
+                      {Object.entries(opponentStats.tacticalStrengths).slice(0, 3).map(([strength, count]) => {
+                        const strengthNames = {
+                          pins: '📌 Pin Tactics',
+                          discoveredAttacks: '💥 Discovered Attacks', 
+                          deflection: '🎯 Deflection',
+                          backRank: '🏰 Back Rank Tactics',
+                          pawnBreaks: '⚔️ Pawn Breaks',
+                          exchanges: '🔄 Piece Exchanges'
+                        };
+                        const strengthDescriptions = {
+                          pins: 'Can trap pieces that can\'t move safely',
+                          discoveredAttacks: 'Good at creating surprise attacks',
+                          deflection: 'Forces pieces away from important duties',
+                          backRank: 'Strong at back rank mate patterns',
+                          pawnBreaks: 'Finds good pawn breakthrough moves',
+                          exchanges: 'Makes favorable piece trades'
+                        };
+                        return (
+                          <div key={strength} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {strengthNames[strength] || strength.replace(/([A-Z])/g, ' $1').trim()}
+                              </div>
+                              <div className="text-sm text-green-600">
+                                {strengthDescriptions[strength] || `Executed ${count} times successfully`}
+                              </div>
+                            </div>
+                            <Badge className="bg-green-500 text-white">{count}</Badge>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -690,27 +700,41 @@ export default function OpponentScout() {
                       Tactical Weaknesses
                     </h4>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                        <div>
-                          <div className="font-medium text-gray-900">⏰ Time Trouble</div>
-                          <div className="text-sm text-red-600">Makes blunders when clock pressure increases</div>
-                        </div>
-                        <Badge variant="destructive">Critical</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                        <div>
-                          <div className="font-medium text-gray-900">🎯 Hanging Pieces</div>
-                          <div className="text-sm text-red-600">Sometimes leaves pieces undefended</div>
-                        </div>
-                        <Badge variant="destructive">Weak</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                        <div>
-                          <div className="font-medium text-gray-900">🏁 Endgame Technique</div>
-                          <div className="text-sm text-orange-600">Struggles with basic rook and pawn endings</div>
-                        </div>
-                        <Badge className="bg-orange-500 text-white">Moderate</Badge>
-                      </div>
+                      {Object.entries(opponentStats.tacticalWeaknesses).slice(0, 3).map(([weakness, count]) => {
+                        const weaknessNames = {
+                          missedForks: '♞ Missed Forks',
+                          missedSkewers: '➡️ Missed Skewers',
+                          hangingPieces: '🎯 Hanging Pieces',
+                          poorEndgamePlay: '🏁 Poor Endgame Play',
+                          timeManagement: '⏰ Time Management',
+                          weakSquares: '⬜ Weak Square Control'
+                        };
+                        const weaknessDescriptions = {
+                          missedForks: 'Misses knight fork opportunities',
+                          missedSkewers: 'Fails to see skewer tactics',
+                          hangingPieces: 'Sometimes leaves pieces undefended',
+                          poorEndgamePlay: 'Struggles with basic rook and pawn endings',
+                          timeManagement: 'Makes blunders when clock pressure increases',
+                          weakSquares: 'Allows opponent to control key squares'
+                        };
+                        const severity = count > 20 ? 'Critical' : count > 15 ? 'Moderate' : 'Minor';
+                        const bgColor = count > 20 ? 'bg-red-50' : count > 15 ? 'bg-orange-50' : 'bg-yellow-50';
+                        const badgeVariant = count > 20 ? 'destructive' : count > 15 ? 'secondary' : 'outline';
+                        
+                        return (
+                          <div key={weakness} className={`flex items-center justify-between p-3 ${bgColor} rounded-lg`}>
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {weaknessNames[weakness] || weakness.replace(/([A-Z])/g, ' $1').trim()}
+                              </div>
+                              <div className="text-sm text-red-600">
+                                {weaknessDescriptions[weakness] || `Occurred ${count} times`}
+                              </div>
+                            </div>
+                            <Badge variant={badgeVariant}>{count}</Badge>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
