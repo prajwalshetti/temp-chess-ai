@@ -1122,113 +1122,6 @@ export default function OpponentScout() {
               </Card>
             )}
 
-            {/* Recent Performance & Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Activity className="mr-2 h-5 w-5 text-purple-500" />
-                  Recent Form & Tournament Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Recent Games */}
-                  <div>
-                    <h4 className="font-medium mb-4">Last 10 Games</h4>
-                    <div className="space-y-2">
-                      {lichessGames.slice(0, 10).map((game, index) => {
-                        const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
-                        const opponent = playerColor === 'white' ? game.blackPlayer : game.whitePlayer;
-                        const opponentRating = playerColor === 'white' ? game.blackRating : game.whiteRating;
-                        const result = game.result === '1-0' ? (playerColor === 'white' ? 'W' : 'L') :
-                                     game.result === '0-1' ? (playerColor === 'black' ? 'W' : 'L') : 'D';
-                        
-                        return (
-                          <div key={index} className="flex items-center justify-between p-2 border rounded">
-                            <div className="flex items-center space-x-3">
-                              <Badge className={
-                                result === 'W' ? 'bg-green-500' : 
-                                result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
-                              }>
-                                {result}
-                              </Badge>
-                              <div>
-                                <div className="font-medium text-sm">{opponent}</div>
-                                <div className="text-xs text-gray-500">
-                                  {new Date(game.createdAt).toLocaleDateString()}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-sm font-medium">{opponentRating}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tournament Performance */}
-                  <div>
-                    <h4 className="font-medium mb-4">Recent Tournaments</h4>
-                    <div className="space-y-3">
-                      {lichessTournaments.length > 0 ? (
-                        lichessTournaments.slice(0, 5).map((tournament, index) => (
-                          <div key={index} className="p-3 border rounded-lg">
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <div className="font-medium">{tournament.name}</div>
-                                <div className="text-sm text-gray-600">
-                                  {new Date(tournament.date).toLocaleDateString()} • {tournament.format}
-                                </div>
-                              </div>
-                              <Badge className="bg-orange-500 text-white">
-                                {tournament.position}/{tournament.players}
-                              </Badge>
-                            </div>
-                            <div className="text-sm">
-                              <span className="text-gray-600">Score: {tournament.score}</span> • 
-                              <span className="text-gray-600 ml-1">{tournament.timeControl}</span>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              Performance: {tournament.performance}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-3 border rounded-lg bg-gray-50">
-                          <div className="text-center text-gray-600">
-                            <Trophy className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                            <p className="text-sm">No recent tournament data available</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Tournament history may be private or limited
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Form Analysis */}
-                <div className="mt-6 p-4 bg-purple-50 border-l-4 border-purple-400 rounded-lg">
-                  <div className="flex items-start">
-                    <TrendingUp className="h-5 w-5 text-purple-500 mt-0.5 mr-3" />
-                    <div>
-                      <h4 className="font-medium text-purple-900 mb-2">Current Form Analysis</h4>
-                      <div className="text-purple-800 text-sm">
-                        <p className="mb-2">
-                          <strong>Trending upward:</strong> Won 7 of last 10 games, gaining 23 rating points in last month.
-                        </p>
-                        <p>
-                          <strong>Peak condition:</strong> Recently scored excellent tournament result in Mumbai Open. 
-                          Expect strong preparation and confidence.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Strategic Recommendations */}
             <Card>
               <CardHeader>
@@ -1347,6 +1240,115 @@ export default function OpponentScout() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Recent Performance & Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Activity className="mr-2 h-5 w-5 text-purple-500" />
+                  Recent Form & Tournament Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Recent Games */}
+                  <div>
+                    <h4 className="font-medium mb-4">Last 10 Games</h4>
+                    <div className="space-y-2">
+                      {lichessGames.slice(0, 10).map((game, index) => {
+                        const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
+                        const opponent = playerColor === 'white' ? game.blackPlayer : game.whitePlayer;
+                        const opponentRating = playerColor === 'white' ? game.blackRating : game.whiteRating;
+                        const result = game.result === '1-0' ? (playerColor === 'white' ? 'W' : 'L') :
+                                     game.result === '0-1' ? (playerColor === 'black' ? 'W' : 'L') : 'D';
+                        
+                        return (
+                          <div key={index} className="flex items-center justify-between p-2 border rounded">
+                            <div className="flex items-center space-x-3">
+                              <Badge className={
+                                result === 'W' ? 'bg-green-500' : 
+                                result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
+                              }>
+                                {result}
+                              </Badge>
+                              <div>
+                                <div className="font-medium text-sm">{opponent}</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(game.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-sm font-medium">{opponentRating}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Tournament Performance */}
+                  <div>
+                    <h4 className="font-medium mb-4">Recent Tournaments</h4>
+                    <div className="space-y-3">
+                      {lichessTournaments.length > 0 ? (
+                        lichessTournaments.slice(0, 5).map((tournament, index) => (
+                          <div key={index} className="p-3 border rounded-lg">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <div className="font-medium">{tournament.name}</div>
+                                <div className="text-sm text-gray-600">
+                                  {new Date(tournament.date).toLocaleDateString()} • {tournament.format}
+                                </div>
+                              </div>
+                              <Badge className="bg-orange-500 text-white">
+                                {tournament.position}/{tournament.players}
+                              </Badge>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600">Score: {tournament.score}</span> • 
+                              <span className="text-gray-600 ml-1">{tournament.timeControl}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Performance: {tournament.performance}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 border rounded-lg bg-gray-50">
+                          <div className="text-center text-gray-600">
+                            <Trophy className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                            <p className="text-sm">No recent tournament data available</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Tournament history may be private or limited
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Analysis */}
+                <div className="mt-6 p-4 bg-purple-50 border-l-4 border-purple-400 rounded-lg">
+                  <div className="flex items-start">
+                    <TrendingUp className="h-5 w-5 text-purple-500 mt-0.5 mr-3" />
+                    <div>
+                      <h4 className="font-medium text-purple-900 mb-2">Current Form Analysis</h4>
+                      <div className="text-purple-800 text-sm">
+                        <p className="mb-2">
+                          <strong>Trending upward:</strong> Won 7 of last 10 games, gaining 23 rating points in last month.
+                        </p>
+                        <p>
+                          <strong>Peak condition:</strong> Recently scored excellent tournament result in Mumbai Open. 
+                          Expect strong preparation and confidence.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+
 
             {/* Head-to-Head Record */}
             {headToHeadData && (
