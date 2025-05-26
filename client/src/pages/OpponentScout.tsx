@@ -25,7 +25,8 @@ import {
   MapPin,
   Trophy,
   Users,
-  Timer
+  Timer,
+  Swords
 } from "lucide-react";
 import type { User, PlayerStats, Opening, Game } from "@shared/schema";
 import { ChessBoard } from "@/components/ChessBoard";
@@ -1357,11 +1358,92 @@ export default function OpponentScout() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Bullet</span>
-                    <span className="font-semibold text-red-600">{opponentStats.bulletRating}</span>
+                    <span className="font-semibold text-red-600">{opponentStats.blitzRating - 150}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Classical</span>
                     <span className="font-semibold text-green-600">{selectedOpponent.currentRating}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Head-to-Head Record */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Target className="mr-2 h-4 w-4 text-orange-500" />
+                  Head-to-Head vs {selectedOpponent.username}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center mb-4">
+                  <div className="text-3xl font-bold text-gray-700">0-0-0</div>
+                  <div className="text-sm text-gray-500">W-L-D Record</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <div className="text-sm font-medium text-blue-700">No Previous Games</div>
+                    <div className="text-xs text-blue-600 mt-1">First time opponent</div>
+                  </div>
+                  <div className="text-xs text-gray-500 text-center">
+                    Build your record against this player
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tactical Profile & Weaknesses */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="mr-2 h-4 w-4 text-purple-500" />
+                  Tactical Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Top Weaknesses */}
+                  <div>
+                    <h4 className="font-medium text-red-600 mb-3 flex items-center text-sm">
+                      <AlertTriangle className="mr-2 h-3 w-3" />
+                      Main Weaknesses
+                    </h4>
+                    <div className="space-y-2">
+                      {Object.entries(opponentStats.tacticalWeaknesses).slice(0, 3).map(([weakness, count]) => {
+                        const { color, level } = getWeaknessLevel(count);
+                        return (
+                          <div key={weakness} className="flex items-center justify-between p-2 bg-red-50 rounded">
+                            <span className="text-xs capitalize">
+                              {weakness.replace(/([A-Z])/g, ' $1').trim()}
+                            </span>
+                            <Badge variant="outline" className={`text-xs ${color}`}>
+                              {count}x
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Tactical Strengths */}
+                  <div>
+                    <h4 className="font-medium text-green-600 mb-3 flex items-center text-sm">
+                      <Target className="mr-2 h-3 w-3" />
+                      Tactical Strengths
+                    </h4>
+                    <div className="space-y-2">
+                      {Object.entries(opponentStats.tacticalStrengths).slice(0, 3).map(([strength, count]) => (
+                        <div key={strength} className="flex items-center justify-between p-2 bg-green-50 rounded">
+                          <span className="text-xs capitalize">
+                            {strength.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                          <Badge className="bg-green-500 text-white text-xs">
+                            {count}x
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CardContent>
