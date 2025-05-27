@@ -179,9 +179,9 @@ export default function GamesDatabase() {
     setIsLoadingLichess(true);
     try {
       const [gamesResponse, insightsResponse, tournamentsResponse] = await Promise.all([
-        fetch(`/api/lichess/user/${searchQuery}/games?max=50`),
-        fetch(`/api/lichess/user/${searchQuery}/insights`),
-        fetch(`/api/lichess/user/${searchQuery}/tournaments`)
+        fetch(`/api/lichess/user/${username}/games?max=50`),
+        fetch(`/api/lichess/user/${username}/insights`),
+        fetch(`/api/lichess/user/${username}/tournaments`)
       ]);
       
       if (gamesResponse.ok && insightsResponse.ok) {
@@ -416,48 +416,51 @@ export default function GamesDatabase() {
                   name="searchType"
                   value="lichess"
                   checked={searchType === 'lichess'}
-                  onChange={(e) => setSearchType('lichess')}
+                  onChange={(e) => {
+                    setSearchType('lichess');
+                    if (e.target.checked) {
+                      handleLichessSearch(); // Automatically load your data
+                    }
+                  }}
                   className="text-chess-dark"
                 />
-                <span className="text-sm font-medium">Lichess Username</span>
+                <span className="text-sm font-medium">Lichess Username (damodar111)</span>
               </label>
             </div>
 
-            {/* Search Input */}
-            <div className="flex space-x-4">
-              <Input
-                placeholder={
-                  searchType === 'fide' ? "Enter FIDE ID (e.g., 2345678)" :
-                  searchType === 'aicf' ? "Enter AICF ID (e.g., IN234567)" :
-                  "Enter Lichess username (e.g., damodar111)"
-                }
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchType === 'lichess' && handleLichessSearch()}
-                className="flex-1"
-              />
-              <Button 
-                onClick={searchType === 'lichess' ? handleLichessSearch : undefined}
-                disabled={isLoadingLichess}
-                className="bg-chess-dark hover:bg-chess-green"
-              >
-                {isLoadingLichess ? (
-                  <>
-                    <Brain className="mr-2 h-4 w-4 animate-pulse" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Target className="mr-2 h-4 w-4" />
-                    Scout
-                  </>
-                )}
-              </Button>
-            </div>
+            {/* Search Input - Only show for FIDE/AICF */}
+            {searchType !== 'lichess' && (
+              <div className="flex space-x-4">
+                <Input
+                  placeholder={
+                    searchType === 'fide' ? "Enter FIDE ID (e.g., 2345678)" :
+                    "Enter AICF ID (e.g., IN234567)"
+                  }
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={() => {/* Handle FIDE/AICF search */}}
+                  className="bg-chess-dark hover:bg-chess-green"
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  Search
+                </Button>
+              </div>
+            )}
 
-            {searchType === 'lichess' && (
+            {/* Lichess Loading State */}
+            {searchType === 'lichess' && isLoadingLichess && (
+              <div className="flex items-center justify-center py-4">
+                <Brain className="mr-2 h-4 w-4 animate-pulse text-chess-dark" />
+                <span className="text-chess-dark">Loading your chess data...</span>
+              </div>
+            )}
+
+            {searchType === 'lichess' && !isLoadingLichess && (
               <p className="text-sm text-gray-600">
-                Get detailed tactical insights and game analysis from their last 50 Lichess games
+                Showing detailed analysis from your Lichess account (damodar111)
               </p>
             )}
           </div>
