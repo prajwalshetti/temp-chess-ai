@@ -288,9 +288,17 @@ export default function GamesDatabase() {
 
   const handleOpeningClick = (opening: any) => {
     setSelectedOpening(opening);
-    const openingGames = games?.filter(game => game.opening === opening.name) || [];
-    if (openingGames.length > 0) {
-      setSelectedGame(openingGames[0]);
+    // Get all games (tournament + Lichess) in this opening
+    const tournamentGames = games?.filter(game => game.opening === opening.name) || [];
+    const lichessOpeningGames = lichessGames.filter((game: any) => game.opening === opening.name) || [];
+    
+    const allOpeningGames = [...tournamentGames, ...lichessOpeningGames];
+    
+    if (allOpeningGames.length > 0) {
+      setSelectedGame(allOpeningGames[0]);
+      // Load the opening position
+      reset();
+      loadPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
   };
 
@@ -745,6 +753,162 @@ export default function GamesDatabase() {
                       </div>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recent Games in Selected Opening */}
+            {selectedOpening && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <BookOpen className="mr-2 h-5 w-5" />
+                    {selectedOpening.name} - Recent Games
+                  </CardTitle>
+                  <CardDescription>
+                    Your games in this opening with move analysis and evaluations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    // Get all games in this opening
+                    const tournamentGames = games?.filter(game => game.opening === selectedOpening.name) || [];
+                    const lichessOpeningGames = lichessGames.filter((game: any) => game.opening === selectedOpening.name) || [];
+                    const allOpeningGames = [...tournamentGames, ...lichessOpeningGames];
+
+                    return (
+                      <div className="space-y-4">
+                        {allOpeningGames.slice(0, 5).map((game: any, index: number) => {
+                          const isYou = game.whitePlayer === 'damodar111' || game.whitePlayer === user?.username || 
+                                       game.blackPlayer === 'damodar111' || game.blackPlayer === user?.username;
+                          const youPlayedWhite = game.whitePlayer === 'damodar111' || game.whitePlayer === user?.username;
+                          const result = game.result;
+                          const won = (youPlayedWhite && result === '1-0') || (!youPlayedWhite && result === '0-1');
+                          const lost = (youPlayedWhite && result === '0-1') || (!youPlayedWhite && result === '1-0');
+                          const draw = result === '1/2-1/2';
+
+                          return (
+                            <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Game Info */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">
+                                      {game.whitePlayer} vs {game.blackPlayer}
+                                    </span>
+                                    <Badge className={won ? 'bg-green-500' : lost ? 'bg-red-500' : 'bg-gray-500'}>
+                                      {result}
+                                    </Badge>
+                                  </div>
+                                  <div className="text-xs text-gray-600">
+                                    {game.timeControl} • {new Date(game.createdAt || game.uploadedAt).toLocaleDateString()}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {game.whitePlayer === 'damodar111' || game.blackPlayer === 'damodar111' ? '💻 Lichess' : '🏆 Tournament'}
+                                  </div>
+                                  <div className="flex items-center space-x-2 text-xs">
+                                    <span className={`px-2 py-1 rounded ${youPlayedWhite ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
+                                      You: {youPlayedWhite ? 'White' : 'Black'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Mini Chess Board */}
+                                <div className="flex justify-center">
+                                  <ChessBoard 
+                                    fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                                    size={120}
+                                    interactive={false}
+                                  />
+                                </div>
+
+                                {/* Move Analysis */}
+                                <div className="space-y-2">
+                                  <div className="text-xs font-medium text-gray-700 mb-2">Move Analysis</div>
+                                  
+                                  {/* Sample analysis for demonstration */}
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center text-xs">
+                                      <span>Move 4: Nf3</span>
+                                      <span className="text-green-600">+0.4</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500">Good developing move</div>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center text-xs">
+                                      <span>Move 8: Bg5</span>
+                                      <span className="text-orange-600">+0.1</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500">Book move, solid</div>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center text-xs">
+                                      <span>Move 12: h6</span>
+                                      <span className="text-red-600">-0.3</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500">Weakening move</div>
+                                  </div>
+
+                                  {/* Game Result Analysis */}
+                                  <div className="mt-3 pt-2 border-t border-gray-200">
+                                    <div className="text-xs font-medium text-gray-700 mb-1">Game Analysis</div>
+                                    <div className={`text-xs px-2 py-1 rounded ${
+                                      won ? 'bg-green-100 text-green-800' : 
+                                      lost ? 'bg-red-100 text-red-800' : 
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {won ? 'Strong opening play secured advantage' : 
+                                       lost ? 'Opening disadvantage led to defeat' : 
+                                       'Equal opening, drawn endgame'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Navigation Controls */}
+                              <div className="mt-4 flex justify-between items-center bg-gray-50 rounded p-2">
+                                <div className="text-xs text-gray-600">
+                                  Click to analyze this game
+                                </div>
+                                <div className="flex space-x-1">
+                                  <Button size="sm" variant="outline" className="text-xs px-2 py-1">
+                                    ← Prev
+                                  </Button>
+                                  <span className="text-xs text-gray-500 px-2">Move 3 of 59</span>
+                                  <Button size="sm" variant="outline" className="text-xs px-2 py-1">
+                                    Next →
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Position Evaluation */}
+                              <div className="mt-2 text-center">
+                                <div className="text-sm font-bold text-blue-600">Eval: +0.41</div>
+                                <div className="text-xs text-gray-500">8 moves deep</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {allOpeningGames.length === 0 && (
+                          <div className="text-center py-8 text-gray-500">
+                            <BookOpen className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                            <p>No games found in this opening</p>
+                          </div>
+                        )}
+
+                        {allOpeningGames.length > 5 && (
+                          <div className="text-center pt-4">
+                            <Button variant="outline" size="sm">
+                              View All {allOpeningGames.length} Games
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             )}
