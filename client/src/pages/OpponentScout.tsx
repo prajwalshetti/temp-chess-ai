@@ -179,36 +179,53 @@ export default function OpponentScout() {
 
     setIsLoadingLichess(true);
     try {
-      const [gamesResponse, insightsResponse, profileResponse, tournamentsResponse] = await Promise.all([
+      const [gamesResponse, insightsResponse, tournamentsResponse] = await Promise.all([
         fetch(`/api/lichess/user/${searchQuery}/games?max=50`),
         fetch(`/api/lichess/user/${searchQuery}/insights`),
-        fetch(`/api/lichess/user/${searchQuery}/profile`),
         fetch(`/api/lichess/user/${searchQuery}/tournaments`)
       ]);
       
-      if (gamesResponse.ok && insightsResponse.ok && profileResponse.ok) {
+      if (gamesResponse.ok && insightsResponse.ok) {
         const gamesData = await gamesResponse.json();
         const insightsData = await insightsResponse.json();
-        const profileData = await profileResponse.json();
         const tournamentsData = tournamentsResponse.ok ? await tournamentsResponse.json() : { tournaments: [] };
         
         setLichessGames(gamesData.games);
         setLichessInsights(insightsData);
         setLichessTournaments(tournamentsData.tournaments);
         
-        // Use authentic Lichess profile data
-        setSelectedOpponent({
-          id: Date.now(),
-          username: profileData.username,
-          email: `${profileData.username}@lichess.org`,
-          fideId: null,
-          aicfId: null,
-          lichessId: profileData.username,
-          currentRating: profileData.ratingByFormat.blitz || profileData.ratingByFormat.rapid || profileData.ratingByFormat.bullet || null,
-          puzzleRating: null,
-          createdAt: new Date(profileData.createdAt),
-          ratingByFormat: profileData.ratingByFormat
-        });
+        // Fetch authentic Lichess profile data directly from their API
+        try {
+          const profileResponse = await fetch(`https://lichess.org/api/user/${searchQuery}`);
+          const profileData = await profileResponse.json();
+          
+          const ratingByFormat = {
+            ultraBullet: profileData.perfs?.ultraBullet?.rating || null,
+            bullet: profileData.perfs?.bullet?.rating || null,
+            blitz: profileData.perfs?.blitz?.rating || null,
+            rapid: profileData.perfs?.rapid?.rating || null,
+            classical: profileData.perfs?.classical?.rating || null,
+            correspondence: profileData.perfs?.correspondence?.rating || null
+          };
+          
+          // Use authentic Lichess profile data
+          setSelectedOpponent({
+            id: Date.now(),
+            username: profileData.username,
+            email: `${profileData.username}@lichess.org`,
+            fideId: null,
+            aicfId: null,
+            lichessId: profileData.username,
+            currentRating: ratingByFormat.blitz || ratingByFormat.rapid || ratingByFormat.bullet || null,
+            puzzleRating: null,
+            createdAt: new Date(profileData.createdAt),
+            ratingByFormat: ratingByFormat
+          } as any);
+        } catch (profileError) {
+          console.error('Error fetching profile:', profileError);
+          // Only show data if we can get authentic profile info
+          setSelectedOpponent(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching Lichess data:', error);

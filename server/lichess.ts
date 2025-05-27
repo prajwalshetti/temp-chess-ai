@@ -99,7 +99,6 @@ export class LichessService {
     try {
       const response = await fetch(`${this.baseUrl}/user/${username}`, {
         headers: {
-          'Authorization': `Bearer ${this.apiToken}`,
           'Accept': 'application/json'
         }
       });
