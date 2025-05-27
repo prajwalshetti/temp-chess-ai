@@ -140,18 +140,24 @@ export default function MyProfile() {
     if (!selectedGame || !selectedGame.moves) return;
     
     setCurrentMoveIndex(moveIndex);
+    
+    // Reset to starting position
     reset();
-    loadPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     
     // Play moves up to the target index
-    if (moveIndex >= 0) {
-      setTimeout(() => {
-        for (let i = 0; i <= moveIndex && i < selectedGame.moves.length; i++) {
-          setTimeout(() => {
-            makeMove(selectedGame.moves[i]);
-          }, i * 100);
+    if (moveIndex >= 0 && selectedGame.moves.length > 0) {
+      // Use a more reliable sequential move playing
+      let currentIndex = 0;
+      const playNextMove = () => {
+        if (currentIndex <= moveIndex && currentIndex < selectedGame.moves.length) {
+          makeMove(selectedGame.moves[currentIndex]);
+          currentIndex++;
+          if (currentIndex <= moveIndex) {
+            setTimeout(playNextMove, 150);
+          }
         }
-      }, 100);
+      };
+      setTimeout(playNextMove, 200);
     }
   };
 
