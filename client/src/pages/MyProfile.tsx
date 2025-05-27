@@ -35,7 +35,7 @@ import type { User, PlayerStats } from "@shared/schema";
 export default function MyProfile() {
   const [selectedOpening, setSelectedOpening] = useState<any>(null);
   const [selectedGame, setSelectedGame] = useState<any>(null);
-  const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
+  const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [currentPosition, setCurrentPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
   const { 
@@ -130,29 +130,38 @@ export default function MyProfile() {
   const handleGameClick = (game: any) => {
     setSelectedGame(game);
     setSelectedOpening(null);
+    setCurrentMoveIndex(-1);
+    setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     reset();
+    loadPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  };
+
+  const navigateToMove = (moveIndex: number) => {
+    if (!selectedGame || !selectedGame.moves) return;
     
-    // Load the game moves
-    if (game.moves && game.moves.length > 0) {
-      loadPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-      // Play through the moves automatically
+    setCurrentMoveIndex(moveIndex);
+    reset();
+    loadPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    
+    // Play moves up to the target index
+    if (moveIndex >= 0) {
       setTimeout(() => {
-        game.moves.forEach((move: string, index: number) => {
+        for (let i = 0; i <= moveIndex && i < selectedGame.moves.length; i++) {
           setTimeout(() => {
-            makeMove(move);
-          }, index * 500);
-        });
+            makeMove(selectedGame.moves[i]);
+          }, i * 100);
+        }
       }, 100);
     }
   };
 
   // Get move evaluation for current position
   const getCurrentMoveEvaluation = () => {
-    if (!selectedGame || chessCurrentMoveIndex < 0) return null;
+    if (!selectedGame || currentMoveIndex < 0) return null;
     
-    const moveNumber = Math.floor(chessCurrentMoveIndex / 2) + 1;
-    const isWhiteMove = chessCurrentMoveIndex % 2 === 0;
-    const currentMove = moveHistory[chessCurrentMoveIndex];
+    const moveNumber = Math.floor(currentMoveIndex / 2) + 1;
+    const isWhiteMove = currentMoveIndex % 2 === 0;
+    const currentMove = selectedGame.moves[currentMoveIndex];
     
     // Generate realistic move evaluation
     const evaluations = [
@@ -163,10 +172,10 @@ export default function MyProfile() {
       { type: 'blunder', score: '-2.1', insight: 'Blunder! This loses material. Better was to defend the pawn.' }
     ];
     
-    const evalIndex = (chessCurrentMoveIndex + moveNumber) % evaluations.length;
+    const evalIndex = (currentMoveIndex + moveNumber) % evaluations.length;
     return {
       ...evaluations[evalIndex],
-      move: currentMove?.san || '',
+      move: currentMove || '',
       moveNumber,
       isWhiteMove
     };
@@ -439,38 +448,38 @@ export default function MyProfile() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => goToMove(-1)}
-                            disabled={chessCurrentMoveIndex <= -1}
+                            onClick={() => navigateToMove(-1)}
+                            disabled={currentMoveIndex <= -1}
                           >
                             <SkipBack className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => goToMove(chessCurrentMoveIndex - 1)}
-                            disabled={chessCurrentMoveIndex <= -1}
+                            onClick={() => navigateToMove(currentMoveIndex - 1)}
+                            disabled={currentMoveIndex <= -1}
                           >
                             <ChevronLeft className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => goToMove(chessCurrentMoveIndex + 1)}
-                            disabled={chessCurrentMoveIndex >= moveHistory.length - 1}
+                            onClick={() => navigateToMove(currentMoveIndex + 1)}
+                            disabled={!selectedGame || currentMoveIndex >= selectedGame.moves.length - 1}
                           >
                             <ChevronRight className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => goToMove(moveHistory.length - 1)}
-                            disabled={chessCurrentMoveIndex >= moveHistory.length - 1}
+                            onClick={() => navigateToMove(selectedGame?.moves?.length - 1 || -1)}
+                            disabled={!selectedGame || currentMoveIndex >= selectedGame.moves.length - 1}
                           >
                             <SkipForward className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="text-sm text-gray-600">
-                          Move {chessCurrentMoveIndex + 1} of {moveHistory.length}
+                          Move {Math.max(0, currentMoveIndex + 1)} of {selectedGame?.moves?.length || 0}
                         </div>
                       </div>
 
