@@ -1440,55 +1440,7 @@ export default function GamesDatabase() {
 
 
 
-            {/* Head-to-Head Record - Hidden */}
-            {false && headToHeadData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Eye className="mr-2 h-5 w-5 text-blue-500" />
-                    Head-to-Head Record vs {selectedOpponent.username}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <div className="text-center mb-4">
-                        <div className="text-3xl font-bold text-gray-900 mb-2">
-                          {headToHeadData.gamesPlayed}
-                        </div>
-                        <div className="text-sm text-gray-600">Games Played</div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                        <div>
-                          <div className="font-semibold text-green-600">{headToHeadData.playerWins}</div>
-                          <div className="text-gray-500">Your Wins</div>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-600">{headToHeadData.draws}</div>
-                          <div className="text-gray-500">Draws</div>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-red-600">{headToHeadData.opponentWins}</div>
-                          <div className="text-gray-500">Their Wins</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="space-y-3">
-                        <div>
-                          <div className="text-sm text-gray-600 mb-1">Last Encounter</div>
-                          <div className="font-medium">{headToHeadData.lastEncounter.toLocaleDateString()}</div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-600 mb-1">Your Best Opening Against Them</div>
-                          <div className="font-medium text-green-600">{headToHeadData.favoriteOpeningAgainst}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+
 
 
 
