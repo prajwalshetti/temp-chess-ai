@@ -1142,8 +1142,8 @@ export default function OpponentScout() {
                       <div className="font-semibold text-blue-900">Opening Strategy</div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {opponentInsights?.openingRepertoire && Object.keys(opponentInsights.openingRepertoire).length > 0 ? (
-                        Object.entries(opponentInsights.openingRepertoire).slice(0, 3).map(([opening, data]: [string, any]) => (
+                      {lichessInsights?.openingRepertoire && Object.keys(lichessInsights.openingRepertoire).length > 0 ? (
+                        Object.entries(lichessInsights.openingRepertoire).slice(0, 3).map(([opening, data]: [string, any]) => (
                           <div key={opening} className="flex items-start space-x-2">
                             <span className={data.winRate < 0.5 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
                               {data.winRate < 0.5 ? "✓" : "✗"}
@@ -1172,9 +1172,9 @@ export default function OpponentScout() {
                       <div className="font-semibold text-red-900">Tactical Exploitation</div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {opponentGames?.games ? (
+                      {lichessGames && lichessGames.length > 0 ? (
                         (() => {
-                          const gamesWithTactics = opponentGames.games.filter((game: any) => 
+                          const gamesWithTactics = lichessGames.filter((game: any) => 
                             game.analysis && game.analysis.missedTactics && game.analysis.missedTactics.length > 0
                           );
                           
@@ -1185,7 +1185,7 @@ export default function OpponentScout() {
                             return acc;
                           }, {});
                           
-                          const mostMissedTactic = Object.entries(tacticalCounts).sort(([,a], [,b]) => b - a)[0];
+                          const mostMissedTactic = Object.entries(tacticalCounts).sort(([,a], [,b]) => (b as number) - (a as number))[0];
                           
                           return (
                             <>
