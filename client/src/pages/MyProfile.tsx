@@ -146,11 +146,21 @@ export default function MyProfile() {
     
     // Play moves up to the target index
     if (moveIndex >= 0 && selectedGame.moves.length > 0) {
-      // Use a more reliable sequential move playing
+      // Convert UCI moves to objects that chess.js can understand
       let currentIndex = 0;
       const playNextMove = () => {
         if (currentIndex <= moveIndex && currentIndex < selectedGame.moves.length) {
-          makeMove(selectedGame.moves[currentIndex]);
+          const uciMove = selectedGame.moves[currentIndex];
+          
+          // Convert UCI format (e2e4) to from/to object
+          if (uciMove && uciMove.length >= 4) {
+            const from = uciMove.slice(0, 2);
+            const to = uciMove.slice(2, 4);
+            const promotion = uciMove.length > 4 ? uciMove[4] : undefined;
+            
+            makeMove({ from, to, promotion });
+          }
+          
           currentIndex++;
           if (currentIndex <= moveIndex) {
             setTimeout(playNextMove, 150);
