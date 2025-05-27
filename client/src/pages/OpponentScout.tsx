@@ -1142,20 +1142,26 @@ export default function OpponentScout() {
                       <div className="font-semibold text-blue-900">Opening Strategy</div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      <div className="flex items-start space-x-2">
-                        <span className="text-green-600 font-bold">✓</span>
-                        <span className="text-blue-800">
-                          <strong>Exploit their King's Indian weakness:</strong> They score only 62% against KID setups. 
-                          Play ...g6, ...Bg7, ...0-0 to reach favorable positions.
-                        </span>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <span className="text-red-600 font-bold">✗</span>
-                        <span className="text-blue-800">
-                          <strong>Avoid Sicilian Defense:</strong> They excel with 78% score. 
-                          Stick to 1...e5 or solid Queen's Gambit setups.
-                        </span>
-                      </div>
+                      {opponentInsights?.openingRepertoire && Object.keys(opponentInsights.openingRepertoire).length > 0 ? (
+                        Object.entries(opponentInsights.openingRepertoire).slice(0, 3).map(([opening, data]: [string, any]) => (
+                          <div key={opening} className="flex items-start space-x-2">
+                            <span className={data.winRate < 0.5 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+                              {data.winRate < 0.5 ? "✓" : "✗"}
+                            </span>
+                            <span className="text-blue-800">
+                              <strong>{data.winRate < 0.5 ? "Exploit" : "Avoid"} {opening}:</strong> They score {Math.round(data.winRate * 100)}% in {data.games} games. 
+                              {data.winRate < 0.5 
+                                ? "This is a clear weakness in their repertoire." 
+                                : "They're very strong in this opening."
+                              }
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-blue-800">
+                          <strong>Opening analysis will appear here</strong> once their game data loads. Search for an opponent above to see real insights.
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1166,17 +1172,73 @@ export default function OpponentScout() {
                       <div className="font-semibold text-red-900">Tactical Exploitation</div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      <div className="bg-red-100 p-2 rounded">
-                        <strong className="text-red-800">Primary Weakness:</strong> 
-                        <span className="text-red-700 ml-1">Missed {opponentStats?.tacticalWeaknesses.missedForks || 12} fork opportunities</span>
-                      </div>
-                      <div className="text-red-800">
-                        • Create knight outposts on central squares (d4, e4, f5)
-                        <br />
-                        • Look for family forks targeting king and rook
-                        <br />
-                        • Position knights actively in middlegame transitions
-                      </div>
+                      {opponentGames?.games ? (
+                        (() => {
+                          const gamesWithTactics = opponentGames.games.filter((game: any) => 
+                            game.analysis && game.analysis.missedTactics && game.analysis.missedTactics.length > 0
+                          );
+                          
+                          const tacticalCounts = gamesWithTactics.reduce((acc: any, game: any) => {
+                            game.analysis.missedTactics.forEach((tactic: any) => {
+                              acc[tactic.tacticalType] = (acc[tactic.tacticalType] || 0) + 1;
+                            });
+                            return acc;
+                          }, {});
+                          
+                          const mostMissedTactic = Object.entries(tacticalCounts).sort(([,a], [,b]) => b - a)[0];
+                          
+                          return (
+                            <>
+                              <div className="bg-red-100 p-2 rounded">
+                                <strong className="text-red-800">Primary Weakness:</strong> 
+                                <span className="text-red-700 ml-1">
+                                  Missed {mostMissedTactic ? mostMissedTactic[1] : 0} {mostMissedTactic ? mostMissedTactic[0] : 'tactical'} opportunities
+                                </span>
+                              </div>
+                              <div className="text-red-800">
+                                {mostMissedTactic && mostMissedTactic[0] === 'fork' ? (
+                                  <>
+                                    • Create knight outposts on central squares (d4, e4, f5)
+                                    <br />
+                                    • Look for family forks targeting king and rook
+                                    <br />
+                                    • Position knights actively in middlegame transitions
+                                  </>
+                                ) : mostMissedTactic && mostMissedTactic[0] === 'capture' ? (
+                                  <>
+                                    • Look for hanging pieces and loose pawns
+                                    <br />
+                                    • Create multiple threats to force material gains
+                                    <br />
+                                    • Exploit their tendency to leave pieces undefended
+                                  </>
+                                ) : mostMissedTactic && mostMissedTactic[0] === 'check' ? (
+                                  <>
+                                    • Use checks to disrupt their plans
+                                    <br />
+                                    • Create forcing sequences with tempo gains
+                                    <br />
+                                    • Look for perpetual check opportunities
+                                  </>
+                                ) : (
+                                  <>
+                                    • Focus on solid tactical awareness
+                                    <br />
+                                    • Look for common tactical patterns
+                                    <br />
+                                    • Maintain piece coordination
+                                  </>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()
+                      ) : (
+                        <div className="bg-red-100 p-2 rounded">
+                          <strong className="text-red-800">Tactical analysis will appear</strong> 
+                          <span className="text-red-700 ml-1">once opponent game data loads</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
