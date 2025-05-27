@@ -28,7 +28,8 @@ import {
   CheckCircle,
   BookOpen,
   Trophy,
-  Activity
+  Activity,
+  Timer
 } from "lucide-react";
 import type { Game, User, PlayerStats } from "@shared/schema";
 
@@ -908,103 +909,169 @@ export default function GamesDatabase() {
 
           {/* Sidebar Stats */}
           <div className="space-y-6">
-            {/* Current Game Analysis */}
-            {selectedGame && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Eye className="mr-2 h-5 w-5" />
-                    Current Game
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Players:</span>
-                      <span className="text-sm">{selectedGame.whitePlayer} vs {selectedGame.blackPlayer}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Result:</span>
-                      <span className="text-sm font-mono">{selectedGame.result}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Opening:</span>
-                      <span className="text-sm">{selectedGame.opening}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Recent Games List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>My Recent Games</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="text-center py-4">Loading games...</div>
-                ) : games && games.length > 0 ? (
-                  <div className="space-y-2">
-                    {games.slice(0, 5).map((game) => (
-                      <div
-                        key={game.id}
-                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                          selectedGame?.id === game.id 
-                            ? "bg-chess-light border-chess-dark" 
-                            : "hover:bg-gray-50"
-                        }`}
-                        onClick={() => handleGameSelect(game)}
-                      >
-                        <div className="font-medium text-sm">{game.whitePlayer} vs {game.blackPlayer}</div>
-                        <div className="text-xs text-gray-600">{game.result} • {game.opening}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {new Date(game.uploadedAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Upload className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                    <p className="text-sm">No games uploaded yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Current Form Analysis */}
+            {/* Rating Trend */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <TrendingUp className="mr-2 h-5 w-5 text-purple-500" />
-                  My Current Form
+                  <TrendingUp className="mr-2 h-5 w-5 text-blue-500" />
+                  Rating Trend (Last 6 Months)
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{personalStats.winRate}%</div>
-                    <div className="text-sm text-gray-600">Overall Win Rate</div>
+                  {/* Simple rating chart */}
+                  <div className="h-24 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg flex items-end justify-between p-2">
+                    {[1180, 1220, 1195, 1240, 1265, personalStats.currentRating].map((rating, index) => (
+                      <div key={index} className="flex flex-col items-center">
+                        <div 
+                          className="bg-blue-500 rounded-t w-3"
+                          style={{height: `${((rating - 1100) / 200) * 60}px`}}
+                        ></div>
+                        <div className="text-xs text-gray-600 mt-1">{rating}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Recent Performance:</span>
-                      <span className="font-medium">
-                        {games && games.length >= 10 ? (
-                          `${Math.round((games.slice(0, 10).filter(game => {
-                            const isPlayerWhite = game.whitePlayer === user.username;
-                            return (isPlayerWhite && game.result === '1-0') || (!isPlayerWhite && game.result === '0-1');
-                          }).length / 10) * 100)}% (last 10)`
-                        ) : (
-                          'Building history...'
-                        )}
-                      </span>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-600">+{personalStats.currentRating - 1180}</div>
+                    <div className="text-xs text-gray-600">6-month gain</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Game Phase Performance */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Game Phase Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Middlegame</span>
+                    <div className="flex items-center">
+                      <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                        <div className="bg-green-500 h-2 rounded-full" style={{width: '85%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium">85%</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Rating:</span>
-                      <span className="font-medium">{personalStats.currentRating}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Endgame</span>
+                    <div className="flex items-center">
+                      <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                        <div className="bg-yellow-500 h-2 rounded-full" style={{width: '65%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium">65%</span>
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Rating by Format */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Rating by Format</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Rapid</span>
+                    <span className="text-sm font-medium">1813</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Blitz</span>
+                    <span className="text-sm font-medium">1713</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Bullet</span>
+                    <span className="text-sm font-medium">1563</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Classical</span>
+                    <span className="text-sm font-medium">1813</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Key Weaknesses */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
+                  Key Weaknesses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Missed Forks</span>
+                    <Badge variant="destructive" className="text-xs">12x</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Missed Skewers</span>
+                    <Badge variant="destructive" className="text-xs">8x</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Hanging Pieces</span>
+                    <Badge variant="destructive" className="text-xs">22x</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Poor Endgame Play</span>
+                    <Badge variant="destructive" className="text-xs">15x</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tactical Strengths */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-green-600">
+                  <CheckCircle className="mr-2 h-5 w-5" />
+                  Tactical Strengths
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Pins</span>
+                    <Badge className="bg-green-500 text-xs">19x</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Discovered Attacks</span>
+                    <Badge className="bg-green-500 text-xs">15x</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Deflection</span>
+                    <Badge className="bg-green-500 text-xs">7x</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Time Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Timer className="mr-2 h-5 w-5 text-purple-500" />
+                  Time Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Avg Time/Move</span>
+                    <span className="text-sm font-medium">23s</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Time Trouble Games</span>
+                    <span className="text-sm font-medium text-orange-600">31%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Flagged Games</span>
+                    <span className="text-sm font-medium text-red-600">8%</span>
                   </div>
                 </div>
               </CardContent>
