@@ -1183,14 +1183,14 @@ export default function OpponentScout() {
                       <div className="font-semibold text-blue-900">Opening Strategy</div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {opponentOpenings && opponentOpenings.length > 0 ? (
+                      {opponentOpenings && Array.isArray(opponentOpenings) && opponentOpenings.length > 0 ? (
                         opponentOpenings.slice(0, 3).map((opening: any) => (
                           <div key={opening.name} className="flex items-start space-x-2">
                             <span className={opening.winRate < 50 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
                               {opening.winRate < 50 ? "✓" : "✗"}
                             </span>
                             <span className="text-blue-800">
-                              <strong>{opening.winRate < 50 ? "Exploit" : "Avoid"} {opening.name}:</strong> They score {opening.winRate}% in {opening.games.length} games. 
+                              <strong>{opening.winRate < 50 ? "Exploit" : "Avoid"} {opening.name}:</strong> They score {opening.winRate}% in {opening.games?.length || 0} games. 
                               {opening.winRate < 50 
                                 ? "This is a clear weakness in their repertoire." 
                                 : "They're very strong in this opening."
