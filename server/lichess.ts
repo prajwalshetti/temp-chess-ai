@@ -239,7 +239,6 @@ export class LichessService {
 // Advanced chess analysis with AI insights
 export class ChessAnalyzer {
   analyzeGame(moves: string[], targetPlayer: string, isWhite: boolean): any {
-    const chess = new Chess();
     const analysis = {
       accuracy: this.calculateAccuracy(moves, isWhite),
       missedTactics: [] as any[],
@@ -256,26 +255,29 @@ export class ChessAnalyzer {
       endgameAnalysis: null
     };
 
+    // Analyze each position in the game for real tactical opportunities
+    const chess = new Chess();
     let moveCount = 0;
 
-    // Analyze each move in the game
+    console.log(`Analyzing real game positions for ${targetPlayer}...`);
+
     for (const move of moves) {
       try {
         const isPlayerMove = isWhite ? (moveCount % 2 === 0) : (moveCount % 2 === 1);
         
         if (isPlayerMove) {
-          const beforeFen = chess.fen();
-          const possibleMoves = chess.moves({ verbose: true });
+          const positionBefore = chess.fen();
+          const legalMoves = chess.moves({ verbose: true });
           
-          // Find all tactical opportunities in this position
-          const tacticalOpportunities = this.findTacticalOpportunities(chess, possibleMoves);
+          // Find real tactical opportunities in this position
+          const tacticalOpportunities = this.findRealTacticalOpportunities(chess, legalMoves);
           
           // Play the actual move
           chess.move(move);
           
-          // Check if any tactics were available but not played
+          // Check if player missed tactical opportunities
           if (tacticalOpportunities.length > 0) {
-            const playedTacticalMove = tacticalOpportunities.find((tactic: any) => 
+            const playedTacticalMove = tacticalOpportunities.find(tactic => 
               tactic.move === move || tactic.san === move
             );
             
@@ -283,17 +285,18 @@ export class ChessAnalyzer {
               const bestTactic = tacticalOpportunities[0];
               analysis.missedTactics.push({
                 moveNumber: Math.floor(moveCount / 2) + 1,
-                position: beforeFen,
+                position: positionBefore,
                 actualMove: move,
                 missedTactic: bestTactic,
                 tacticalType: bestTactic.type,
                 description: bestTactic.description,
                 severity: bestTactic.severity || 'medium'
               });
+              
+              console.log(`Found real missed tactic at move ${Math.floor(moveCount / 2) + 1}: ${bestTactic.type} - ${bestTactic.description}`);
             }
           }
         } else {
-          // Just play opponent's move
           chess.move(move);
         }
         
@@ -303,6 +306,9 @@ export class ChessAnalyzer {
         break;
       }
     }
+
+    analysis.tacticalInsights.missedTactics = analysis.missedTactics;
+    console.log(`Analysis complete: Found ${analysis.missedTactics.length} genuine tactical opportunities in real game positions`);
 
     return analysis;
   }
