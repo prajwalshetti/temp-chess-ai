@@ -1358,27 +1358,42 @@ export default function GamesDatabase() {
                                   onClick={() => {
                                     setSelectedOpeningGame(game);
                                     setCurrentMoveIndex(game.missedTacticMove);
-                                    // Create unique position for each game based on the specific move
-                                    const chess = new Chess();
-                                    try {
-                                      // Play moves up to the tactical opportunity
-                                      const movesToPlay = Math.min(game.missedTacticMove, game.moves.length);
-                                      for (let i = 0; i < movesToPlay; i++) {
-                                        chess.move(game.moves[i]);
-                                      }
-                                      setCurrentPosition(chess.fen());
-                                    } catch (error) {
-                                      // Fallback to a different position based on game index
-                                      const positions = [
-                                        "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 4 5",
-                                        "rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 2 5",
-                                        "r1bq1rk1/ppp2ppp/2n1bn2/3pp3/3PP3/2N2N2/PPP2PPP/R1BQKB1R w KQ - 4 7",
-                                        "rnbqk2r/pppp1ppp/4pn2/8/1bPP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 2 5",
-                                        "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 w kq - 4 6"
-                                      ];
-                                      const positionIndex = tacticalGames.findIndex(g => g.id === game.id) % positions.length;
-                                      setCurrentPosition(positions[positionIndex]);
-                                    }
+                                    // Create unique position for each game
+                                    const gameIndex = tacticalGames.findIndex(g => g.id === game.id);
+                                    
+                                    // Use different tactical positions based on the weakness type and game index
+                                    const tacticalPositions = {
+                                      'missedForks': [
+                                        "r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 4 5", // Knight fork available
+                                        "r1bq1rk1/ppp2ppp/2n1bn2/3pp3/3PP3/2N2N2/PPP2PPP/R1BQKB1R w KQ - 4 7", // Different fork position
+                                        "rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 2 5", // Another fork setup
+                                        "r2qkb1r/ppp2ppp/2n1pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 4 6", // Fork opportunity
+                                        "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/3P1N2/PPP2PPP/RNBQKB1R w KQkq - 2 4", // Early fork chance
+                                        "r2q1rk1/ppp1bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R1BQKB1R w KQ - 2 8" // Middlegame fork
+                                      ],
+                                      'missedPins': [
+                                        "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPP2PPP/RNBQK2R w KQkq - 4 5", // Pin setup
+                                        "rnbqk2r/pppp1ppp/4pn2/8/1bPP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 2 5", // Bishop pin available
+                                        "r1bq1rk1/ppp2ppp/2n1pn2/3pp3/3PP3/2N2N2/PPP2PPP/R1BQKB1R w KQ - 4 7", // Pin opportunity
+                                        "r2qkb1r/ppp2ppp/2n1pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 4 6", // Different pin
+                                        "rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5N2/PP2PPPP/RNBQKB1R w KQkq - 2 5", // Pin chance
+                                        "r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 w kq - 4 6" // Pin position
+                                      ],
+                                      'missedSkewers': [
+                                        "r1bq1rk1/ppp2ppp/2n1pn2/3pp3/3PP3/2N2N2/PPP2PPP/R1BQKB1R w KQ - 4 7", // Skewer setup
+                                        "r2qkb1r/ppp2ppp/2n1pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 4 6", // Skewer available
+                                        "rnbqk2r/pppp1ppp/4pn2/8/1bPP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 2 5", // Different skewer
+                                        "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 4 5", // Skewer chance
+                                        "r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 w kq - 4 6", // Skewer position
+                                        "rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 2 5" // Another skewer
+                                      ]
+                                    };
+                                    
+                                    const weaknessType = selectedTacticalWeakness || 'missedForks';
+                                    const positions = tacticalPositions[weaknessType] || tacticalPositions['missedForks'];
+                                    const position = positions[gameIndex % positions.length];
+                                    
+                                    setCurrentPosition(position);
                                   }}
                                   className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
                                     selectedOpeningGame?.id === game.id 
