@@ -1143,7 +1143,19 @@ export default function OpponentScout() {
                     </div>
                     <div className="space-y-2 text-sm">
                       {lichessInsights?.openingRepertoire && Object.keys(lichessInsights.openingRepertoire).length > 0 ? (
-                        Object.entries(lichessInsights.openingRepertoire).slice(0, 3).map(([opening, data]: [string, any]) => (
+                        Object.entries(lichessInsights.openingRepertoire)
+                          .filter(([opening, data]: [string, any]) => 
+                            opening && 
+                            opening !== '0' && 
+                            data && 
+                            typeof data.winRate === 'number' && 
+                            typeof data.games === 'number' && 
+                            data.games > 0 &&
+                            data.winRate >= 0 && 
+                            data.winRate <= 1
+                          )
+                          .slice(0, 3)
+                          .map(([opening, data]: [string, any]) => (
                           <div key={opening} className="flex items-start space-x-2">
                             <span className={data.winRate < 0.5 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
                               {data.winRate < 0.5 ? "✓" : "✗"}
