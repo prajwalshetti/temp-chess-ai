@@ -270,14 +270,14 @@ export class ChessAnalyzer {
           const legalMoves = chess.moves({ verbose: true });
           
           // Find real tactical opportunities in this position
-          const tacticalOpportunities = this.findRealTacticalOpportunities(chess, legalMoves);
+          const tacticalOpportunities = this.findTacticalOpportunities(chess, legalMoves);
           
           // Play the actual move
           chess.move(move);
           
           // Check if player missed tactical opportunities
           if (tacticalOpportunities.length > 0) {
-            const playedTacticalMove = tacticalOpportunities.find(tactic => 
+            const playedTacticalMove = tacticalOpportunities.find((tactic: any) => 
               tactic.move === move || tactic.san === move
             );
             
@@ -328,28 +328,131 @@ export class ChessAnalyzer {
     const opportunities = [];
     
     for (const move of possibleMoves) {
-      const chessCopy = new Chess(chess.fen());
-      chessCopy.move(move);
-      
-      // Check for tactical patterns
-      if (this.isFork(chessCopy, move)) {
-        opportunities.push({ type: 'fork', move: move.san, description: 'Fork opportunity' });
-      }
-      
-      if (this.isPin(chessCopy, move)) {
-        opportunities.push({ type: 'pin', move: move.san, description: 'Pin opportunity' });
-      }
-      
-      if (this.isSkewer(chessCopy, move)) {
-        opportunities.push({ type: 'skewer', move: move.san, description: 'Skewer opportunity' });
-      }
-      
-      if (this.isDiscoveredAttack(chessCopy, move)) {
-        opportunities.push({ type: 'discovered_attack', move: move.san, description: 'Discovered attack' });
+      try {
+        const chessCopy = new Chess(chess.fen());
+        const madeMove = chessCopy.move(move);
+        
+        // Real tactical pattern detection
+        if (madeMove.captured) {
+          opportunities.push({ 
+            type: 'capture', 
+            move: move.san, 
+            san: move.san,
+            description: `${move.san} captures ${madeMove.captured}`,
+            severity: 'high'
+          });
+        }
+        
+        if (chessCopy.inCheck()) {
+          opportunities.push({ 
+            type: 'check', 
+            move: move.san, 
+            san: move.san,
+            description: `${move.san} gives check`,
+            severity: 'high'
+          });
+        }
+        
+        // Simple fork detection - knight or piece attacking multiple pieces
+        if (this.detectsSimpleFork(chessCopy, madeMove)) {
+          opportunities.push({ 
+            type: 'fork', 
+            move: move.san, 
+            san: move.san,
+            description: `${move.san} creates a fork`,
+            severity: 'high'
+          });
+        }
+        
+        // Attack on valuable piece
+        if (this.attacksValuablePiece(chessCopy, madeMove)) {
+          opportunities.push({ 
+            type: 'attack', 
+            move: move.san, 
+            san: move.san,
+            description: `${move.san} attacks valuable piece`,
+            severity: 'medium'
+          });
+        }
+        
+      } catch (error) {
+        continue;
       }
     }
     
-    return opportunities;
+    return opportunities.sort((a, b) => {
+      const severityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+      return severityOrder[b.severity] - severityOrder[a.severity];
+    }).slice(0, 3);
+  }
+
+  private detectsSimpleFork(chess: Chess, move: any): boolean {
+    const piece = chess.get(move.to);
+    if (!piece) return false;
+    
+    // For knights, check if attacking multiple pieces
+    if (piece.type === 'n') {
+      const attacks = this.getKnightAttacks(move.to);
+      let enemyPiecesAttacked = 0;
+      
+      for (const square of attacks) {
+        const targetPiece = chess.get(square);
+        if (targetPiece && targetPiece.color !== piece.color) {
+          enemyPiecesAttacked++;
+        }
+      }
+      
+      return enemyPiecesAttacked >= 2;
+    }
+    
+    return false;
+  }
+
+  private attacksValuablePiece(chess: Chess, move: any): boolean {
+    const piece = chess.get(move.to);
+    if (!piece) return false;
+    
+    const attacks = this.getSimpleAttacks(chess, move.to, piece.type);
+    
+    for (const square of attacks) {
+      const targetPiece = chess.get(square);
+      if (targetPiece && targetPiece.color !== piece.color) {
+        if (targetPiece.type === 'q' || targetPiece.type === 'r') {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  private getKnightAttacks(square: string): string[] {
+    const attacks = [];
+    const file = square.charCodeAt(0) - 97;
+    const rank = parseInt(square[1]) - 1;
+    
+    const knightMoves = [
+      [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+      [1, -2], [1, 2], [2, -1], [2, 1]
+    ];
+    
+    for (const [df, dr] of knightMoves) {
+      const newFile = file + df;
+      const newRank = rank + dr;
+      if (newFile >= 0 && newFile < 8 && newRank >= 0 && newRank < 8) {
+        attacks.push(String.fromCharCode(97 + newFile) + (newRank + 1));
+      }
+    }
+    
+    return attacks;
+  }
+
+  private getSimpleAttacks(chess: Chess, square: string, pieceType: string): string[] {
+    if (pieceType === 'n') {
+      return this.getKnightAttacks(square);
+    }
+    
+    return []; // Simplified for now
   }
 
   private analyzeSingleMove(beforeFen: string, move: string, possibleMoves: any[], tacticalOpportunities: any[]): any {
