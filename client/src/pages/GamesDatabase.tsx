@@ -173,10 +173,9 @@ export default function GamesDatabase() {
     }
   };
 
-  // Handle Lichess search
+  // Handle Lichess search - automatically use damodar111
   const handleLichessSearch = async () => {
-    if (!searchQuery.trim()) return;
-
+    const username = "damodar111"; // Always use your username
     setIsLoadingLichess(true);
     try {
       const [gamesResponse, insightsResponse, tournamentsResponse] = await Promise.all([
@@ -373,16 +372,16 @@ export default function GamesDatabase() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Opponent Scout</h1>
-        <p className="text-gray-600">Research your opponents and gain strategic advantages</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Chess Profile</h1>
+        <p className="text-gray-600">Complete analysis of your chess performance and improvement areas</p>
       </div>
 
       {/* Search Section */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Search className="mr-2 h-5 w-5" />
-            Find Your Opponent
+            <Users className="mr-2 h-5 w-5" />
+            Your Profile Data
           </CardTitle>
         </CardHeader>
         <CardContent>
