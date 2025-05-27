@@ -1318,47 +1318,108 @@ export default function GamesDatabase() {
                           <Target className="mr-2 h-4 w-4" />
                           Games where you missed {tacticalGames[0]?.tacticalType}
                         </h4>
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {tacticalGames.map((game, index) => {
-                            const playerColor = game.whitePlayer.toLowerCase() === 'damodar111' ? 'white' : 'black';
-                            const opponent = playerColor === 'white' ? game.blackPlayer : game.whitePlayer;
-                            const opponentRating = playerColor === 'white' ? game.blackRating : game.whiteRating;
-                            
-                            return (
-                              <button
-                                key={index}
-                                onClick={() => {
-                                  setSelectedOpeningGame(game);
-                                  setCurrentMoveIndex(game.missedTacticMove);
-                                  // Jump to the specific move where the tactic was missed
-                                  const chess = new Chess();
-                                  for (let i = 0; i < game.missedTacticMove && i < game.moves.length; i++) {
-                                    chess.move(game.moves[i]);
-                                  }
-                                  setCurrentPosition(chess.fen());
-                                }}
-                                className="w-full flex items-center justify-between p-3 bg-white hover:bg-purple-50 rounded-lg border border-purple-200 transition-colors cursor-pointer"
-                              >
-                                <div className="flex items-center space-x-3">
-                                  <div className={`w-3 h-3 rounded-full ${
-                                    playerColor === 'white' ? 'bg-white border-2 border-gray-400' : 'bg-gray-800'
-                                  }`}></div>
-                                  <div className="text-left">
-                                    <div className="font-medium text-sm">vs {opponent} ({opponentRating})</div>
-                                    <div className="text-xs text-gray-500">
-                                      {game.description} • {new Date(game.createdAt).toLocaleDateString()}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Games List */}
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {tacticalGames.map((game, index) => {
+                              const playerColor = game.whitePlayer.toLowerCase() === 'damodar111' ? 'white' : 'black';
+                              const opponent = playerColor === 'white' ? game.blackPlayer : game.whitePlayer;
+                              const opponentRating = playerColor === 'white' ? game.blackRating : game.whiteRating;
+                              
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={() => {
+                                    setSelectedOpeningGame(game);
+                                    setCurrentMoveIndex(game.missedTacticMove);
+                                    // Jump to the specific move where the tactic was missed
+                                    const chess = new Chess();
+                                    for (let i = 0; i < game.missedTacticMove && i < game.moves.length; i++) {
+                                      chess.move(game.moves[i]);
+                                    }
+                                    setCurrentPosition(chess.fen());
+                                  }}
+                                  className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
+                                    selectedOpeningGame?.id === game.id 
+                                      ? 'bg-purple-100 border-purple-400' 
+                                      : 'bg-white hover:bg-purple-50 border-purple-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <div className={`w-3 h-3 rounded-full ${
+                                      playerColor === 'white' ? 'bg-white border-2 border-gray-400' : 'bg-gray-800'
+                                    }`}></div>
+                                    <div className="text-left">
+                                      <div className="font-medium text-sm">vs {opponent} ({opponentRating})</div>
+                                      <div className="text-xs text-gray-500">
+                                        {game.description} • {new Date(game.createdAt).toLocaleDateString()}
+                                      </div>
                                     </div>
                                   </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      Move {game.missedTacticMove}
+                                    </Badge>
+                                    <span className="text-purple-600">→</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Chess Board showing missed tactic position */}
+                          {selectedOpeningGame && (
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <h5 className="font-medium mb-3 flex items-center">
+                                <Brain className="mr-2 h-4 w-4 text-purple-500" />
+                                Position where you missed the {tacticalGames.find(g => g.id === selectedOpeningGame.id)?.tacticalType}
+                              </h5>
+                              
+                              {/* Chess Board */}
+                              <div className="mb-4">
+                                <ChessBoard 
+                                  fen={currentPosition} 
+                                  className="mx-auto"
+                                  size={280}
+                                  interactive={false}
+                                />
+                              </div>
+
+                              {/* Position Analysis */}
+                              <div className="space-y-3 text-sm">
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="font-medium text-red-600 mb-1">
+                                    ⚠️ Missed Opportunity at Move {currentMoveIndex}
+                                  </div>
+                                  <div className="text-gray-700">
+                                    {(() => {
+                                      const tacticalType = tacticalGames.find(g => g.id === selectedOpeningGame.id)?.tacticalType;
+                                      if (tacticalType?.includes('Fork')) {
+                                        return 'A knight fork was available that could have won material by attacking two pieces simultaneously.';
+                                      } else if (tacticalType?.includes('Pin')) {
+                                        return 'A pin opportunity was missed - you could have attacked a piece that couldn\'t move without exposing a more valuable piece.';
+                                      } else if (tacticalType?.includes('Skewer')) {
+                                        return 'A skewer was possible - forcing an opponent\'s valuable piece to move and capturing the piece behind it.';
+                                      } else if (tacticalType?.includes('Discovered')) {
+                                        return 'A discovered attack was available by moving one piece to reveal an attack from another piece behind it.';
+                                      } else {
+                                        return 'A tactical opportunity was missed in this position that could have improved your advantage.';
+                                      }
+                                    })()}
+                                  </div>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    Move {game.missedTacticMove}
-                                  </Badge>
-                                  <span className="text-purple-600">→</span>
+
+                                <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                                  <div className="font-medium text-blue-600 mb-1">
+                                    💡 Learning Point
+                                  </div>
+                                  <div className="text-blue-800 text-xs">
+                                    Study this position to recognize similar patterns in future games. Look for pieces that can be attacked simultaneously or pieces that are inadequately defended.
+                                  </div>
                                 </div>
-                              </button>
-                            );
-                          })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
