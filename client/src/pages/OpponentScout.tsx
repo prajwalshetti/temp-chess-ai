@@ -1183,15 +1183,28 @@ export default function OpponentScout() {
                       <div className="font-semibold text-blue-900">Opening Strategy</div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {opponentOpenings && Array.isArray(opponentOpenings) && opponentOpenings.length > 0 ? (
-                        opponentOpenings.slice(0, 3).map((opening: any) => (
-                          <div key={opening.name} className="flex items-start space-x-2">
-                            <span className={opening.winRate < 50 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
-                              {opening.winRate < 50 ? "✓" : "✗"}
+                      {lichessInsights?.openingRepertoire && Object.keys(lichessInsights.openingRepertoire).length > 0 ? (
+                        Object.entries(lichessInsights.openingRepertoire)
+                          .filter(([opening, data]: [string, any]) => 
+                            opening && 
+                            opening.trim() !== '' && 
+                            opening !== 'Unknown' && 
+                            data && 
+                            typeof data.winRate === 'number' && 
+                            typeof data.games === 'number' && 
+                            data.games >= 2 &&
+                            data.winRate >= 0 && 
+                            data.winRate <= 1
+                          )
+                          .slice(0, 3)
+                          .map(([opening, data]: [string, any]) => (
+                          <div key={opening} className="flex items-start space-x-2">
+                            <span className={data.winRate < 0.5 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+                              {data.winRate < 0.5 ? "✓" : "✗"}
                             </span>
                             <span className="text-blue-800">
-                              <strong>{opening.winRate < 50 ? "Exploit" : "Avoid"} {opening.name}:</strong> They score {opening.winRate}% in {opening.games?.length || 0} games. 
-                              {opening.winRate < 50 
+                              <strong>{data.winRate < 0.5 ? "Exploit" : "Avoid"} {opening}:</strong> They score {Math.round(data.winRate * 100)}% in {data.games} games. 
+                              {data.winRate < 0.5 
                                 ? "This is a clear weakness in their repertoire." 
                                 : "They're very strong in this opening."
                               }
@@ -1200,7 +1213,7 @@ export default function OpponentScout() {
                         ))
                       ) : lichessGames && lichessGames.length > 0 ? (
                         <div className="text-blue-800">
-                          <strong>Analyzing their opening repertoire...</strong> from {lichessGames.length} games found.
+                          <strong>No opening analysis available</strong> - analyzing {lichessGames.length} games but no clear patterns found with sufficient sample size.
                         </div>
                       ) : (
                         <div className="text-blue-800">
