@@ -305,8 +305,6 @@ export class ChessAnalyzer {
     }
 
     return analysis;
-    
-    return analysis;
   }
 
   private calculateAccuracy(moves: string[], isWhite: boolean): number {
