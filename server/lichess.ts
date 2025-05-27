@@ -242,6 +242,7 @@ export class ChessAnalyzer {
     const chess = new Chess();
     const analysis = {
       accuracy: this.calculateAccuracy(moves, isWhite),
+      missedTactics: [] as any[],
       criticalMoments: [] as any[],
       tacticalInsights: {
         missedTactics: [] as any[],
@@ -256,9 +257,8 @@ export class ChessAnalyzer {
     };
 
     let moveCount = 0;
-    const playerMoves = [];
 
-    // Analyze each move
+    // Analyze each move in the game
     for (const move of moves) {
       try {
         const isPlayerMove = isWhite ? (moveCount % 2 === 0) : (moveCount % 2 === 1);
@@ -267,38 +267,33 @@ export class ChessAnalyzer {
           const beforeFen = chess.fen();
           const possibleMoves = chess.moves({ verbose: true });
           
-          // Check for tactical opportunities before the move
+          // Find all tactical opportunities in this position
           const tacticalOpportunities = this.findTacticalOpportunities(chess, possibleMoves);
           
+          // Play the actual move
           chess.move(move);
-          const afterFen = chess.fen();
           
-          // Analyze the move
-          const moveAnalysis = this.analyzeSingleMove(beforeFen, move, possibleMoves, tacticalOpportunities);
-          
-          if (moveAnalysis.isCritical) {
-            analysis.criticalMoments.push({
-              moveNumber: Math.floor(moveCount / 2) + 1,
-              move,
-              type: moveAnalysis.type,
-              severity: moveAnalysis.severity,
-              description: moveAnalysis.description,
-              betterMove: moveAnalysis.betterMove,
-              evaluation: moveAnalysis.evaluation,
-              explanation: moveAnalysis.explanation
-            });
-          }
-
-          if (moveAnalysis.tactical) {
-            if (moveAnalysis.tactical.missed) {
-              analysis.tacticalInsights.missedTactics.push(moveAnalysis.tactical);
-            } else {
-              analysis.tacticalInsights.goodMoves.push(moveAnalysis.tactical);
+          // Check if any tactics were available but not played
+          if (tacticalOpportunities.length > 0) {
+            const playedTacticalMove = tacticalOpportunities.find((tactic: any) => 
+              tactic.move === move || tactic.san === move
+            );
+            
+            if (!playedTacticalMove) {
+              const bestTactic = tacticalOpportunities[0];
+              analysis.missedTactics.push({
+                moveNumber: Math.floor(moveCount / 2) + 1,
+                position: beforeFen,
+                actualMove: move,
+                missedTactic: bestTactic,
+                tacticalType: bestTactic.type,
+                description: bestTactic.description,
+                severity: bestTactic.severity || 'medium'
+              });
             }
           }
-
-          playerMoves.push({ move, analysis: moveAnalysis });
         } else {
+          // Just play opponent's move
           chess.move(move);
         }
         
@@ -309,8 +304,7 @@ export class ChessAnalyzer {
       }
     }
 
-    // Opening analysis (first 10-15 moves)
-    analysis.openingAnalysis = this.analyzeOpening(playerMoves.slice(0, 8));
+    return analysis;
     
     return analysis;
   }
