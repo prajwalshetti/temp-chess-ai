@@ -486,53 +486,268 @@ export default function GamesDatabase() {
               </CardContent>
             </Card>
 
-            {/* Opening Repertoire Analysis */}
+            {/* Opening Repertoire Analysis - Top 4 Most Used */}
             <Card>
               <CardHeader>
                 <CardTitle>My Opening Repertoire</CardTitle>
-                <CardDescription>Click any opening to see your games with detailed analysis</CardDescription>
+                <CardDescription>Top 4 most-used openings - click any opening to analyze games and positions</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {personalStats.openingRepertoire.map((opening: any) => {
-                    const winRate = Math.round((opening.wins / opening.gamesPlayed) * 100);
-                    return (
-                      <div 
-                        key={opening.id} 
-                        className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                          selectedOpening?.id === opening.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => handleOpeningClick(opening)}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center">
-                            {opening.color === 'white' ? (
-                              <Crown className="mr-2 h-4 w-4 text-yellow-500" />
-                            ) : (
-                              <Shield className="mr-2 h-4 w-4 text-gray-800" />
-                            )}
-                            <span className="font-medium">{opening.name}</span>
-                          </div>
-                          <Badge 
-                            className={
-                              winRate >= 70 ? 'bg-green-500' : 
-                              winRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                            }
-                          >
-                            {winRate}%
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-gray-600 mb-2 font-mono">{opening.moves}</div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">{opening.gamesPlayed} games</span>
-                          <span className="text-gray-600">{opening.wins}W-{opening.losses}L-{opening.draws}D</span>
+                {(() => {
+                  // Get top 4 openings by games played, separated by color
+                  const whiteOpenings = personalStats.openingRepertoire
+                    .filter((opening: any) => opening.color === 'white')
+                    .sort((a: any, b: any) => b.gamesPlayed - a.gamesPlayed)
+                    .slice(0, 2);
+                  
+                  const blackOpenings = personalStats.openingRepertoire
+                    .filter((opening: any) => opening.color === 'black')
+                    .sort((a: any, b: any) => b.gamesPlayed - a.gamesPlayed)
+                    .slice(0, 2);
+
+                  const topOpenings = [...whiteOpenings, ...blackOpenings];
+
+                  return (
+                    <div className="space-y-6">
+                      {/* White Openings */}
+                      <div>
+                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                          <Crown className="mr-2 h-4 w-4 text-yellow-500" />
+                          Playing as White
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {whiteOpenings.map((opening: any) => {
+                            const winRate = Math.round((opening.wins / opening.gamesPlayed) * 100);
+                            return (
+                              <div 
+                                key={opening.id} 
+                                className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                                  selectedOpening?.id === opening.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                                }`}
+                                onClick={() => handleOpeningClick(opening)}
+                              >
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="font-medium text-sm">{opening.name}</span>
+                                  <Badge 
+                                    className={
+                                      winRate >= 70 ? 'bg-green-500' : 
+                                      winRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                    }
+                                  >
+                                    {winRate}%
+                                  </Badge>
+                                </div>
+                                <div className="text-xs text-gray-600 mb-2 font-mono">{opening.moves}</div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-600">{opening.gamesPlayed} games</span>
+                                  <span className="text-gray-600">
+                                    {opening.tournamentGames}🏆 + {opening.lichessGames}💻
+                                  </span>
+                                </div>
+                                <div className="text-xs text-center mt-2 text-gray-500">
+                                  {opening.wins}W-{opening.losses}L-{opening.draws}D
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Black Openings */}
+                      <div>
+                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                          <Shield className="mr-2 h-4 w-4 text-gray-800" />
+                          Playing as Black
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {blackOpenings.map((opening: any) => {
+                            const winRate = Math.round((opening.wins / opening.gamesPlayed) * 100);
+                            return (
+                              <div 
+                                key={opening.id} 
+                                className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                                  selectedOpening?.id === opening.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                                }`}
+                                onClick={() => handleOpeningClick(opening)}
+                              >
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="font-medium text-sm">{opening.name}</span>
+                                  <Badge 
+                                    className={
+                                      winRate >= 70 ? 'bg-green-500' : 
+                                      winRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                    }
+                                  >
+                                    {winRate}%
+                                  </Badge>
+                                </div>
+                                <div className="text-xs text-gray-600 mb-2 font-mono">{opening.moves}</div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-600">{opening.gamesPlayed} games</span>
+                                  <span className="text-gray-600">
+                                    {opening.tournamentGames}🏆 + {opening.lichessGames}💻
+                                  </span>
+                                </div>
+                                <div className="text-xs text-center mt-2 text-gray-500">
+                                  {opening.wins}W-{opening.losses}L-{opening.draws}D
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
+
+            {/* Interactive Chess Analysis for Selected Opening */}
+            {selectedOpening && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Eye className="mr-2 h-5 w-5" />
+                    Analyzing: {selectedOpening.name}
+                  </CardTitle>
+                  <CardDescription>
+                    Interactive analysis of your games in this opening ({selectedOpening.gamesPlayed} games total)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Chess Board */}
+                    <div>
+                      <div className="flex justify-center mb-4">
+                        <ChessBoard 
+                          fen={fen}
+                          onMove={makeMove}
+                          size={300}
+                          interactive={true}
+                        />
+                      </div>
+                      
+                      {/* Game Navigation */}
+                      <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => goToMove(-1)}
+                            disabled={currentMoveIndex <= -1}
+                          >
+                            <SkipBack className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => goToMove(currentMoveIndex - 1)}
+                            disabled={currentMoveIndex <= -1}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => goToMove(currentMoveIndex + 1)}
+                            disabled={currentMoveIndex >= moveHistory.length - 1}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => goToMove(moveHistory.length - 1)}
+                            disabled={currentMoveIndex >= moveHistory.length - 1}
+                          >
+                            <SkipForward className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          Move {currentMoveIndex + 1} of {moveHistory.length}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Opening Analysis */}
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-800 mb-2">Opening Statistics</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <div className="text-2xl font-bold text-blue-600">
+                              {Math.round((selectedOpening.wins / selectedOpening.gamesPlayed) * 100)}%
+                            </div>
+                            <div className="text-blue-600">Win Rate</div>
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-blue-600">{selectedOpening.gamesPlayed}</div>
+                            <div className="text-blue-600">Games Played</div>
+                          </div>
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <div className="flex justify-between text-sm text-blue-700">
+                            <span>Tournament: {selectedOpening.tournamentGames} games</span>
+                            <span>Lichess: {selectedOpening.lichessGames} games</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Performance Analysis */}
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-800 mb-3">Performance Breakdown</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Wins</span>
+                            <div className="flex items-center">
+                              <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                                <div 
+                                  className="bg-green-500 h-2 rounded-full" 
+                                  style={{width: `${(selectedOpening.wins / selectedOpening.gamesPlayed) * 100}%`}}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-medium">{selectedOpening.wins}</span>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Draws</span>
+                            <div className="flex items-center">
+                              <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                                <div 
+                                  className="bg-yellow-500 h-2 rounded-full" 
+                                  style={{width: `${(selectedOpening.draws / selectedOpening.gamesPlayed) * 100}%`}}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-medium">{selectedOpening.draws}</span>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Losses</span>
+                            <div className="flex items-center">
+                              <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                                <div 
+                                  className="bg-red-500 h-2 rounded-full" 
+                                  style={{width: `${(selectedOpening.losses / selectedOpening.gamesPlayed) * 100}%`}}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-medium">{selectedOpening.losses}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Opening Moves */}
+                      <div className="bg-purple-50 rounded-lg p-4">
+                        <h4 className="font-semibold text-purple-800 mb-2">Typical Sequence</h4>
+                        <div className="text-sm font-mono text-purple-700 bg-white p-2 rounded border">
+                          {selectedOpening.moves || "No move sequence available"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* AI Strategic Recommendations for Personal Improvement */}
             <Card>
