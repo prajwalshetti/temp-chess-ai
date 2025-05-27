@@ -146,19 +146,19 @@ export default function MyProfile() {
     
     // Play moves up to the target index
     if (moveIndex >= 0 && selectedGame.moves.length > 0) {
-      // Convert UCI moves to objects that chess.js can understand
+      // Handle moves in SAN notation (algebraic notation like "e4", "Nf3", "exd4")
       let currentIndex = 0;
       const playNextMove = () => {
         if (currentIndex <= moveIndex && currentIndex < selectedGame.moves.length) {
-          const uciMove = selectedGame.moves[currentIndex];
+          const move = selectedGame.moves[currentIndex];
           
-          // Convert UCI format (e2e4) to from/to object
-          if (uciMove && uciMove.length >= 4) {
-            const from = uciMove.slice(0, 2);
-            const to = uciMove.slice(2, 4);
-            const promotion = uciMove.length > 4 ? uciMove[4] : undefined;
-            
-            makeMove({ from, to, promotion });
+          // Try to make the move directly with SAN notation
+          if (move && move.trim()) {
+            try {
+              makeMove(move.trim());
+            } catch (error) {
+              console.warn("Could not play move:", move);
+            }
           }
           
           currentIndex++;
