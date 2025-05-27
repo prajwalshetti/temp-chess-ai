@@ -26,7 +26,9 @@ import {
   Crown,
   Shield,
   CheckCircle,
-  BookOpen
+  BookOpen,
+  Trophy,
+  Activity
 } from "lucide-react";
 import type { Game, User, PlayerStats } from "@shared/schema";
 
@@ -59,6 +61,23 @@ export default function GamesDatabase() {
   const { data: playerStats } = useQuery<PlayerStats>({
     queryKey: ["/api/player-stats/1"],
   });
+
+  // Fetch Lichess data for user damodar111
+  const { data: lichessData } = useQuery<any>({
+    queryKey: ["/api/lichess/user/damodar111/games"],
+  });
+
+  const { data: lichessInsights } = useQuery<any>({
+    queryKey: ["/api/lichess/user/damodar111/insights"],
+  });
+
+  const { data: lichessTournamentsData } = useQuery<any>({
+    queryKey: ["/api/lichess/user/damodar111/tournaments"],
+  });
+
+  // Extract games and tournaments from the response objects
+  const lichessGames = lichessData?.games || [];
+  const lichessTournaments = lichessTournamentsData?.tournaments || [];
 
   const uploadGameMutation = useMutation({
     mutationFn: async (gameData: any) => {
@@ -131,15 +150,58 @@ export default function GamesDatabase() {
     }
   };
 
-  // Generate personal chess statistics
+  // Generate personal chess statistics combining tournament games and Lichess data
   const personalStats = playerStats && games && user ? {
-    gamesPlayed: playerStats.gamesPlayed,
-    winRate: Math.round((playerStats.wins / Math.max(1, playerStats.wins + playerStats.losses + playerStats.draws)) * 100),
-    wins: playerStats.wins,
-    losses: playerStats.losses,
-    draws: playerStats.draws,
+    // Tournament games stats
+    tournamentGames: playerStats.gamesPlayed || 0,
+    tournamentWins: playerStats.wins || 0,
+    tournamentLosses: playerStats.losses || 0,
+    tournamentDraws: playerStats.draws || 0,
+    tournamentWinRate: Math.round(((playerStats.wins || 0) / Math.max(1, (playerStats.wins || 0) + (playerStats.losses || 0) + (playerStats.draws || 0))) * 100),
+    
+    // Lichess stats
+    lichessGames: lichessGames.length || 0,
+    lichessWins: lichessGames.filter(game => {
+      const isWhite = game.whitePlayer.toLowerCase() === 'damodar111';
+      return (isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1');
+    }).length,
+    lichessLosses: lichessGames.filter(game => {
+      const isWhite = game.whitePlayer.toLowerCase() === 'damodar111';
+      return (isWhite && game.result === '0-1') || (!isWhite && game.result === '1-0');
+    }).length,
+    lichessDraws: lichessGames.filter(game => game.result === '1/2-1/2').length,
+    lichessWinRate: lichessGames.length > 0 ? Math.round((lichessGames.filter(game => {
+      const isWhite = game.whitePlayer.toLowerCase() === 'damodar111';
+      return (isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1');
+    }).length / lichessGames.length) * 100) : 0,
+    
+    // Combined totals
+    totalGames: (playerStats.gamesPlayed || 0) + lichessGames.length,
+    totalWins: (playerStats.wins || 0) + lichessGames.filter(game => {
+      const isWhite = game.whitePlayer.toLowerCase() === 'damodar111';
+      return (isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1');
+    }).length,
+    totalLosses: (playerStats.losses || 0) + lichessGames.filter(game => {
+      const isWhite = game.whitePlayer.toLowerCase() === 'damodar111';
+      return (isWhite && game.result === '0-1') || (!isWhite && game.result === '1-0');
+    }).length,
+    totalDraws: (playerStats.draws || 0) + lichessGames.filter(game => game.result === '1/2-1/2').length,
+    overallWinRate: Math.round((((playerStats.wins || 0) + lichessGames.filter(game => {
+      const isWhite = game.whitePlayer.toLowerCase() === 'damodar111';
+      return (isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1');
+    }).length) / Math.max(1, (playerStats.gamesPlayed || 0) + lichessGames.length)) * 100),
+    
     currentRating: user.currentRating || 1200,
     peakRating: user.currentRating || 1200,
+    
+    // Lichess recent form
+    recentForm: lichessGames.slice(0, 10).map(game => {
+      const isWhite = game.whitePlayer.toLowerCase() === 'damodar111';
+      if ((isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1')) return 'W';
+      if ((isWhite && game.result === '0-1') || (!isWhite && game.result === '1-0')) return 'L';
+      return 'D';
+    }),
+    
     tacticalWeaknesses: {
       missedForks: 18,
       missedPins: 12,
@@ -151,31 +213,71 @@ export default function GamesDatabase() {
       discoveredAttacks: 15,
       deflection: 7
     },
-    openingRepertoire: games.reduce((acc: any[], game) => {
-      const existing = acc.find(o => o.name === game.opening);
-      const isPlayerWhite = game.whitePlayer === user.username;
-      const playerWon = (isPlayerWhite && game.result === '1-0') || (!isPlayerWhite && game.result === '0-1');
-      const isDraw = game.result === '1/2-1/2';
+    
+    // Combined opening repertoire from both sources
+    openingRepertoire: (() => {
+      const openings: any[] = [];
       
-      if (existing) {
-        existing.gamesPlayed++;
-        if (playerWon) existing.wins++;
-        else if (isDraw) existing.draws++;
-        else existing.losses++;
-      } else {
-        acc.push({
-          id: acc.length + 1,
-          name: game.opening,
-          color: isPlayerWhite ? 'white' : 'black',
-          gamesPlayed: 1,
-          wins: playerWon ? 1 : 0,
-          losses: playerWon || isDraw ? 0 : 1,
-          draws: isDraw ? 1 : 0,
-          moves: game.moves?.slice(0, 4).join(' ') || ''
-        });
-      }
-      return acc;
-    }, [])
+      // Add tournament games
+      games.forEach(game => {
+        const existing = openings.find(o => o.name === game.opening);
+        const isPlayerWhite = game.whitePlayer === user.username;
+        const playerWon = (isPlayerWhite && game.result === '1-0') || (!isPlayerWhite && game.result === '0-1');
+        const isDraw = game.result === '1/2-1/2';
+        
+        if (existing) {
+          existing.gamesPlayed++;
+          existing.tournamentGames++;
+          if (playerWon) existing.wins++;
+          else if (isDraw) existing.draws++;
+          else existing.losses++;
+        } else {
+          openings.push({
+            id: openings.length + 1,
+            name: game.opening,
+            color: isPlayerWhite ? 'white' : 'black',
+            gamesPlayed: 1,
+            tournamentGames: 1,
+            lichessGames: 0,
+            wins: playerWon ? 1 : 0,
+            losses: playerWon || isDraw ? 0 : 1,
+            draws: isDraw ? 1 : 0,
+            moves: game.moves?.slice(0, 4).join(' ') || ''
+          });
+        }
+      });
+      
+      // Add Lichess games
+      lichessGames.forEach(game => {
+        const existing = openings.find(o => o.name === game.opening);
+        const isPlayerWhite = game.whitePlayer.toLowerCase() === 'damodar111';
+        const playerWon = (isPlayerWhite && game.result === '1-0') || (!isPlayerWhite && game.result === '0-1');
+        const isDraw = game.result === '1/2-1/2';
+        
+        if (existing) {
+          existing.gamesPlayed++;
+          existing.lichessGames++;
+          if (playerWon) existing.wins++;
+          else if (isDraw) existing.draws++;
+          else existing.losses++;
+        } else {
+          openings.push({
+            id: openings.length + 1,
+            name: game.opening,
+            color: isPlayerWhite ? 'white' : 'black',
+            gamesPlayed: 1,
+            tournamentGames: 0,
+            lichessGames: 1,
+            wins: playerWon ? 1 : 0,
+            losses: playerWon || isDraw ? 0 : 1,
+            draws: isDraw ? 1 : 0,
+            moves: game.moves?.slice(0, 4).join(' ') || ''
+          });
+        }
+      });
+      
+      return openings;
+    })()
   } : null;
 
   const getWeaknessLevel = (count: number) => {
@@ -287,41 +389,100 @@ export default function GamesDatabase() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600">{personalStats.gamesPlayed}</div>
+                    <div className="text-3xl font-bold text-blue-600">{personalStats.totalGames}</div>
                     <div className="text-sm text-gray-600">Total Games</div>
-                    <div className="text-xs text-blue-600 mt-1">Analyzed</div>
+                    <div className="text-xs text-blue-600 mt-1">Tournament + Lichess</div>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-3xl font-bold text-green-600">{personalStats.winRate}%</div>
-                    <div className="text-sm text-gray-600">Win Rate</div>
-                    <div className="text-xs text-green-600 mt-1">{personalStats.wins} wins</div>
+                    <div className="text-3xl font-bold text-green-600">{personalStats.overallWinRate}%</div>
+                    <div className="text-sm text-gray-600">Overall Win Rate</div>
+                    <div className="text-xs text-green-600 mt-1">{personalStats.totalWins} wins</div>
                   </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
                     <div className="text-3xl font-bold text-purple-600">{personalStats.currentRating}</div>
                     <div className="text-sm text-gray-600">Current Rating</div>
-                    <div className="text-xs text-purple-600 mt-1">Peak: {personalStats.peakRating}</div>
+                    <div className="text-xs text-purple-600 mt-1">Lichess: damodar111</div>
                   </div>
                   <div className="text-center p-4 bg-orange-50 rounded-lg">
                     <div className="text-3xl font-bold text-orange-600">{personalStats.openingRepertoire.length}</div>
                     <div className="text-sm text-gray-600">Openings Played</div>
-                    <div className="text-xs text-orange-600 mt-1">Repertoire</div>
+                    <div className="text-xs text-orange-600 mt-1">Combined Repertoire</div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-3 bg-green-100 rounded-lg">
-                    <div className="text-2xl font-bold text-green-700">{personalStats.wins}</div>
-                    <div className="text-sm text-green-600">Wins</div>
+                {/* Split Tournament vs Lichess Performance */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="font-semibold text-yellow-800 mb-3 flex items-center">
+                      <Trophy className="mr-2 h-4 w-4" />
+                      Tournament Performance
+                    </h4>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <div className="text-lg font-bold text-yellow-700">{personalStats.tournamentWins}</div>
+                        <div className="text-xs text-yellow-600">Wins</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-yellow-700">{personalStats.tournamentDraws}</div>
+                        <div className="text-xs text-yellow-600">Draws</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-yellow-700">{personalStats.tournamentLosses}</div>
+                        <div className="text-xs text-yellow-600">Losses</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-center">
+                      <div className="text-2xl font-bold text-yellow-800">{personalStats.tournamentWinRate}%</div>
+                      <div className="text-xs text-yellow-600">{personalStats.tournamentGames} total games</div>
+                    </div>
                   </div>
-                  <div className="p-3 bg-gray-100 rounded-lg">
-                    <div className="text-2xl font-bold text-gray-700">{personalStats.draws}</div>
-                    <div className="text-sm text-gray-600">Draws</div>
-                  </div>
-                  <div className="p-3 bg-red-100 rounded-lg">
-                    <div className="text-2xl font-bold text-red-700">{personalStats.losses}</div>
-                    <div className="text-sm text-red-600">Losses</div>
+                  
+                  <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <h4 className="font-semibold text-indigo-800 mb-3 flex items-center">
+                      <Activity className="mr-2 h-4 w-4" />
+                      Lichess Performance
+                    </h4>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <div className="text-lg font-bold text-indigo-700">{personalStats.lichessWins}</div>
+                        <div className="text-xs text-indigo-600">Wins</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-indigo-700">{personalStats.lichessDraws}</div>
+                        <div className="text-xs text-indigo-600">Draws</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-indigo-700">{personalStats.lichessLosses}</div>
+                        <div className="text-xs text-indigo-600">Losses</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-center">
+                      <div className="text-2xl font-bold text-indigo-800">{personalStats.lichessWinRate}%</div>
+                      <div className="text-xs text-indigo-600">{personalStats.lichessGames} total games</div>
+                    </div>
                   </div>
                 </div>
+
+                {/* Recent Form */}
+                {personalStats.recentForm.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3">Recent Lichess Form (Last 10 Games)</h4>
+                    <div className="flex justify-center space-x-2">
+                      {personalStats.recentForm.map((result, index) => (
+                        <div 
+                          key={index}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            result === 'W' ? 'bg-green-500 text-white' :
+                            result === 'L' ? 'bg-red-500 text-white' :
+                            'bg-gray-400 text-white'
+                          }`}
+                        >
+                          {result}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
