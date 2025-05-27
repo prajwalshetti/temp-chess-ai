@@ -1434,6 +1434,7 @@ export default function GamesDatabase() {
                               {/* Chess Board */}
                               <div className="mb-4">
                                 <ChessBoard 
+                                  key={`${selectedOpeningGame.id}-${currentMoveIndex}`}
                                   fen={currentPosition} 
                                   className="mx-auto"
                                   size={280}
