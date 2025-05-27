@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/Navigation";
 import Home from "@/pages/Home";
-import GamesDatabase from "@/pages/GamesDatabase";
+import MyProfile from "@/pages/MyProfile";
 import PlayerProfile from "@/pages/PlayerProfile";
 import LearnChess from "@/pages/LearnChess";
 import Account from "@/pages/Account";
@@ -16,7 +16,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/games" component={GamesDatabase} />
+      <Route path="/games" component={MyProfile} />
       <Route path="/profile" component={PlayerProfile} />
       <Route path="/scout" component={OpponentScout} />
       <Route path="/opponent-scout" component={OpponentScout} />
