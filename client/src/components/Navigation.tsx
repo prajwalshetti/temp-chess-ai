@@ -9,6 +9,7 @@ export function Navigation() {
 
   const navItems = [
     { href: "/", label: "Home", icon: Crown },
+    { href: "/games", label: "Games DB", icon: Database },
     { href: "/scout", label: "Opponent Scout", icon: Search },
     { href: "/learn", label: "Learn Chess", icon: GraduationCap },
     { href: "/account", label: "Account", icon: User },
