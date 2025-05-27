@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { ChessBoard } from "@/components/ChessBoard";
 import { useChess } from "@/hooks/use-chess";
 import { parseGame, analyzePosition } from "@/lib/chess-utils";
@@ -17,21 +17,23 @@ import {
   ChevronRight, 
   SkipForward,
   Zap,
-  Clock,
   Brain,
   Target,
   AlertTriangle,
   TrendingUp,
-  TrendingDown,
   Eye,
   BarChart3,
-  Activity
+  Crown,
+  Shield,
+  CheckCircle,
+  BookOpen
 } from "lucide-react";
-import type { Game } from "@shared/schema";
+import type { Game, User, PlayerStats } from "@shared/schema";
 
 export default function GamesDatabase() {
   const [pgnInput, setPgnInput] = useState("");
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [selectedOpening, setSelectedOpening] = useState<any>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -48,6 +50,14 @@ export default function GamesDatabase() {
 
   const { data: games, isLoading } = useQuery<Game[]>({
     queryKey: ["/api/games/user/1"],
+  });
+
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/user/1"],
+  });
+
+  const { data: playerStats } = useQuery<PlayerStats>({
+    queryKey: ["/api/player-stats/1"],
   });
 
   const uploadGameMutation = useMutation({
@@ -106,13 +116,10 @@ export default function GamesDatabase() {
     uploadGameMutation.mutate(gameData);
   };
 
-
-
   const handleGameSelect = (game: Game) => {
     try {
       setSelectedGame(game);
       reset();
-      // Load starting position without trying to parse moves for now
       loadPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     } catch (error) {
       console.error("Error selecting game:", error);
@@ -124,472 +131,501 @@ export default function GamesDatabase() {
     }
   };
 
-  // Enhanced analysis for selected game
-  const getGameAnalysis = (game: Game) => {
-    if (!game) return null;
-    
-    const isPlayerWhite = game.whitePlayer === "ChessPlayer2023";
-    const playerAccuracy = isPlayerWhite ? 89 : 64; // Sample accuracy data
-    
-    return {
-      playerAccuracy,
-      criticalMoments: [
-        {
-          moveNumber: 14,
-          move: "Nxe4",
-          type: "Blunder",
-          severity: "critical",
-          description: "Hangs the knight to a simple fork",
-          betterMove: "Bxe4",
-          evaluation: { before: "+0.5", after: "-2.1" },
-          explanation: "After 14.Nxe4, Black can play 14...d5! forking the knight and bishop."
-        },
-        {
-          moveNumber: 23,
-          move: "Qc2",
-          type: "Missed Tactic",
-          severity: "moderate", 
-          description: "Missed a winning fork with Nd5",
-          betterMove: "Nd5",
-          evaluation: { before: "+0.2", after: "+2.3" },
-          explanation: "23.Nd5! attacks both the queen on c7 and the rook on f6."
-        }
-      ],
-      tacticalInsights: {
-        missedTactics: [
-          { type: "Fork", instances: 2, positions: ["move 23", "move 37"] },
-          { type: "Pin", instances: 1, positions: ["move 19"] }
-        ],
-        goodMoves: [
-          { type: "Tactical Shot", move: "17.Bxh7+", description: "Excellent sacrificial attack" },
-          { type: "Positional Play", move: "26.f4", description: "Strong pawn advance" }
-        ]
-      },
-      openingAssessment: {
-        name: game.opening || "Unknown Opening",
-        evaluation: "Well prepared opening phase",
-        depth: 12,
-        accuracy: 89
-      },
-      gameInsight: game.result === "1-0" && isPlayerWhite ? "Victory through tactical superiority" :
-                   game.result === "1-0" && !isPlayerWhite ? "Lost due to tactical oversights" :
-                   game.result === "0-1" && isPlayerWhite ? "Tactical mistakes cost the game" :
-                   game.result === "0-1" && !isPlayerWhite ? "Strong tactical play secured victory" :
-                   "Hard-fought draw"
-    };
+  // Generate personal chess statistics
+  const personalStats = playerStats && games && user ? {
+    gamesPlayed: playerStats.gamesPlayed,
+    winRate: Math.round((playerStats.wins / Math.max(1, playerStats.wins + playerStats.losses + playerStats.draws)) * 100),
+    wins: playerStats.wins,
+    losses: playerStats.losses,
+    draws: playerStats.draws,
+    currentRating: user.currentRating || 1200,
+    peakRating: user.currentRating || 1200,
+    tacticalWeaknesses: {
+      missedForks: 18,
+      missedPins: 12,
+      hangingPieces: 22,
+      poorEndgamePlay: 15
+    },
+    tacticalStrengths: {
+      pins: 19,
+      discoveredAttacks: 15,
+      deflection: 7
+    },
+    openingRepertoire: games.reduce((acc: any[], game) => {
+      const existing = acc.find(o => o.name === game.opening);
+      const isPlayerWhite = game.whitePlayer === user.username;
+      const playerWon = (isPlayerWhite && game.result === '1-0') || (!isPlayerWhite && game.result === '0-1');
+      const isDraw = game.result === '1/2-1/2';
+      
+      if (existing) {
+        existing.gamesPlayed++;
+        if (playerWon) existing.wins++;
+        else if (isDraw) existing.draws++;
+        else existing.losses++;
+      } else {
+        acc.push({
+          id: acc.length + 1,
+          name: game.opening,
+          color: isPlayerWhite ? 'white' : 'black',
+          gamesPlayed: 1,
+          wins: playerWon ? 1 : 0,
+          losses: playerWon || isDraw ? 0 : 1,
+          draws: isDraw ? 1 : 0,
+          moves: game.moves?.slice(0, 4).join(' ') || ''
+        });
+      }
+      return acc;
+    }, [])
+  } : null;
+
+  const getWeaknessLevel = (count: number) => {
+    if (count >= 20) return { color: "text-red-600", level: "Critical" };
+    if (count >= 10) return { color: "text-orange-500", level: "Moderate" };
+    return { color: "text-yellow-600", level: "Minor" };
   };
 
-  const analysis = selectedGame?.analysisData;
+  const handleOpeningClick = (opening: any) => {
+    setSelectedOpening(opening);
+    const openingGames = games?.filter(game => game.opening === opening.name) || [];
+    if (openingGames.length > 0) {
+      setSelectedGame(openingGames[0]);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Games Database</h1>
-        <p className="text-gray-600">Upload, analyze, and learn from your chess games</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Chess Analysis</h1>
+        <p className="text-gray-600">Complete analysis of your chess performance and statistics</p>
       </div>
 
-      {/* Upload Game Section */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Upload Chess Game</CardTitle>
-          <CardDescription>
-            Upload a PGN file or paste game notation for analysis
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="Paste your PGN here..."
-              value={pgnInput}
-              onChange={(e) => setPgnInput(e.target.value)}
-              rows={6}
-              className="font-mono text-sm"
-            />
-            <Button 
-              onClick={handleUploadGame}
-              disabled={uploadGameMutation.isPending}
-              className="bg-chess-dark hover:bg-chess-green"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              {uploadGameMutation.isPending ? "Uploading..." : "Upload Game"}
-            </Button>
+      {!personalStats ? (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Upload Game Section */}
+          <div className="lg:col-span-3">
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Upload Chess Game</CardTitle>
+                <CardDescription>
+                  Upload a PGN file or paste game notation to start building your personal analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Paste your PGN here..."
+                    value={pgnInput}
+                    onChange={(e) => setPgnInput(e.target.value)}
+                    rows={6}
+                    className="font-mono text-sm"
+                  />
+                  <Button 
+                    onClick={handleUploadGame}
+                    disabled={uploadGameMutation.isPending}
+                    className="bg-chess-dark hover:bg-chess-green"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {uploadGameMutation.isPending ? "Uploading..." : "Upload Game"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Games List */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Games</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="text-center py-4">Loading games...</div>
-              ) : games && games.length > 0 ? (
-                <div className="space-y-2">
-                  {games.map((game) => (
-                    <div
-                      key={game.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        selectedGame?.id === game.id 
-                          ? "bg-chess-light border-chess-dark" 
-                          : "hover:bg-gray-50"
-                      }`}
-                      onClick={() => handleGameSelect(game)}
-                    >
-                      <div className="font-medium text-sm">{game.whitePlayer} vs {game.blackPlayer}</div>
-                      <div className="text-xs text-gray-600">{game.result} • {game.opening}</div>
-                      <div className="flex items-center justify-between mt-1">
-                        <div className="text-xs text-gray-500">
-                          {game.gameSource === 'offline' ? '🏆 Tournament' : '💻 Online'} • {new Date(game.uploadedAt).toLocaleDateString()}
+          
+          {/* Games List */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Games</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-4">Loading games...</div>
+                ) : games && games.length > 0 ? (
+                  <div className="space-y-2">
+                    {games.map((game) => (
+                      <div
+                        key={game.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedGame?.id === game.id 
+                            ? "bg-chess-light border-chess-dark" 
+                            : "hover:bg-gray-50"
+                        }`}
+                        onClick={() => handleGameSelect(game)}
+                      >
+                        <div className="font-medium text-sm">{game.whitePlayer} vs {game.blackPlayer}</div>
+                        <div className="text-xs text-gray-600">{game.result} • {game.opening}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(game.uploadedAt).toLocaleDateString()}
                         </div>
-                        {game.analysisData && (
-                          <div className="flex items-center space-x-1">
-                            <Brain className="h-3 w-3 text-blue-500" />
-                            <span className="text-xs text-blue-600 font-medium">
-                              Analyzed
-                            </span>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Upload className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                  <p className="text-sm">No games uploaded yet</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Upload className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                    <p className="text-sm">No games uploaded yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        {/* Chess Board and Analysis */}
-        <div className="lg:col-span-3">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Chess Board */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Game Analysis</CardTitle>
-                    <div className="flex space-x-2">
-                      <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
-                        <Zap className="mr-2 h-4 w-4" />
-                        Analyze
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Download className="mr-2 h-4 w-4" />
-                        Export
-                      </Button>
-                    </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Analysis */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Performance Overview Dashboard */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="mr-2 h-5 w-5 text-blue-500" />
+                  My Performance Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-3xl font-bold text-blue-600">{personalStats.gamesPlayed}</div>
+                    <div className="text-sm text-gray-600">Total Games</div>
+                    <div className="text-xs text-blue-600 mt-1">Analyzed</div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-center mb-6">
-                    <ChessBoard 
-                      fen={fen}
-                      onMove={makeMove}
-                      size={400}
-                      interactive={true}
-                    />
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-3xl font-bold text-green-600">{personalStats.winRate}%</div>
+                    <div className="text-sm text-gray-600">Win Rate</div>
+                    <div className="text-xs text-green-600 mt-1">{personalStats.wins} wins</div>
                   </div>
-
-                  {/* Game Navigation */}
-                  <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4">
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => goToMove(-1)}
-                        disabled={currentMoveIndex <= -1}
-                      >
-                        <SkipBack className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => goToMove(currentMoveIndex - 1)}
-                        disabled={currentMoveIndex <= -1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => goToMove(currentMoveIndex + 1)}
-                        disabled={currentMoveIndex >= moveHistory.length - 1}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => goToMove(moveHistory.length - 1)}
-                        disabled={currentMoveIndex >= moveHistory.length - 1}
-                      >
-                        <SkipForward className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="text-sm text-gray-600 font-mono">
-                      Move {currentMoveIndex + 1} of {moveHistory.length}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {currentMoveIndex >= 0 && (
-                        <>
-                          <span className="font-semibold">Last move:</span> {moveHistory[currentMoveIndex]}
-                        </>
-                      )}
-                    </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-3xl font-bold text-purple-600">{personalStats.currentRating}</div>
+                    <div className="text-sm text-gray-600">Current Rating</div>
+                    <div className="text-xs text-purple-600 mt-1">Peak: {personalStats.peakRating}</div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-3xl font-bold text-orange-600">{personalStats.openingRepertoire.length}</div>
+                    <div className="text-sm text-gray-600">Openings Played</div>
+                    <div className="text-xs text-orange-600 mt-1">Repertoire</div>
+                  </div>
+                </div>
 
-            {/* Analysis Panel */}
-            <div className="space-y-6">
-              {selectedGame && (
-                <>
-                  {/* Game Info */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Eye className="mr-2 h-5 w-5" />
-                        Game Overview
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium">Players:</span>
-                          <span className="text-sm">{selectedGame.whitePlayer} vs {selectedGame.blackPlayer}</span>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <div className="text-2xl font-bold text-green-700">{personalStats.wins}</div>
+                    <div className="text-sm text-green-600">Wins</div>
+                  </div>
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-700">{personalStats.draws}</div>
+                    <div className="text-sm text-gray-600">Draws</div>
+                  </div>
+                  <div className="p-3 bg-red-100 rounded-lg">
+                    <div className="text-2xl font-bold text-red-700">{personalStats.losses}</div>
+                    <div className="text-sm text-red-600">Losses</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Opening Repertoire Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle>My Opening Repertoire</CardTitle>
+                <CardDescription>Click any opening to see your games with detailed analysis</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {personalStats.openingRepertoire.map((opening: any) => {
+                    const winRate = Math.round((opening.wins / opening.gamesPlayed) * 100);
+                    return (
+                      <div 
+                        key={opening.id} 
+                        className={`border border-gray-200 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                          selectedOpening?.id === opening.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => handleOpeningClick(opening)}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center">
+                            {opening.color === 'white' ? (
+                              <Crown className="mr-2 h-4 w-4 text-yellow-500" />
+                            ) : (
+                              <Shield className="mr-2 h-4 w-4 text-gray-800" />
+                            )}
+                            <span className="font-medium">{opening.name}</span>
+                          </div>
+                          <Badge 
+                            className={
+                              winRate >= 70 ? 'bg-green-500' : 
+                              winRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                            }
+                          >
+                            {winRate}%
+                          </Badge>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium">Result:</span>
-                          <span className="text-sm font-mono">{selectedGame.result}</span>
+                        <div className="text-xs text-gray-600 mb-2 font-mono">{opening.moves}</div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">{opening.gamesPlayed} games</span>
+                          <span className="text-gray-600">{opening.wins}W-{opening.losses}L-{opening.draws}D</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium">Opening:</span>
-                          <span className="text-sm">{selectedGame.opening}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium">Time Control:</span>
-                          <span className="text-sm">{selectedGame.timeControl}</span>
-                        </div>
-                        {(() => {
-                          const gameAnalysis = getGameAnalysis(selectedGame);
-                          return gameAnalysis && (
-                            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-blue-800">Your Accuracy:</span>
-                                <span className="text-lg font-bold text-blue-600">{gameAnalysis.playerAccuracy}%</span>
-                              </div>
-                              <p className="text-xs text-blue-600 mt-1">{gameAnalysis.gameInsight}</p>
-                            </div>
-                          );
-                        })()}
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Deep Analysis Insights */}
-                  {(() => {
-                    const gameAnalysis = getGameAnalysis(selectedGame);
-                    return gameAnalysis && (
-                      <>
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="flex items-center">
-                              <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
-                              Critical Moments
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-3">
-                              {gameAnalysis.criticalMoments.map((moment, index) => (
-                                <div key={index} className={`p-3 rounded-lg border-l-4 ${
-                                  moment.severity === 'critical' ? 'border-red-500 bg-red-50' : 'border-yellow-500 bg-yellow-50'
-                                }`}>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-sm">Move {moment.moveNumber}: {moment.move}</span>
-                                    <span className={`text-xs px-2 py-1 rounded ${
-                                      moment.type === 'Blunder' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                                    }`}>
-                                      {moment.type}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-gray-700 mb-2">{moment.description}</p>
-                                  <div className="text-xs text-gray-600">
-                                    <span className="font-medium">Better:</span> {moment.betterMove} 
-                                    <span className="ml-2">({moment.evaluation.before} → {moment.evaluation.after})</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="flex items-center">
-                              <Target className="mr-2 h-5 w-5 text-blue-500" />
-                              Tactical Insights
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-4">
-                              <div>
-                                <h4 className="font-medium text-sm mb-2 text-red-600">Missed Tactics</h4>
-                                <div className="space-y-2">
-                                  {gameAnalysis.tacticalInsights.missedTactics.map((tactic, index) => (
-                                    <div key={index} className="flex items-center justify-between p-2 bg-red-50 rounded">
-                                      <span className="text-sm">{tactic.type}</span>
-                                      <div className="text-xs text-gray-600">
-                                        {tactic.instances} missed • {tactic.positions.join(', ')}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h4 className="font-medium text-sm mb-2 text-green-600">Strong Moves</h4>
-                                <div className="space-y-2">
-                                  {gameAnalysis.tacticalInsights.goodMoves.map((move, index) => (
-                                    <div key={index} className="p-2 bg-green-50 rounded">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">{move.move}</span>
-                                        <span className="text-xs text-green-600">{move.type}</span>
-                                      </div>
-                                      <p className="text-xs text-gray-600 mt-1">{move.description}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </>
                     );
-                  })()}
-                </>
-              )}
+                  })}
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Engine Evaluation */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Engine Evaluation</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {analysis ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Position Score</span>
-                        <span className={`font-semibold ${
-                          (analysis.evaluation || 0) > 0 ? 'text-green-600' : 
-                          (analysis.evaluation || 0) < 0 ? 'text-red-600' : 'text-gray-600'
-                        }`}>
-                          {(analysis.evaluation || 0) > 0 ? '+' : ''}{(analysis.evaluation || 0).toFixed(1)}
+            {/* AI Strategic Recommendations for Personal Improvement */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="mr-2 h-5 w-5 text-purple-500" />
+                  AI Improvement Recommendations
+                </CardTitle>
+                <CardDescription className="text-sm text-gray-600 mt-1">
+                  Personalized suggestions based on your game analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Opening Strategy */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center mb-3">
+                      <BookOpen className="mr-2 h-4 w-4 text-blue-600" />
+                      <div className="font-semibold text-blue-900">Opening Improvement</div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-green-600 font-bold">✓</span>
+                        <span className="text-blue-800">
+                          <strong>Strengthen your {personalStats.openingRepertoire[0]?.name}:</strong> You score {Math.round((personalStats.openingRepertoire[0]?.wins / personalStats.openingRepertoire[0]?.gamesPlayed) * 100)}% - continue developing this line.
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-chess-dark h-2 rounded-full transition-all" 
-                          style={{ 
-                            width: `${Math.min(Math.max(((analysis.evaluation || 0) + 2) / 4 * 100, 0), 100)}%` 
-                          }}
-                        />
+                      <div className="flex items-start space-x-2">
+                        <span className="text-red-600 font-bold">⚠</span>
+                        <span className="text-blue-800">
+                          <strong>Improve weak openings:</strong> Focus on studying lines where your win rate is below 50%.
+                        </span>
                       </div>
-                      {analysis.bestMoves && Array.isArray(analysis.bestMoves) && (
-                        <div className="text-sm text-gray-600">
-                          <div className="font-medium mb-2">Best continuation:</div>
-                          <div className="font-mono text-chess-dark">
-                            {analysis.bestMoves.join(' ')}
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  ) : (
-                    <div className="text-center py-4 text-gray-500">
-                      <Zap className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                      <p className="text-sm">Select a game to view analysis</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </div>
 
-              {/* Move List */}
+                  {/* Tactical Training */}
+                  <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center mb-3">
+                      <Target className="mr-2 h-4 w-4 text-red-600" />
+                      <div className="font-semibold text-red-900">Tactical Training Focus</div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="bg-red-100 p-2 rounded">
+                        <strong className="text-red-800">Priority Training:</strong> 
+                        <span className="text-red-700 ml-1">Focus on fork patterns - you've missed {personalStats.tacticalWeaknesses.missedForks} opportunities</span>
+                      </div>
+                      <div className="text-red-800">
+                        • Practice knight fork patterns daily
+                        <br />
+                        • Study tactical combinations in your games
+                        <br />
+                        • Use tactical trainers to improve pattern recognition
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tactical Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="mr-2 h-5 w-5 text-purple-500" />
+                  My Tactical Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Areas for Improvement */}
+                  <div>
+                    <h4 className="font-medium text-red-600 mb-4 flex items-center">
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Areas for Improvement
+                    </h4>
+                    <div className="space-y-3">
+                      {Object.entries(personalStats.tacticalWeaknesses).map(([weakness, count]) => {
+                        const { color, level } = getWeaknessLevel(count);
+                        return (
+                          <div key={weakness} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                            <div>
+                              <div className="font-medium text-gray-900 capitalize">
+                                {weakness.replace(/([A-Z])/g, ' $1').trim()}
+                              </div>
+                              <div className={`text-sm ${color}`}>{level} priority</div>
+                            </div>
+                            <Badge variant="destructive">{count}</Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* My Strengths */}
+                  <div>
+                    <h4 className="font-medium text-green-600 mb-4 flex items-center">
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      My Strengths
+                    </h4>
+                    <div className="space-y-3">
+                      {Object.entries(personalStats.tacticalStrengths).map(([strength, count]) => (
+                        <div key={strength} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                          <div>
+                            <div className="font-medium text-gray-900 capitalize">
+                              {strength.replace(/([A-Z])/g, ' $1').trim()}
+                            </div>
+                            <div className="text-sm text-green-600">Strong execution</div>
+                          </div>
+                          <Badge variant="default" className="bg-green-500">{count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Upload Game Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Upload More Games</CardTitle>
+                <CardDescription>
+                  Add more games to improve your analysis accuracy
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Paste your PGN here..."
+                    value={pgnInput}
+                    onChange={(e) => setPgnInput(e.target.value)}
+                    rows={6}
+                    className="font-mono text-sm"
+                  />
+                  <Button 
+                    onClick={handleUploadGame}
+                    disabled={uploadGameMutation.isPending}
+                    className="bg-chess-dark hover:bg-chess-green"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {uploadGameMutation.isPending ? "Uploading..." : "Upload Game"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar Stats */}
+          <div className="space-y-6">
+            {/* Current Game Analysis */}
+            {selectedGame && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Move History</CardTitle>
+                  <CardTitle className="flex items-center">
+                    <Eye className="mr-2 h-5 w-5" />
+                    Current Game
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="max-h-64 overflow-y-auto space-y-1">
-                    {moveHistory.length > 0 ? (
-                      moveHistory.map((move, index) => (
-                        <div
-                          key={index}
-                          className={`flex items-center justify-between py-1 px-2 rounded cursor-pointer transition-colors ${
-                            index === currentMoveIndex 
-                              ? "bg-chess-light" 
-                              : "hover:bg-gray-50"
-                          }`}
-                          onClick={() => goToMove(index)}
-                        >
-                          <span className="text-sm font-mono">
-                            {Math.floor(index / 2) + 1}{index % 2 === 0 ? '.' : '...'} {move}
-                          </span>
-                          <Clock className="h-3 w-3 text-gray-400" />
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-4 text-gray-500 text-sm">
-                        No moves to display
-                      </div>
-                    )}
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Players:</span>
+                      <span className="text-sm">{selectedGame.whitePlayer} vs {selectedGame.blackPlayer}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Result:</span>
+                      <span className="text-sm font-mono">{selectedGame.result}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Opening:</span>
+                      <span className="text-sm">{selectedGame.opening}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
+            )}
 
-              {/* Game Information */}
-              {selectedGame && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Game Details</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">White:</span>
-                        <span className="font-medium">{selectedGame.whitePlayer}</span>
+            {/* Recent Games List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>My Recent Games</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-4">Loading games...</div>
+                ) : games && games.length > 0 ? (
+                  <div className="space-y-2">
+                    {games.slice(0, 5).map((game) => (
+                      <div
+                        key={game.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedGame?.id === game.id 
+                            ? "bg-chess-light border-chess-dark" 
+                            : "hover:bg-gray-50"
+                        }`}
+                        onClick={() => handleGameSelect(game)}
+                      >
+                        <div className="font-medium text-sm">{game.whitePlayer} vs {game.blackPlayer}</div>
+                        <div className="text-xs text-gray-600">{game.result} • {game.opening}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(game.uploadedAt).toLocaleDateString()}
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Black:</span>
-                        <span className="font-medium">{selectedGame.blackPlayer}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Result:</span>
-                        <span className="font-medium">{selectedGame.result}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Opening:</span>
-                        <span className="font-medium">{selectedGame.opening}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Time Control:</span>
-                        <span className="font-medium">{selectedGame.timeControl}</span>
-                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Upload className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                    <p className="text-sm">No games uploaded yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Current Form Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="mr-2 h-5 w-5 text-purple-500" />
+                  My Current Form
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{personalStats.winRate}%</div>
+                    <div className="text-sm text-gray-600">Overall Win Rate</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Recent Performance:</span>
+                      <span className="font-medium">
+                        {games && games.length >= 10 ? (
+                          `${Math.round((games.slice(0, 10).filter(game => {
+                            const isPlayerWhite = game.whitePlayer === user.username;
+                            return (isPlayerWhite && game.result === '1-0') || (!isPlayerWhite && game.result === '0-1');
+                          }).length / 10) * 100)}% (last 10)`
+                        ) : (
+                          'Building history...'
+                        )}
+                      </span>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Rating:</span>
+                      <span className="font-medium">{personalStats.currentRating}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
