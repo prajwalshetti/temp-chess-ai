@@ -591,28 +591,47 @@ export default function OpponentScout() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600">{opponentStats.gamesPlayed}</div>
-                    <div className="text-sm text-gray-600">Total Games</div>
-                    <div className="text-xs text-blue-600 mt-1">Last 12 months</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-3xl font-bold text-green-600">
-                      {Math.round((opponentStats.wins / opponentStats.gamesPlayed) * 100)}%
+                {/* Authentic Lichess Ratings */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                  {selectedOpponent.ratingByFormat?.bullet && (
+                    <div className="text-center p-4 bg-red-50 rounded-lg">
+                      <div className="text-3xl font-bold text-red-600">{selectedOpponent.ratingByFormat.bullet}</div>
+                      <div className="text-sm text-gray-600">Bullet</div>
+                      <div className="text-xs text-red-600 mt-1">1+0, 2+1</div>
                     </div>
-                    <div className="text-sm text-gray-600">Win Rate</div>
-                    <div className="text-xs text-green-600 mt-1">{opponentStats.wins} wins</div>
-                  </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <div className="text-3xl font-bold text-orange-600">{selectedOpponent.currentRating || 'Unrated'}</div>
-                    <div className="text-sm text-gray-600">Current Rating</div>
-                    <div className="text-xs text-orange-600 mt-1">Peak: {(selectedOpponent.currentRating || 0) + 47}</div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-3xl font-bold text-purple-600">{opponentStats.rapidRating}</div>
-                    <div className="text-sm text-gray-600">Active Rating</div>
-                    <div className="text-xs text-purple-600 mt-1">Last game: 3 days ago</div>
+                  )}
+                  {selectedOpponent.ratingByFormat?.blitz && (
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <div className="text-3xl font-bold text-orange-600">{selectedOpponent.ratingByFormat.blitz}</div>
+                      <div className="text-sm text-gray-600">Blitz</div>
+                      <div className="text-xs text-orange-600 mt-1">3+0, 5+0</div>
+                    </div>
+                  )}
+                  {selectedOpponent.ratingByFormat?.rapid && (
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-3xl font-bold text-blue-600">{selectedOpponent.ratingByFormat.rapid}</div>
+                      <div className="text-sm text-gray-600">Rapid</div>
+                      <div className="text-xs text-blue-600 mt-1">10+0, 15+10</div>
+                    </div>
+                  )}
+                  {selectedOpponent.ratingByFormat?.classical && (
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-3xl font-bold text-green-600">{selectedOpponent.ratingByFormat.classical}</div>
+                      <div className="text-sm text-gray-600">Classical</div>
+                      <div className="text-xs text-green-600 mt-1">30+0, 60+0</div>
+                    </div>
+                  )}
+                  {selectedOpponent.ratingByFormat?.ultraBullet && (
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <div className="text-3xl font-bold text-purple-600">{selectedOpponent.ratingByFormat.ultraBullet}</div>
+                      <div className="text-sm text-gray-600">UltraBullet</div>
+                      <div className="text-xs text-purple-600 mt-1">15+0 seconds</div>
+                    </div>
+                  )}
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-3xl font-bold text-gray-600">{lichessInsights?.totalGames || 0}</div>
+                    <div className="text-sm text-gray-600">Total Games</div>
+                    <div className="text-xs text-gray-600 mt-1">All formats</div>
                   </div>
                 </div>
 
@@ -1164,33 +1183,25 @@ export default function OpponentScout() {
                       <div className="font-semibold text-blue-900">Opening Strategy</div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {lichessInsights?.openingRepertoire && Object.keys(lichessInsights.openingRepertoire).length > 0 ? (
-                        Object.entries(lichessInsights.openingRepertoire)
-                          .filter(([opening, data]: [string, any]) => 
-                            opening && 
-                            opening !== '0' && 
-                            data && 
-                            typeof data.winRate === 'number' && 
-                            typeof data.games === 'number' && 
-                            data.games > 0 &&
-                            data.winRate >= 0 && 
-                            data.winRate <= 1
-                          )
-                          .slice(0, 3)
-                          .map(([opening, data]: [string, any]) => (
-                          <div key={opening} className="flex items-start space-x-2">
-                            <span className={data.winRate < 0.5 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
-                              {data.winRate < 0.5 ? "✓" : "✗"}
+                      {opponentOpenings && opponentOpenings.length > 0 ? (
+                        opponentOpenings.slice(0, 3).map((opening: any) => (
+                          <div key={opening.name} className="flex items-start space-x-2">
+                            <span className={opening.winRate < 50 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+                              {opening.winRate < 50 ? "✓" : "✗"}
                             </span>
                             <span className="text-blue-800">
-                              <strong>{data.winRate < 0.5 ? "Exploit" : "Avoid"} {opening}:</strong> They score {Math.round(data.winRate * 100)}% in {data.games} games. 
-                              {data.winRate < 0.5 
+                              <strong>{opening.winRate < 50 ? "Exploit" : "Avoid"} {opening.name}:</strong> They score {opening.winRate}% in {opening.games.length} games. 
+                              {opening.winRate < 50 
                                 ? "This is a clear weakness in their repertoire." 
                                 : "They're very strong in this opening."
                               }
                             </span>
                           </div>
                         ))
+                      ) : lichessGames && lichessGames.length > 0 ? (
+                        <div className="text-blue-800">
+                          <strong>Analyzing their opening repertoire...</strong> from {lichessGames.length} games found.
+                        </div>
                       ) : (
                         <div className="text-blue-800">
                           <strong>Opening analysis will appear here</strong> once their game data loads. Search for an opponent above to see real insights.
