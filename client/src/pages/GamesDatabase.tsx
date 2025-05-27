@@ -1441,6 +1441,115 @@ export default function GamesDatabase() {
                                 />
                               </div>
 
+                              {/* Full Game Moves and Navigation */}
+                              <div className="mb-4 bg-white p-3 rounded border">
+                                <h6 className="font-medium mb-2 flex items-center">
+                                  <span className="mr-2">📝</span>
+                                  Complete Game: {selectedOpeningGame.whitePlayer} vs {selectedOpeningGame.blackPlayer}
+                                </h6>
+                                
+                                {/* Move Navigation */}
+                                <div className="flex items-center space-x-2 mb-3">
+                                  <button
+                                    onClick={() => {
+                                      const newIndex = Math.max(0, currentMoveIndex - 1);
+                                      setCurrentMoveIndex(newIndex);
+                                      const chess = new Chess();
+                                      try {
+                                        for (let i = 0; i < newIndex && i < selectedOpeningGame.moves.length; i++) {
+                                          chess.move(selectedOpeningGame.moves[i]);
+                                        }
+                                        setCurrentPosition(chess.fen());
+                                      } catch (e) {
+                                        console.log('Move navigation error:', e);
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs"
+                                    disabled={currentMoveIndex <= 0}
+                                  >
+                                    ←
+                                  </button>
+                                  <span className="text-xs font-medium">
+                                    Move {currentMoveIndex + 1} of {selectedOpeningGame.moves.length}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const newIndex = Math.min(selectedOpeningGame.moves.length, currentMoveIndex + 1);
+                                      setCurrentMoveIndex(newIndex);
+                                      const chess = new Chess();
+                                      try {
+                                        for (let i = 0; i < newIndex && i < selectedOpeningGame.moves.length; i++) {
+                                          chess.move(selectedOpeningGame.moves[i]);
+                                        }
+                                        setCurrentPosition(chess.fen());
+                                      } catch (e) {
+                                        console.log('Move navigation error:', e);
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs"
+                                    disabled={currentMoveIndex >= selectedOpeningGame.moves.length}
+                                  >
+                                    →
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setCurrentMoveIndex(selectedOpeningGame.missedTacticMove);
+                                      const chess = new Chess();
+                                      try {
+                                        for (let i = 0; i < selectedOpeningGame.missedTacticMove && i < selectedOpeningGame.moves.length; i++) {
+                                          chess.move(selectedOpeningGame.moves[i]);
+                                        }
+                                        setCurrentPosition(chess.fen());
+                                      } catch (e) {
+                                        console.log('Jump to tactic error:', e);
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-red-100 hover:bg-red-200 rounded text-xs text-red-700"
+                                  >
+                                    Jump to Missed Tactic (Move {selectedOpeningGame.missedTacticMove})
+                                  </button>
+                                </div>
+
+                                {/* All Game Moves */}
+                                <div className="max-h-32 overflow-y-auto">
+                                  <div className="flex flex-wrap gap-1">
+                                    {selectedOpeningGame.moves.map((move: string, index: number) => (
+                                      <button
+                                        key={index}
+                                        onClick={() => {
+                                          setCurrentMoveIndex(index + 1);
+                                          const chess = new Chess();
+                                          try {
+                                            for (let i = 0; i <= index && i < selectedOpeningGame.moves.length; i++) {
+                                              chess.move(selectedOpeningGame.moves[i]);
+                                            }
+                                            setCurrentPosition(chess.fen());
+                                          } catch (e) {
+                                            console.log('Move click error:', e);
+                                          }
+                                        }}
+                                        className={`text-xs p-1 rounded transition-colors ${
+                                          index + 1 === currentMoveIndex 
+                                            ? 'bg-blue-500 text-white' 
+                                            : index + 1 === selectedOpeningGame.missedTacticMove
+                                            ? 'bg-red-200 hover:bg-red-300 text-red-800'
+                                            : 'bg-gray-100 hover:bg-gray-200'
+                                        }`}
+                                      >
+                                        {Math.floor(index / 2) + 1}.{index % 2 === 0 ? '' : '..'} {move}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-2 text-xs text-gray-600">
+                                  Current position after move {currentMoveIndex}: {selectedOpeningGame.moves[currentMoveIndex - 1] || 'Starting position'}
+                                  {currentMoveIndex === selectedOpeningGame.missedTacticMove && (
+                                    <span className="ml-2 text-red-600 font-medium">← This is where you missed the {tacticalGames.find(g => g.id === selectedOpeningGame.id)?.tacticalType}</span>
+                                  )}
+                                </div>
+                              </div>
+
                               {/* Position Analysis */}
                               <div className="space-y-3 text-sm">
                                 {/* Engine Evaluation */}
