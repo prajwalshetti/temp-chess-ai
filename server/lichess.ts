@@ -95,6 +95,47 @@ export class LichessService {
     this.apiToken = apiToken;
   }
 
+  async getUserProfile(username: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}/user/${username}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiToken}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user profile: ${response.statusText}`);
+      }
+
+      const profile = await response.json();
+      
+      // Extract authentic rating data by format
+      const ratingByFormat = {
+        ultraBullet: profile.perfs?.ultraBullet?.rating || null,
+        bullet: profile.perfs?.bullet?.rating || null,
+        blitz: profile.perfs?.blitz?.rating || null,
+        rapid: profile.perfs?.rapid?.rating || null,
+        classical: profile.perfs?.classical?.rating || null,
+        correspondence: profile.perfs?.correspondence?.rating || null
+      };
+
+      return {
+        username: profile.username,
+        id: profile.id,
+        createdAt: profile.createdAt,
+        seenAt: profile.seenAt,
+        playTime: profile.playTime,
+        ratingByFormat,
+        profile: profile.profile || {},
+        count: profile.count || {}
+      };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      throw error;
+    }
+  }
+
   async getUserGames(username: string, maxGames: number = 50): Promise<ProcessedLichessGame[]> {
     try {
       const response = await fetch(

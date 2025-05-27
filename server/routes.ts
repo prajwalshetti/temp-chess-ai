@@ -97,6 +97,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/lichess/user/:username/profile", async (req, res) => {
+    try {
+      const { username } = req.params;
+      const profile = await lichessService.getUserProfile(username);
+      res.json(profile);
+    } catch (error) {
+      console.error('Error fetching Lichess profile:', error);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
   app.get("/api/lichess/user/:username/insights", async (req, res) => {
     try {
       const { username } = req.params;
@@ -125,11 +136,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const isWhite = game.whitePlayer.toLowerCase() === username.toLowerCase();
           return sum + (isWhite ? game.whiteRating : game.blackRating);
         }, 0) / userGames.length || 0),
-        tacticalPatterns: {
-          mostMissedTactic: 'Fork',
-          strongestArea: 'Endgame technique',
-          improvementArea: 'Opening preparation'
-        },
         openingRepertoire: analyzeOpenings(userGames, username)
       };
 

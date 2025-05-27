@@ -179,32 +179,35 @@ export default function OpponentScout() {
 
     setIsLoadingLichess(true);
     try {
-      const [gamesResponse, insightsResponse, tournamentsResponse] = await Promise.all([
+      const [gamesResponse, insightsResponse, profileResponse, tournamentsResponse] = await Promise.all([
         fetch(`/api/lichess/user/${searchQuery}/games?max=50`),
         fetch(`/api/lichess/user/${searchQuery}/insights`),
+        fetch(`/api/lichess/user/${searchQuery}/profile`),
         fetch(`/api/lichess/user/${searchQuery}/tournaments`)
       ]);
       
-      if (gamesResponse.ok && insightsResponse.ok) {
+      if (gamesResponse.ok && insightsResponse.ok && profileResponse.ok) {
         const gamesData = await gamesResponse.json();
         const insightsData = await insightsResponse.json();
+        const profileData = await profileResponse.json();
         const tournamentsData = tournamentsResponse.ok ? await tournamentsResponse.json() : { tournaments: [] };
         
         setLichessGames(gamesData.games);
         setLichessInsights(insightsData);
         setLichessTournaments(tournamentsData.tournaments);
         
-        // Create a mock opponent profile from Lichess data
+        // Use authentic Lichess profile data
         setSelectedOpponent({
           id: Date.now(),
-          username: searchQuery,
-          email: `${searchQuery}@lichess.org`,
+          username: profileData.username,
+          email: `${profileData.username}@lichess.org`,
           fideId: null,
           aicfId: null,
-          lichessId: searchQuery,
-          currentRating: insightsData.averageRating,
+          lichessId: profileData.username,
+          currentRating: profileData.ratingByFormat.blitz || profileData.ratingByFormat.rapid || profileData.ratingByFormat.bullet || null,
           puzzleRating: null,
-          createdAt: new Date()
+          createdAt: new Date(profileData.createdAt),
+          ratingByFormat: profileData.ratingByFormat
         });
       }
     } catch (error) {
@@ -260,9 +263,11 @@ export default function OpponentScout() {
     lossesAsBlack: 37,
     drawsAsWhite: 16,
     drawsAsBlack: 14,
-    rapidRating: selectedOpponent.currentRating,
-    blitzRating: selectedOpponent.currentRating - 100,
-    classicalRating: selectedOpponent.currentRating + 50,
+    rapidRating: selectedOpponent.ratingByFormat?.rapid,
+    blitzRating: selectedOpponent.ratingByFormat?.blitz,
+    classicalRating: selectedOpponent.ratingByFormat?.classical,
+    bulletRating: selectedOpponent.ratingByFormat?.bullet,
+    ultraBulletRating: selectedOpponent.ratingByFormat?.ultraBullet,
     tacticalStrengths: {
       pins: 18,
       discoveredAttacks: 15,
