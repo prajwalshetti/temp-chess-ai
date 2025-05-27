@@ -13,7 +13,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to analyze openings
   function analyzeOpenings(games: any[], username: string) {
     const openings = games.reduce((acc, game) => {
-      const opening = game.opening || 'Unknown';
+      // Only analyze games with valid opening data
+      if (!game.opening || game.opening === 'Unknown' || !game.opening.trim()) {
+        return acc;
+      }
+      
+      const opening = game.opening.trim();
       if (!acc[opening]) {
         acc[opening] = { games: 0, wins: 0, losses: 0, draws: 0 };
       }
@@ -24,21 +29,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         acc[opening].wins++;
       } else if ((isWhite && game.result === '0-1') || (!isWhite && game.result === '1-0')) {
         acc[opening].losses++;
-      } else {
+      } else if (game.result === '1/2-1/2') {
         acc[opening].draws++;
       }
       
       return acc;
     }, {} as any);
 
-    return Object.entries(openings)
-      .map(([name, stats]: [string, any]) => ({
-        name,
-        ...stats,
-        winRate: Math.round((stats.wins / stats.games) * 100)
-      }))
-      .sort((a, b) => b.games - a.games)
-      .slice(0, 10);
+    // Convert to the format expected by the frontend
+    const repertoire: any = {};
+    Object.entries(openings)
+      .filter(([name, stats]: [string, any]) => stats.games >= 2) // Only include openings with at least 2 games
+      .forEach(([name, stats]: [string, any]) => {
+        repertoire[name] = {
+          games: stats.games,
+          winRate: stats.wins / stats.games, // Return as decimal (0-1), not percentage
+          wins: stats.wins,
+          losses: stats.losses,
+          draws: stats.draws
+        };
+      });
+
+    return repertoire;
   }
 
   // Lichess integration routes
