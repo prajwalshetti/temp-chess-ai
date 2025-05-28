@@ -10,12 +10,14 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 import { UserPlus, Trophy, Globe, Users } from "lucide-react";
 
 export default function SignUp() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { login } = useAuth();
 
   const form = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
