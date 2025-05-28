@@ -246,6 +246,22 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(user => user.email === email);
   }
 
+  async deleteUserByEmail(email: string): Promise<boolean> {
+    const user = await this.getUserByEmail(email);
+    if (user) {
+      this.users.delete(user.id);
+      // Also clean up related data
+      this.playerStats.delete(user.id);
+      Array.from(this.games.entries()).forEach(([gameId, game]) => {
+        if (game.userId === user.id) {
+          this.games.delete(gameId);
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = {

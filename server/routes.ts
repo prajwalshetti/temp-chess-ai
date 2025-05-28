@@ -126,6 +126,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Delete user route
+  app.delete('/api/auth/delete-user/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      const deleted = await storage.deleteUserByEmail(email);
+      if (deleted) {
+        res.json({ message: "User deleted successfully" });
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   // Helper function to analyze openings
   function analyzeOpenings(games: any[], username: string) {
     const openings = games.reduce((acc, game) => {
