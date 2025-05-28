@@ -669,34 +669,34 @@ export default function GamesDatabase() {
                   </div>
                 </div>
 
-                {/* Visual Win/Loss Distribution */}
+                {/* Result Distribution - Real Lichess Data */}
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">Result Distribution</h4>
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Wins</span>
-                        <span>{opponentStats.wins}</span>
+                        <span>{lichessInsights?.wins || 0}</span>
                       </div>
-                      <Progress value={(opponentStats.wins / opponentStats.gamesPlayed) * 100} className="h-2" />
+                      <Progress value={((lichessInsights?.wins || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2" />
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Draws</span>
-                        <span>{opponentStats.draws}</span>
+                        <span>{lichessInsights?.draws || 0}</span>
                       </div>
-                      <Progress value={(opponentStats.draws / opponentStats.gamesPlayed) * 100} className="h-2 [&>div]:bg-yellow-500" />
+                      <Progress value={((lichessInsights?.draws || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2 [&>div]:bg-yellow-500" />
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Losses</span>
-                        <span>{opponentStats.losses}</span>
+                        <span>{lichessInsights?.losses || 0}</span>
                       </div>
-                      <Progress value={(opponentStats.losses / opponentStats.gamesPlayed) * 100} className="h-2 [&>div]:bg-red-500" />
+                      <Progress value={((lichessInsights?.losses || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2 [&>div]:bg-red-500" />
                     </div>
                   </div>
                 </div>
