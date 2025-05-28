@@ -615,13 +615,13 @@ export default function GamesDatabase() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600">{opponentStats.gamesPlayed}</div>
+                    <div className="text-3xl font-bold text-blue-600">{lichessData?.totalGames || lichessGames.length}</div>
                     <div className="text-sm text-gray-600">Total Games</div>
-                    <div className="text-xs text-blue-600 mt-1">Last 12 months</div>
+                    <div className="text-xs text-blue-600 mt-1">From Lichess</div>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <div className="text-3xl font-bold text-green-600">
-                      {Math.round((opponentStats.wins / opponentStats.gamesPlayed) * 100)}%
+                      {lichessGames.length > 0 ? Math.round((opponentStats.wins / lichessGames.length) * 100) : 0}%
                     </div>
                     <div className="text-sm text-gray-600">Win Rate</div>
                     <div className="text-xs text-green-600 mt-1">{opponentStats.wins} wins</div>
