@@ -58,25 +58,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return repertoire;
   }
 
-  // Lichess integration routes  
-  app.get("/api/lichess/games", async (req: any, res) => {
+  // Lichess integration routes
+  app.get("/api/lichess/user/:username/games", async (req, res) => {
     try {
-      // For now, use the hardcoded user ID 1 (your account)
-      const user = await storage.getUser(1);
-      
-      if (!user?.lichessId) {
-        return res.status(400).json({ message: "No Lichess ID found in user profile" });
-      }
-      
+      const { username } = req.params;
       const maxGames = parseInt(req.query.max as string) || 50;
       
-      console.log(`Fetching games for authenticated user's Lichess: ${user.lichessId}`);
-      const games = await lichessService.getUserGames(user.lichessId, maxGames);
+      console.log(`Fetching games for Lichess user: ${username}`);
+      const games = await lichessService.getUserGames(username, maxGames);
       
       // Analyze each game for the target player
       const analyzedGames = games.map(game => {
-        const isTargetWhite = game.whitePlayer.toLowerCase() === user.lichessId.toLowerCase();
-        const analysis = chessAnalyzer.analyzeGame(game.moves, user.lichessId, isTargetWhite);
+        const isTargetWhite = game.whitePlayer.toLowerCase() === username.toLowerCase();
+        const analysis = chessAnalyzer.analyzeGame(game.moves, username, isTargetWhite);
         
         return {
           ...game,
@@ -95,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({
-        username: user.lichessId,
+        username,
         totalGames: analyzedGames.length,
         games: analyzedGames
       });
