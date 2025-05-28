@@ -441,9 +441,7 @@ export default function GamesDatabase() {
                   checked={searchType === 'lichess'}
                   onChange={(e) => {
                     setSearchType('lichess');
-                    if (e.target.checked) {
-                      handleLichessSearch(); // Automatically load your data
-                    }
+                    // Your Lichess data loads automatically when you're logged in
                   }}
                   className="text-chess-dark"
                 />
