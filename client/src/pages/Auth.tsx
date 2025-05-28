@@ -69,7 +69,7 @@ export default function Auth() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      return apiRequest("/api/auth/login", "POST", data);
+      return apiRequest("POST", "/api/auth/login", data);
     },
     onSuccess: () => {
       toast({
@@ -92,7 +92,7 @@ export default function Auth() {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
       const { confirmPassword, ...registerData } = data;
-      return apiRequest("/api/auth/register", "POST", registerData);
+      return apiRequest("POST", "/api/auth/register", registerData);
     },
     onSuccess: () => {
       toast({
