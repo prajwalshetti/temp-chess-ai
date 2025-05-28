@@ -54,26 +54,6 @@ export function Navigation() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button className="bg-chess-dark text-white hover:bg-chess-green">
-              <Plus className="mr-2 h-4 w-4" />
-              New Game
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={async () => {
-                try {
-                  await fetch('/api/auth/logout', { method: 'POST' });
-                  window.location.href = '/auth';
-                } catch (error) {
-                  console.error('Logout failed:', error);
-                  window.location.href = '/auth';
-                }
-              }}
-              className="text-red-600 border-red-200 hover:bg-red-50"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
             <div className="w-8 h-8 chess-gold rounded-full flex items-center justify-center">
               <User className="text-white text-sm" />
             </div>
@@ -121,10 +101,6 @@ export function Navigation() {
               
               {/* Mobile Actions */}
               <div className="px-3 py-2 space-y-3">
-                <Button className="bg-chess-dark text-white hover:bg-chess-green w-full">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Game
-                </Button>
                 <div className="flex items-center space-x-2 text-gray-600">
                   <div className="w-8 h-8 chess-gold rounded-full flex items-center justify-center">
                     <User className="text-white text-sm" />
