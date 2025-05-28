@@ -55,9 +55,9 @@ export default function GamesDatabase() {
     enabled: isAuthenticated && !!user?.lichessId,
   });
 
-  // Auto-select user's profile when logged in and games are loaded
+  // Auto-select user's profile when logged in and lichess is selected
   React.useEffect(() => {
-    if (isAuthenticated && user && lichessGames.length > 0 && !selectedOpponent) {
+    if (isAuthenticated && user && searchType === 'lichess' && !selectedOpponent) {
       setSelectedOpponent({
         id: user.id,
         username: user.username,
@@ -73,7 +73,7 @@ export default function GamesDatabase() {
       });
       setSearchQuery(user.lichessId);
     }
-  }, [isAuthenticated, user, lichessGames, selectedOpponent]);
+  }, [isAuthenticated, user, searchType, selectedOpponent]);
 
   // Display loading state when fetching your real Lichess data
   if (isAuthenticated && isLoadingLichess) {
@@ -1285,7 +1285,7 @@ export default function GamesDatabase() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {lichessInsights ? (
+                {lichessGames && lichessGames.length > 0 ? (
                   <div className="space-y-6">
                     {/* Main Weaknesses - Clickable */}
                     <div>
