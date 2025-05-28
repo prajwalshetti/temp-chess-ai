@@ -59,6 +59,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         puzzleRating: 1200,
       });
 
+      // Automatically log in the user after registration
+      (req as any).session.userId = newUser.id;
+      console.log('User registered and logged in with ID:', newUser.id);
+
       // Return user without password
       const { passwordHash: _, ...userResponse } = newUser;
       res.json({ user: userResponse, message: "Registration successful" });
@@ -99,19 +103,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/current-user', async (req, res) => {
     try {
       const userId = (req as any).session?.userId;
+      console.log('Current user request - Session userId:', userId);
+      
       if (!userId) {
+        console.log('No userId in session');
         return res.status(401).json({ message: "Not authenticated" });
       }
 
       const user = await storage.getUser(userId);
+      console.log('Found user:', user ? `ID: ${user.id}, Email: ${user.email}` : 'null');
+      
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
       // Return user without password
       const { passwordHash: _, ...userResponse } = user;
+      console.log('Sending user response:', JSON.stringify(userResponse, null, 2));
       res.json(userResponse);
     } catch (error: any) {
+      console.error('Error in current-user route:', error);
       res.status(500).json({ message: "Failed to fetch current user" });
     }
   });
