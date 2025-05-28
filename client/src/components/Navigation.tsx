@@ -55,12 +55,8 @@ export function Navigation() {
 
           {/* Login / Sign Up */}
           <div className="hidden md:flex items-center space-x-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">Login</Link>
-            </Button>
-            <span className="text-gray-400">/</span>
             <Button size="sm" asChild>
-              <Link href="/signup">Sign Up</Link>
+              <Link href="/auth">Login / Sign Up</Link>
             </Button>
           </div>
 

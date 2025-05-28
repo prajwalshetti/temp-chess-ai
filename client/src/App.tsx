@@ -10,8 +10,7 @@ import PlayerProfile from "@/pages/PlayerProfile";
 import LearnChess from "@/pages/LearnChess";
 import Account from "@/pages/Account";
 import OpponentScout from "@/pages/OpponentScout";
-import SignUp from "@/pages/SignUp";
-import Login from "@/pages/Login";
+import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,8 +23,7 @@ function Router() {
       <Route path="/opponent-scout" component={OpponentScout} />
       <Route path="/learn" component={LearnChess} />
       <Route path="/account" component={Account} />
-      <Route path="/signup" component={SignUp} />
-      <Route path="/login" component={Login} />
+      <Route path="/auth" component={Auth} />
       <Route component={NotFound} />
     </Switch>
   );
