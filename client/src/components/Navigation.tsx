@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Crown, Database, GraduationCap, User, Plus, Search, Brain, Menu, X, LogOut } from "lucide-react";
+import { Crown, Database, GraduationCap, User, Plus, Search, Brain, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
 
 export function Navigation() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
 
   const navItems = [
     { href: "/", label: "Home", icon: Crown },
@@ -54,28 +52,6 @@ export function Navigation() {
               );
             })}
           </nav>
-
-          {/* Authentication */}
-          <div className="hidden md:flex items-center space-x-2">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-gray-600">Welcome, {user?.username}</span>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={logout}
-                  className="flex items-center space-x-1"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
-                </Button>
-              </>
-            ) : (
-              <Button size="sm" asChild>
-                <Link href="/auth">Login / Sign Up</Link>
-              </Button>
-            )}
-          </div>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">

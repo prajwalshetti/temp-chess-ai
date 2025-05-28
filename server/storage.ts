@@ -11,7 +11,6 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  getUserForLogin(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
 
@@ -59,8 +58,24 @@ export class MemStorage implements IStorage {
   private currentOpeningId = 1;
 
   constructor() {
-    // Start with clean slate - no sample users
-    this.currentUserId = 1;
+    this.initializeData();
+  }
+
+  private initializeData() {
+    // Create sample user
+    const user: User = {
+      id: 1,
+      username: "ChessPlayer2023",
+      email: "player@chess.com",
+      fideId: "2345678",
+      aicfId: "IN123456",
+      lichessId: "chessplayer2023",
+      currentRating: 1847,
+      puzzleRating: 1654,
+      createdAt: new Date(),
+    };
+    this.users.set(1, user);
+    this.currentUserId = 2;
 
     // Create sample puzzles
     const samplePuzzles: Puzzle[] = [
@@ -238,21 +253,11 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(user => user.username === username);
   }
 
-  async getUserForLogin(username: string): Promise<User | undefined> {
-    // This method returns the user with password for login verification
-    return Array.from(this.users.values()).find(user => user.username === username);
-  }
-
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = {
       ...insertUser,
       id,
-      phoneNumber: insertUser.phoneNumber || null,
-      fideId: insertUser.fideId || null,
-      aicfId: insertUser.aicfId || null,
-      currentRating: insertUser.currentRating || 1200,
-      puzzleRating: insertUser.puzzleRating || 1200,
       createdAt: new Date(),
     };
     this.users.set(id, user);

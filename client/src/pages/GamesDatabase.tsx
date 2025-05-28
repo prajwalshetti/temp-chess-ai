@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import React from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,10 +34,13 @@ import { ChessBoard } from "@/components/ChessBoard";
 import { Chess } from "chess.js";
 
 export default function GamesDatabase() {
-  const { user, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOpponent, setSelectedOpponent] = useState<User | null>(null);
   const [searchType, setSearchType] = useState<'fide' | 'aicf' | 'lichess'>('lichess');
+  const [lichessGames, setLichessGames] = useState<any[]>([]);
+  const [isLoadingLichess, setIsLoadingLichess] = useState(false);
+  const [lichessInsights, setLichessInsights] = useState<any>(null);
+  const [lichessTournaments, setLichessTournaments] = useState<any[]>([]);
   const [selectedOpening, setSelectedOpening] = useState<any>(null);
   const [openingGames, setOpeningGames] = useState<any[]>([]);
   const [selectedOpeningGame, setSelectedOpeningGame] = useState<any>(null);
@@ -48,80 +48,6 @@ export default function GamesDatabase() {
   const [currentPosition, setCurrentPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   const [selectedTacticalWeakness, setSelectedTacticalWeakness] = useState<string | null>(null);
   const [tacticalGames, setTacticalGames] = useState<any[]>([]);
-
-  // Fetch user's complete Lichess data automatically (same as OpponentScout)
-  const { data: lichessGames, isLoading: isLoadingLichessGames } = useQuery({
-    queryKey: ['/api/lichess/user', user?.lichessId, 'games'],
-    enabled: isAuthenticated && !!user?.lichessId,
-    queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/games?max=50`).then(res => res.json())
-  });
-
-  const { data: lichessInsights, isLoading: isLoadingLichessInsights } = useQuery({
-    queryKey: ['/api/lichess/user', user?.lichessId, 'insights'],
-    enabled: isAuthenticated && !!user?.lichessId,
-    queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/insights`).then(res => res.json())
-  });
-
-  const { data: lichessTournaments } = useQuery({
-    queryKey: ['/api/lichess/user', user?.lichessId, 'tournaments'],
-    enabled: isAuthenticated && !!user?.lichessId,
-    queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/tournaments`).then(res => res.json())
-  });
-
-  const isLoadingLichess = isLoadingLichessGames || isLoadingLichessInsights;
-
-  // Auto-select user's profile when logged in and lichess is selected
-  React.useEffect(() => {
-    if (isAuthenticated && user && searchType === 'lichess' && !selectedOpponent) {
-      setSelectedOpponent({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        password: '', // Not needed for display
-        phoneNumber: user.phoneNumber || null,
-        fideId: user.fideId || null,
-        aicfId: user.aicfId || null,
-        lichessId: user.lichessId,
-        currentRating: user.currentRating || null,
-        puzzleRating: user.puzzleRating || null,
-        createdAt: user.createdAt || new Date()
-      });
-      setSearchQuery(user.lichessId);
-    }
-  }, [isAuthenticated, user, searchType, selectedOpponent]);
-
-  // Display loading state when fetching your real Lichess data
-  if (isAuthenticated && isLoadingLichess) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-chess-dark mx-auto mb-4"></div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Loading Your Chess Profile</h1>
-            <p className="text-gray-600">Fetching your latest games from Lichess account: {user?.lichessId}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show authentication message when not logged in
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-16">
-            <Crown className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Games Database</h1>
-            <p className="text-gray-600 mb-8">Please log in to view your personalized game analysis and Lichess data</p>
-            <Button asChild>
-              <Link href="/auth">Login to Access Your Games</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -249,7 +175,45 @@ export default function GamesDatabase() {
     }
   };
 
-
+  // Handle Lichess search - automatically use damodar111
+  const handleLichessSearch = async () => {
+    const username = "damodar111"; // Always use your username
+    setIsLoadingLichess(true);
+    try {
+      const [gamesResponse, insightsResponse, tournamentsResponse] = await Promise.all([
+        fetch(`/api/lichess/user/${username}/games?max=50`),
+        fetch(`/api/lichess/user/${username}/insights`),
+        fetch(`/api/lichess/user/${username}/tournaments`)
+      ]);
+      
+      if (gamesResponse.ok && insightsResponse.ok) {
+        const gamesData = await gamesResponse.json();
+        const insightsData = await insightsResponse.json();
+        const tournamentsData = tournamentsResponse.ok ? await tournamentsResponse.json() : { tournaments: [] };
+        
+        setLichessGames(gamesData.games);
+        setLichessInsights(insightsData);
+        setLichessTournaments(tournamentsData.tournaments);
+        
+        // Create a mock opponent profile from Lichess data
+        setSelectedOpponent({
+          id: Date.now(),
+          username: searchQuery,
+          email: `${searchQuery}@lichess.org`,
+          fideId: null,
+          aicfId: null,
+          lichessId: searchQuery,
+          currentRating: insightsData.averageRating,
+          puzzleRating: null,
+          createdAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching Lichess data:', error);
+    } finally {
+      setIsLoadingLichess(false);
+    }
+  };
 
   // Mock search results - in real app, this would search the database
   const mockOpponents = [
@@ -283,41 +247,23 @@ export default function GamesDatabase() {
     (player.aicfId && player.aicfId.includes(searchQuery))
   ) : [];
 
-  // Real opponent data from Lichess
-  const opponentStats = selectedOpponent && lichessGames && lichessGames.length > 0 ? {
+  // Mock opponent data
+  const opponentStats = selectedOpponent ? {
     id: 1,
     userId: selectedOpponent.id,
-    gamesPlayed: lichessGames.length,
-    wins: lichessGames.filter((game: any) => {
-      const isWhite = game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase();
-      return (isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1');
-    }).length,
-    losses: lichessGames.filter((game: any) => {
-      const isWhite = game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase();
-      return (isWhite && game.result === '0-1') || (!isWhite && game.result === '1-0');
-    }).length,
-    draws: lichessGames.filter((game: any) => game.result === '1/2-1/2').length,
-    winsAsWhite: lichessGames.filter((game: any) => 
-      game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '1-0'
-    ).length,
-    winsAsBlack: lichessGames.filter((game: any) => 
-      game.blackPlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '0-1'
-    ).length,
-    lossesAsWhite: lichessGames.filter((game: any) => 
-      game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '0-1'
-    ).length,
-    lossesAsBlack: lichessGames.filter((game: any) => 
-      game.blackPlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '1-0'
-    ).length,
-    drawsAsWhite: lichessGames.filter((game: any) => 
-      game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '1/2-1/2'
-    ).length,
-    drawsAsBlack: lichessGames.filter((game: any) => 
-      game.blackPlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '1/2-1/2'
-    ).length,
+    gamesPlayed: 187,
+    wins: 89,
+    losses: 68,
+    draws: 30,
+    winsAsWhite: 52,
+    winsAsBlack: 37,
+    lossesAsWhite: 31,
+    lossesAsBlack: 37,
+    drawsAsWhite: 16,
+    drawsAsBlack: 14,
     rapidRating: selectedOpponent.currentRating,
-    blitzRating: selectedOpponent.currentRating,
-    classicalRating: selectedOpponent.currentRating,
+    blitzRating: selectedOpponent.currentRating - 100,
+    classicalRating: selectedOpponent.currentRating + 50,
     tacticalStrengths: {
       pins: 18,
       discoveredAttacks: 15,
@@ -474,7 +420,9 @@ export default function GamesDatabase() {
                   checked={searchType === 'lichess'}
                   onChange={(e) => {
                     setSearchType('lichess');
-                    // Your Lichess data loads automatically when you're logged in
+                    if (e.target.checked) {
+                      handleLichessSearch(); // Automatically load your data
+                    }
                   }}
                   className="text-chess-dark"
                 />
@@ -621,75 +569,63 @@ export default function GamesDatabase() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <BarChart3 className="mr-2 h-5 w-5 text-blue-500" />
-                  Performance Overview - {selectedOpponent.lichessId}
+                  Performance Overview - {selectedOpponent.username}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Real Lichess Data Overview */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="text-2xl font-bold text-blue-600">{lichessInsights?.totalGames || 0}</div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-3xl font-bold text-blue-600">{opponentStats.gamesPlayed}</div>
                     <div className="text-sm text-gray-600">Total Games</div>
-                    <div className="text-xs text-blue-600 mt-1">From Lichess</div>
+                    <div className="text-xs text-blue-600 mt-1">Last 12 months</div>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="text-2xl font-bold text-green-600">{lichessInsights?.recentPerformance?.wins || 0}</div>
-                    <div className="text-sm text-gray-600">Wins</div>
-                    <div className="text-xs text-green-600 mt-1">Recent games</div>
-                  </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
-                    <div className="text-2xl font-bold text-orange-600">{lichessInsights?.averageRating || 'N/A'}</div>
-                    <div className="text-sm text-gray-600">Average Rating</div>
-                    <div className="text-xs text-orange-600 mt-1">All formats</div>
-                  </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div className="text-2xl font-bold text-yellow-600">{lichessInsights?.recentPerformance?.draws || 0}</div>
-                    <div className="text-sm text-gray-600">Draws</div>
-                    <div className="text-xs text-yellow-600 mt-1">Recent games</div>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                    <div className="text-2xl font-bold text-red-600">{lichessInsights?.recentPerformance?.losses || 0}</div>
-                    <div className="text-sm text-gray-600">Losses</div>
-                    <div className="text-xs text-red-600 mt-1">Recent games</div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {lichessInsights?.recentPerformance?.wins && lichessInsights?.totalGames ? 
-                        Math.round((lichessInsights.recentPerformance.wins / lichessInsights.totalGames) * 100) : 0}%
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-3xl font-bold text-green-600">
+                      {Math.round((opponentStats.wins / opponentStats.gamesPlayed) * 100)}%
                     </div>
                     <div className="text-sm text-gray-600">Win Rate</div>
-                    <div className="text-xs text-purple-600 mt-1">Current form</div>
+                    <div className="text-xs text-green-600 mt-1">{opponentStats.wins} wins</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-3xl font-bold text-orange-600">{selectedOpponent.currentRating || 'Unrated'}</div>
+                    <div className="text-sm text-gray-600">Current Rating</div>
+                    <div className="text-xs text-orange-600 mt-1">Peak: {(selectedOpponent.currentRating || 0) + 47}</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-3xl font-bold text-purple-600">{opponentStats.rapidRating}</div>
+                    <div className="text-sm text-gray-600">Active Rating</div>
+                    <div className="text-xs text-purple-600 mt-1">Last game: 3 days ago</div>
                   </div>
                 </div>
 
-                {/* Result Distribution - Real Lichess Data */}
+                {/* Visual Win/Loss Distribution */}
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">Result Distribution</h4>
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Wins</span>
-                        <span>{lichessInsights?.recentPerformance?.wins || 0}</span>
+                        <span>{opponentStats.wins}</span>
                       </div>
-                      <Progress value={((lichessInsights?.recentPerformance?.wins || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2" />
+                      <Progress value={(opponentStats.wins / opponentStats.gamesPlayed) * 100} className="h-2" />
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Draws</span>
-                        <span>{lichessInsights?.recentPerformance?.draws || 0}</span>
+                        <span>{opponentStats.draws}</span>
                       </div>
-                      <Progress value={((lichessInsights?.recentPerformance?.draws || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2 [&>div]:bg-yellow-500" />
+                      <Progress value={(opponentStats.draws / opponentStats.gamesPlayed) * 100} className="h-2 [&>div]:bg-yellow-500" />
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Losses</span>
-                        <span>{lichessInsights?.recentPerformance?.losses || 0}</span>
+                        <span>{opponentStats.losses}</span>
                       </div>
-                      <Progress value={((lichessInsights?.recentPerformance?.losses || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2 [&>div]:bg-red-500" />
+                      <Progress value={(opponentStats.losses / opponentStats.gamesPlayed) * 100} className="h-2 [&>div]:bg-red-500" />
                     </div>
                   </div>
                 </div>
@@ -1330,7 +1266,7 @@ export default function GamesDatabase() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {lichessGames && lichessGames.length > 0 ? (
+                {lichessInsights ? (
                   <div className="space-y-6">
                     {/* Main Weaknesses - Clickable */}
                     <div>
@@ -1766,8 +1702,8 @@ export default function GamesDatabase() {
                   <div>
                     <h4 className="font-medium mb-4">Last 10 Games</h4>
                     <div className="space-y-2">
-                      {(lichessData?.games || lichessGames).slice(0, 10).map((game, index) => {
-                        const playerColor = game.whitePlayer.toLowerCase() === selectedOpponent.lichessId.toLowerCase() ? 'white' : 'black';
+                      {lichessGames.slice(0, 10).map((game, index) => {
+                        const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
                         const opponent = playerColor === 'white' ? game.blackPlayer : game.whitePlayer;
                         const opponentRating = playerColor === 'white' ? game.blackRating : game.whiteRating;
                         const result = game.result === '1-0' ? (playerColor === 'white' ? 'W' : 'L') :
@@ -1800,8 +1736,8 @@ export default function GamesDatabase() {
                   <div>
                     <h4 className="font-medium mb-4">Recent Tournaments</h4>
                     <div className="space-y-3">
-                      {false ? (
-                        [].map((tournament, index) => (
+                      {lichessTournaments.length > 0 ? (
+                        lichessTournaments.slice(0, 5).map((tournament, index) => (
                           <div key={index} className="p-3 border rounded-lg">
                             <div className="flex justify-between items-start mb-2">
                               <div>
@@ -1863,8 +1799,8 @@ export default function GamesDatabase() {
                               }).length / Math.min(10, lichessGames.length)) * 100)}% win rate).
                             </p>
                             <p>
-                              <strong>Tournament Activity:</strong> {lichessGames.length > 0 ? (
-                                `Active player with ${lichessGames.length} recent games analyzed.`
+                              <strong>Tournament Activity:</strong> {lichessTournaments.length > 0 ? (
+                                `Active player with ${lichessTournaments.length} recent tournaments. Latest: ${lichessTournaments[0]?.name} (${lichessTournaments[0]?.position}/${lichessTournaments[0]?.players}).`
                               ) : (
                                 'Limited recent tournament activity - may focus on casual play.'
                               )}

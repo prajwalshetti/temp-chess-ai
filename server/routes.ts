@@ -2,15 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
-import { insertGameSchema, insertPuzzleAttemptSchema, insertUserSchema } from "@shared/schema";
+import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
 import { LichessService, ChessAnalyzer } from "./lichess";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Test route to verify API is working
-  app.get("/api/test", (req, res) => {
-    res.json({ message: "API is working!" });
-  });
-
   // Initialize Lichess service
   const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
   const chessAnalyzer = new ChessAnalyzer();
@@ -151,82 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple password hashing function (for demo purposes)
-  function hashPassword(password: string): string {
-    // In production, use bcrypt or similar
-    return Buffer.from(password).toString('base64');
-  }
-
-  function verifyPassword(password: string, hashedPassword: string): boolean {
-    return hashPassword(password) === hashedPassword;
-  }
-
   // User routes
-  // Create new user (registration)
-  app.post("/api/users", async (req, res) => {
-    console.log("POST /api/users hit with body:", req.body);
-    try {
-      const userData = insertUserSchema.parse(req.body);
-      console.log("Parsed user data:", userData);
-      
-      // Check if username already exists
-      const existingUser = await storage.getUserByUsername(userData.username);
-      if (existingUser) {
-        console.log("User already exists:", existingUser.username);
-        return res.status(400).json({ message: "Username already exists" });
-      }
-      
-      // Hash the password before storing
-      const hashedPassword = hashPassword(userData.password);
-      const userToCreate = { ...userData, password: hashedPassword };
-      
-      const user = await storage.createUser(userToCreate);
-      console.log("Created user:", user);
-      
-      // Don't return the password in the response
-      const { password, ...userResponse } = user;
-      return res.status(201).json(userResponse);
-    } catch (error: any) {
-      console.error("Error creating user:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ 
-          message: "Invalid user data", 
-          errors: error.errors 
-        });
-      }
-      return res.status(500).json({ message: "Failed to create user" });
-    }
-  });
-
-  // Login endpoint
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-      
-      // Get user with password for verification
-      const user = await storage.getUserForLogin(username);
-      if (!user) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-      
-      // Verify password
-      if (!verifyPassword(password, user.password)) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-      
-      // Don't return the password in the response
-      const { password: _, ...userResponse } = user;
-      res.json(userResponse);
-    } catch (error: any) {
-      console.error("Error during login:", error);
-      res.status(500).json({ message: "Login failed" });
-    }
-  });
-
   app.get("/api/user/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -250,25 +170,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(user);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  // Fetch user's Lichess games
-  app.get("/api/lichess/games/:lichessId", async (req, res) => {
-    try {
-      const lichessId = req.params.lichessId;
-      
-      if (!process.env.LICHESS_API_TOKEN) {
-        return res.status(500).json({ message: "Lichess API token not configured" });
-      }
-
-      const lichessService = new LichessService(process.env.LICHESS_API_TOKEN);
-      const games = await lichessService.getUserGames(lichessId, 50);
-      
-      res.json(games);
-    } catch (error: any) {
-      console.error("Error fetching Lichess games:", error);
-      res.status(500).json({ message: "Failed to fetch Lichess games" });
     }
   });
 
