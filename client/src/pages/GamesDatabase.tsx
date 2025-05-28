@@ -1742,8 +1742,8 @@ export default function GamesDatabase() {
                   <div>
                     <h4 className="font-medium mb-4">Last 10 Games</h4>
                     <div className="space-y-2">
-                      {lichessGames.slice(0, 10).map((game, index) => {
-                        const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
+                      {(lichessData?.games || lichessGames).slice(0, 10).map((game, index) => {
+                        const playerColor = game.whitePlayer.toLowerCase() === selectedOpponent.lichessId.toLowerCase() ? 'white' : 'black';
                         const opponent = playerColor === 'white' ? game.blackPlayer : game.whitePlayer;
                         const opponentRating = playerColor === 'white' ? game.blackRating : game.whiteRating;
                         const result = game.result === '1-0' ? (playerColor === 'white' ? 'W' : 'L') :
