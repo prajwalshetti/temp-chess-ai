@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
 import { LichessService, ChessAnalyzer } from "./lichess";
@@ -9,6 +10,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Lichess service
   const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
   const chessAnalyzer = new ChessAnalyzer();
+
+  // Registration schema
+  const registerSchema = z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    phoneNumber: z.string().min(10),
+    fideId: z.string().optional(),
+    aicfId: z.string().optional(),
+    lichessUsername: z.string().min(3),
+    password: z.string().min(6),
+  });
+
+  // Login schema
+  const loginSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(1),
+  });
+
+  // Authentication routes
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const data = registerSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(data.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(data.password, 10);
+      
+      // Generate username from email if not provided
+      const username = data.email.split('@')[0] + Math.random().toString(36).substr(2, 4);
+
+      // Create user
+      const newUser = await storage.createUser({
+        name: data.name,
+        username,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        passwordHash,
+        fideId: data.fideId || null,
+        aicfId: data.aicfId || null,
+        lichessUsername: data.lichessUsername || null,
+        currentRating: 1200,
+        puzzleRating: 1200,
+      });
+
+      // Return user without password
+      const { passwordHash: _, ...userResponse } = newUser;
+      res.json({ user: userResponse, message: "Registration successful" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Registration failed" });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Return user without password
+      const { passwordHash: _, ...userResponse } = user;
+      res.json({ user: userResponse, message: "Login successful" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Login failed" });
+    }
+  });
 
   // Helper function to analyze openings
   function analyzeOpenings(games: any[], username: string) {
