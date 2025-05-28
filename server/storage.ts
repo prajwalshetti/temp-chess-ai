@@ -11,6 +11,7 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserForLogin(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
 
@@ -253,11 +254,21 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(user => user.username === username);
   }
 
+  async getUserForLogin(username: string): Promise<User | undefined> {
+    // This method returns the user with password for login verification
+    return Array.from(this.users.values()).find(user => user.username === username);
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = {
       ...insertUser,
       id,
+      phoneNumber: insertUser.phoneNumber || null,
+      fideId: insertUser.fideId || null,
+      aicfId: insertUser.aicfId || null,
+      currentRating: insertUser.currentRating || 1200,
+      puzzleRating: insertUser.puzzleRating || 1200,
       createdAt: new Date(),
     };
     this.users.set(id, user);

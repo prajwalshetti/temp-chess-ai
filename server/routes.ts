@@ -151,6 +151,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple password hashing function (for demo purposes)
+  function hashPassword(password: string): string {
+    // In production, use bcrypt or similar
+    return Buffer.from(password).toString('base64');
+  }
+
+  function verifyPassword(password: string, hashedPassword: string): boolean {
+    return hashPassword(password) === hashedPassword;
+  }
+
   // User routes
   // Create new user (registration)
   app.post("/api/users", async (req, res) => {
@@ -166,9 +176,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already exists" });
       }
       
-      const user = await storage.createUser(userData);
+      // Hash the password before storing
+      const hashedPassword = hashPassword(userData.password);
+      const userToCreate = { ...userData, password: hashedPassword };
+      
+      const user = await storage.createUser(userToCreate);
       console.log("Created user:", user);
-      return res.status(201).json(user);
+      
+      // Don't return the password in the response
+      const { password, ...userResponse } = user;
+      return res.status(201).json(userResponse);
     } catch (error: any) {
       console.error("Error creating user:", error);
       if (error.name === 'ZodError') {
@@ -178,6 +195,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       return res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  // Login endpoint
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      // Get user with password for verification
+      const user = await storage.getUserForLogin(username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      // Verify password
+      if (!verifyPassword(password, user.password)) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      // Don't return the password in the response
+      const { password: _, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error: any) {
+      console.error("Error during login:", error);
+      res.status(500).json({ message: "Login failed" });
     }
   });
 
