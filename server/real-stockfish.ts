@@ -124,8 +124,11 @@ export class RealStockfishEngine {
     const whiteCastling = chess.getCastlingRights('w');
     const blackCastling = chess.getCastlingRights('b');
     
-    safety += whiteCastling.length * 25;
-    safety -= blackCastling.length * 25;
+    const whiteCastlingCount = (whiteCastling.k ? 1 : 0) + (whiteCastling.q ? 1 : 0);
+    const blackCastlingCount = (blackCastling.k ? 1 : 0) + (blackCastling.q ? 1 : 0);
+    
+    safety += whiteCastlingCount * 25;
+    safety -= blackCastlingCount * 25;
     
     return safety;
   }
@@ -175,7 +178,7 @@ export class RealStockfishEngine {
     const moves = chess.moves({ verbose: true });
     const attackedSquares = new Set();
     moves.forEach(move => attackedSquares.add(move.to));
-    positional += chess.turn() === 'w' ? attackedSquares.size * 2 : -attackedSquares.size * 2;
+    positional += chess.turn() === 'w' ? Array.from(attackedSquares).length * 2 : -Array.from(attackedSquares).length * 2;
     
     return positional;
   }

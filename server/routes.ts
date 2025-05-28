@@ -392,7 +392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stockfish analysis endpoint
+  // Stockfish analysis endpoint with real engine
   app.post("/api/analyze/position", async (req, res) => {
     try {
       const { fen, gameId, moveNumber } = req.body;
@@ -401,7 +401,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "FEN position is required" });
       }
 
-      const analysis = await stockfishAnalyzer.analyzePosition(fen);
+      // Use real Stockfish engine for authentic evaluations
+      const { realStockfish } = await import('./real-stockfish');
+      const analysis = await realStockfish.analyzePosition(fen);
       
       res.json({
         position: fen,
