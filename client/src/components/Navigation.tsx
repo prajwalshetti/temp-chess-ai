@@ -61,7 +61,15 @@ export function Navigation() {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => window.location.href = '/auth'}
+              onClick={async () => {
+                try {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                  window.location.href = '/auth';
+                } catch (error) {
+                  console.error('Logout failed:', error);
+                  window.location.href = '/auth';
+                }
+              }}
               className="text-red-600 border-red-200 hover:bg-red-50"
             >
               <LogOut className="mr-2 h-4 w-4" />

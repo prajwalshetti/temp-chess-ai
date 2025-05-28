@@ -94,6 +94,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Current user route
+  app.get('/api/auth/current-user', async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Return user without password
+      const { passwordHash: _, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to fetch current user" });
+    }
+  });
+
+  // Logout route
+  app.post('/api/auth/logout', (req, res) => {
+    (req as any).session.destroy((err: any) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
   // Helper function to analyze openings
   function analyzeOpenings(games: any[], username: string) {
     const openings = games.reduce((acc, game) => {

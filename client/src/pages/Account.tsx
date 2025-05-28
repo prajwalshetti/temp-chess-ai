@@ -8,7 +8,7 @@ import type { User as UserType } from "@shared/schema";
 
 export default function Account() {
   const { data: user } = useQuery<UserType>({
-    queryKey: ["/api/user/1"],
+    queryKey: ["/api/auth/current-user"],
   });
 
   return (
@@ -31,26 +31,34 @@ export default function Account() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="username">Username</Label>
-                  <Input id="username" value={user?.username || ""} readOnly />
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" value={user?.name || ""} readOnly />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" value={user?.email || ""} readOnly />
                 </div>
+                <div>
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Input id="phoneNumber" value={user?.phoneNumber || ""} readOnly />
+                </div>
+                <div>
+                  <Label htmlFor="username">Username</Label>
+                  <Input id="username" value={user?.username || ""} readOnly />
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="fideId">FIDE ID</Label>
-                  <Input id="fideId" value={user?.fideId || ""} placeholder="Enter FIDE ID" />
+                  <Input id="fideId" value={user?.fideId || "Not provided"} readOnly />
                 </div>
                 <div>
                   <Label htmlFor="aicfId">AICF ID</Label>
-                  <Input id="aicfId" value={user?.aicfId || ""} placeholder="Enter AICF ID" />
+                  <Input id="aicfId" value={user?.aicfId || "Not provided"} readOnly />
                 </div>
                 <div>
-                  <Label htmlFor="lichessId">Lichess ID</Label>
-                  <Input id="lichessId" value={user?.lichessId || ""} placeholder="Enter Lichess ID" />
+                  <Label htmlFor="lichessUsername">Lichess Username</Label>
+                  <Input id="lichessUsername" value={user?.lichessUsername || "Not provided"} readOnly />
                 </div>
               </div>
               <Button className="bg-chess-dark hover:bg-chess-green">
