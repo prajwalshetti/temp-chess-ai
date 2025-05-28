@@ -32,8 +32,52 @@ import {
 import type { User, PlayerStats, Opening, Game } from "@shared/schema";
 import { ChessBoard } from "@/components/ChessBoard";
 import { Chess } from "chess.js";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function OpponentScout() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Stockfish analysis function
+  const analyzeGameWithStockfish = async (game: any) => {
+    setIsAnalyzing(true);
+    setSelectedGameForAnalysis(game);
+    
+    try {
+      const response = await fetch('/api/analyze/game', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pgn: game.pgn,
+          moveNumber: currentMoveIndex || 10
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Analysis failed');
+      }
+
+      const analysisData = await response.json();
+      setEngineAnalysis(analysisData);
+      
+      toast({
+        title: "Analysis Complete!",
+        description: `Found ${analysisData.criticalMoments?.length || 0} critical moments in the game.`,
+      });
+    } catch (error) {
+      console.error('Error analyzing game:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Failed to analyze the game. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOpponent, setSelectedOpponent] = useState<User | null>(null);
   const [searchType, setSearchType] = useState<'fide' | 'aicf' | 'lichess'>('lichess');
@@ -46,6 +90,9 @@ export default function OpponentScout() {
   const [selectedOpeningGame, setSelectedOpeningGame] = useState<any>(null);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [currentPosition, setCurrentPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  const [engineAnalysis, setEngineAnalysis] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedGameForAnalysis, setSelectedGameForAnalysis] = useState<any>(null);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -1465,9 +1512,13 @@ export default function OpponentScout() {
                               </div>
                               <button
                                 onClick={() => analyzeGameWithStockfish(game)}
-                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                                disabled={isAnalyzing}
+                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                               >
-                                🔍 Analyze
+                                {isAnalyzing && selectedGameForAnalysis?.id === game.id 
+                                  ? '⚡ Analyzing...' 
+                                  : '🔍 Analyze'
+                                }
                               </button>
                             </div>
                           </div>
