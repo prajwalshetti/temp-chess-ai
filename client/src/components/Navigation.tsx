@@ -53,12 +53,13 @@ export function Navigation() {
             })}
           </nav>
 
-          {/* Sign Up / Login */}
-          <div className="hidden md:flex items-center space-x-3">
-            <Button variant="outline" asChild>
+          {/* Login / Sign Up */}
+          <div className="hidden md:flex items-center space-x-2">
+            <Button variant="ghost" size="sm" asChild>
               <Link href="/login">Login</Link>
             </Button>
-            <Button asChild>
+            <span className="text-gray-400">/</span>
+            <Button size="sm" asChild>
               <Link href="/signup">Sign Up</Link>
             </Button>
           </div>

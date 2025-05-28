@@ -4,10 +4,13 @@ interface User {
   id: number;
   username: string;
   email: string;
-  phoneNumber?: string;
-  fideId?: string;
-  aicfId?: string;
+  phoneNumber?: string | null;
+  fideId?: string | null;
+  aicfId?: string | null;
   lichessId: string;
+  currentRating?: number | null;
+  puzzleRating?: number | null;
+  createdAt?: Date;
 }
 
 export function useAuth() {
