@@ -156,19 +156,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const { passwordHash: _, ...userResponse } = latestUser;
         
-        // Ensure proper JSON response
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(userResponse));
+        // Force JSON response regardless of routing issues
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.status(200).json(userResponse);
         return;
       }
       
       console.log('No users found in storage');
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ message: "No users found" }));
+      res.setHeader('Content-Type', 'application/json');
+      res.status(401).json({ message: "No users found" });
     } catch (error: any) {
       console.error('Error in current-user route:', error);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ message: "Failed to fetch current user" }));
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({ message: "Failed to fetch current user" });
+    }
+  });
+
+  // Alternative route for debugging
+  app.get('/api/user-data', async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      if (allUsers.length > 0) {
+        const latestUser = allUsers[allUsers.length - 1];
+        const { passwordHash: _, ...userResponse } = latestUser;
+        res.json(userResponse);
+      } else {
+        res.status(404).json({ message: "No users found" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching user data" });
     }
   });
 
