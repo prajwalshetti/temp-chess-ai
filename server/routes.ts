@@ -112,31 +112,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Current user route with explicit JSON response
+  // Current user route - always return the most recent user
   app.get('/api/auth/current-user', async (req, res) => {
     try {
-      console.log('API route hit: /api/auth/current-user');
-      res.setHeader('Content-Type', 'application/json');
+      console.log('=== CURRENT USER API CALLED ===');
       
-      const userId = (req as any).session?.userId;
-      console.log('Current user request - Session userId:', userId);
-      
-      // Return the most recently registered user regardless of session
       const allUsers = await storage.getAllUsers();
-      console.log('Total users in storage:', allUsers.length);
+      console.log('Users in storage:', allUsers.length);
       
       if (allUsers.length > 0) {
         const latestUser = allUsers[allUsers.length - 1];
-        console.log('Returning latest user:', latestUser.email);
+        console.log('Latest user found:', {
+          id: latestUser.id,
+          name: latestUser.name,
+          email: latestUser.email,
+          lichessUsername: latestUser.lichessUsername
+        });
+        
         const { passwordHash: _, ...userResponse } = latestUser;
-        return res.status(200).json(userResponse);
+        
+        // Ensure proper JSON response
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(userResponse));
+        return;
       }
       
-      console.log('No users found');
-      return res.status(401).json({ message: "No users found" });
+      console.log('No users found in storage');
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: "No users found" }));
     } catch (error: any) {
       console.error('Error in current-user route:', error);
-      return res.status(500).json({ message: "Failed to fetch current user" });
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: "Failed to fetch current user" }));
     }
   });
 
