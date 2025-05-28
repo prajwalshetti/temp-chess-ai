@@ -625,47 +625,40 @@ export default function GamesDatabase() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Ratings by Format - Same structure as OpponentScout */}
+                {/* Real Lichess Data Overview */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                  {lichessInsights?.ratings?.bullet && (
-                    <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                      <div className="text-2xl font-bold text-red-600">{lichessInsights.ratings.bullet}</div>
-                      <div className="text-sm text-gray-600">Bullet</div>
-                      <div className="text-xs text-red-600 mt-1">{lichessInsights.bulletRecord || '1+0, 2+1'}</div>
-                    </div>
-                  )}
-                  {lichessInsights?.ratings?.blitz && (
-                    <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
-                      <div className="text-2xl font-bold text-orange-600">{lichessInsights.ratings.blitz}</div>
-                      <div className="text-sm text-gray-600">Blitz</div>
-                      <div className="text-xs text-orange-600 mt-1">{lichessInsights.blitzRecord || '3+0, 5+0'}</div>
-                    </div>
-                  )}
-                  {lichessInsights?.ratings?.rapid && (
-                    <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="text-2xl font-bold text-blue-600">{lichessInsights.ratings.rapid}</div>
-                      <div className="text-sm text-gray-600">Rapid</div>
-                      <div className="text-xs text-blue-600 mt-1">{lichessInsights.rapidRecord || '10+0, 15+10'}</div>
-                    </div>
-                  )}
-                  {lichessInsights?.ratings?.classical && (
-                    <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                      <div className="text-2xl font-bold text-green-600">{lichessInsights.ratings.classical}</div>
-                      <div className="text-sm text-gray-600">Classical</div>
-                      <div className="text-xs text-green-600 mt-1">{lichessInsights.classicalRecord || '30+0, 60+0'}</div>
-                    </div>
-                  )}
-                  {lichessInsights?.ratings?.ultraBullet && (
-                    <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                      <div className="text-2xl font-bold text-purple-600">{lichessInsights.ratings.ultraBullet}</div>
-                      <div className="text-sm text-gray-600">UltraBullet</div>
-                      <div className="text-xs text-purple-600 mt-1">{lichessInsights.ultraBulletRecord || '15+0 seconds'}</div>
-                    </div>
-                  )}
-                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="text-2xl font-bold text-green-600">{lichessInsights?.totalGames || 60}</div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-2xl font-bold text-blue-600">{lichessInsights?.totalGames || 0}</div>
                     <div className="text-sm text-gray-600">Total Games</div>
-                    <div className="text-xs text-green-600 mt-1">All formats</div>
+                    <div className="text-xs text-blue-600 mt-1">From Lichess</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-2xl font-bold text-green-600">{lichessInsights?.recentPerformance?.wins || 0}</div>
+                    <div className="text-sm text-gray-600">Wins</div>
+                    <div className="text-xs text-green-600 mt-1">Recent games</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <div className="text-2xl font-bold text-orange-600">{lichessInsights?.averageRating || 'N/A'}</div>
+                    <div className="text-sm text-gray-600">Average Rating</div>
+                    <div className="text-xs text-orange-600 mt-1">All formats</div>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="text-2xl font-bold text-yellow-600">{lichessInsights?.recentPerformance?.draws || 0}</div>
+                    <div className="text-sm text-gray-600">Draws</div>
+                    <div className="text-xs text-yellow-600 mt-1">Recent games</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="text-2xl font-bold text-red-600">{lichessInsights?.recentPerformance?.losses || 0}</div>
+                    <div className="text-sm text-gray-600">Losses</div>
+                    <div className="text-xs text-red-600 mt-1">Recent games</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {lichessInsights?.recentPerformance?.wins && lichessInsights?.totalGames ? 
+                        Math.round((lichessInsights.recentPerformance.wins / lichessInsights.totalGames) * 100) : 0}%
+                    </div>
+                    <div className="text-sm text-gray-600">Win Rate</div>
+                    <div className="text-xs text-purple-600 mt-1">Current form</div>
                   </div>
                 </div>
 
@@ -676,27 +669,27 @@ export default function GamesDatabase() {
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Wins</span>
-                        <span>{lichessInsights?.wins || 0}</span>
+                        <span>{lichessInsights?.recentPerformance?.wins || 0}</span>
                       </div>
-                      <Progress value={((lichessInsights?.wins || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2" />
+                      <Progress value={((lichessInsights?.recentPerformance?.wins || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2" />
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Draws</span>
-                        <span>{lichessInsights?.draws || 0}</span>
+                        <span>{lichessInsights?.recentPerformance?.draws || 0}</span>
                       </div>
-                      <Progress value={((lichessInsights?.draws || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2 [&>div]:bg-yellow-500" />
+                      <Progress value={((lichessInsights?.recentPerformance?.draws || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2 [&>div]:bg-yellow-500" />
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="flex-1">
                       <div className="flex justify-between text-sm mb-1">
                         <span>Losses</span>
-                        <span>{lichessInsights?.losses || 0}</span>
+                        <span>{lichessInsights?.recentPerformance?.losses || 0}</span>
                       </div>
-                      <Progress value={((lichessInsights?.losses || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2 [&>div]:bg-red-500" />
+                      <Progress value={((lichessInsights?.recentPerformance?.losses || 0) / (lichessInsights?.totalGames || 1)) * 100} className="h-2 [&>div]:bg-red-500" />
                     </div>
                   </div>
                 </div>
