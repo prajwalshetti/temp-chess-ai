@@ -4,6 +4,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
 import { LichessService, ChessAnalyzer } from "./lichess";
+import { stockfishAnalyzer } from "./stockfish-analyzer";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Lichess service
@@ -388,6 +389,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching Lichess tournaments:', error);
       res.status(500).json({ message: "Failed to fetch tournament data" });
+    }
+  });
+
+  // Stockfish analysis endpoint
+  app.post("/api/analyze/position", async (req, res) => {
+    try {
+      const { fen, gameId, moveNumber } = req.body;
+      
+      if (!fen) {
+        return res.status(400).json({ message: "FEN position is required" });
+      }
+
+      const analysis = await stockfishAnalyzer.analyzePosition(fen);
+      
+      res.json({
+        position: fen,
+        gameId,
+        moveNumber,
+        analysis
+      });
+    } catch (error) {
+      console.error("Error analyzing position:", error);
+      res.status(500).json({ message: "Failed to analyze position" });
+    }
+  });
+
+  // Game analysis endpoint
+  app.post("/api/analyze/game", async (req, res) => {
+    try {
+      const { pgn, moveNumber } = req.body;
+      
+      if (!pgn) {
+        return res.status(400).json({ message: "PGN is required" });
+      }
+
+      const gameAnalysis = await stockfishAnalyzer.analyzeGame(pgn, moveNumber);
+      
+      res.json({
+        pgn,
+        moveNumber,
+        ...gameAnalysis
+      });
+    } catch (error) {
+      console.error("Error analyzing game:", error);
+      res.status(500).json({ message: "Failed to analyze game" });
     }
   });
 

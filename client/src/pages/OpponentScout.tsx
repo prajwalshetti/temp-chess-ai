@@ -1441,22 +1441,35 @@ export default function OpponentScout() {
                                      game.result === '0-1' ? (playerColor === 'black' ? 'W' : 'L') : 'D';
                         
                         return (
-                          <div key={index} className="flex items-center justify-between p-2 border rounded">
-                            <div className="flex items-center space-x-3">
-                              <Badge className={
-                                result === 'W' ? 'bg-green-500' : 
-                                result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
-                              }>
-                                {result}
-                              </Badge>
-                              <div>
-                                <div className="font-medium text-sm">{opponent}</div>
-                                <div className="text-xs text-gray-500">
-                                  {new Date(game.createdAt).toLocaleDateString()}
+                          <div key={index} className="p-3 border rounded-lg hover:bg-gray-50">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-3">
+                                <Badge className={
+                                  result === 'W' ? 'bg-green-500' : 
+                                  result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
+                                }>
+                                  {result}
+                                </Badge>
+                                <div>
+                                  <div className="font-medium text-sm">{opponent}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(game.createdAt).toLocaleDateString()} • {game.opening}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="text-sm font-medium">{opponentRating}</div>
                             </div>
-                            <div className="text-sm font-medium">{opponentRating}</div>
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs text-gray-600">
+                                {game.moves.length} moves • {game.timeControl}
+                              </div>
+                              <button
+                                onClick={() => analyzeGameWithStockfish(game)}
+                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                              >
+                                🔍 Analyze
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
