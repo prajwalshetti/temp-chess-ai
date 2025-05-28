@@ -57,23 +57,23 @@ export default function GamesDatabase() {
 
   // Auto-select user's profile when logged in
   React.useEffect(() => {
-    if (isAuthenticated && user && lichessGames.length > 0 && !selectedOpponent) {
+    if (isAuthenticated && user && !selectedOpponent) {
       setSelectedOpponent({
         id: user.id,
         username: user.username,
         email: user.email,
         password: '', // Not needed for display
         phoneNumber: user.phoneNumber || null,
-        fideId: user.fideId,
-        aicfId: user.aicfId,
+        fideId: user.fideId || null,
+        aicfId: user.aicfId || null,
         lichessId: user.lichessId,
-        currentRating: user.currentRating,
-        puzzleRating: user.puzzleRating,
+        currentRating: user.currentRating || null,
+        puzzleRating: user.puzzleRating || null,
         createdAt: user.createdAt || new Date()
       });
       setSearchQuery(user.lichessId);
     }
-  }, [isAuthenticated, user, lichessGames, selectedOpponent]);
+  }, [isAuthenticated, user, selectedOpponent]);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
