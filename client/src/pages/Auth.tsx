@@ -96,7 +96,10 @@ export default function Auth() {
       const { confirmPassword, ...registerData } = data;
       return apiRequest("POST", "/api/auth/register", registerData);
     },
-    onSuccess: () => {
+    onSuccess: (userData) => {
+      // Store user data in localStorage for immediate access
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+      
       toast({
         title: "Registration successful!",
         description: "Your account has been created. Welcome to Chess Mastery!",

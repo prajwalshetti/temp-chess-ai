@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,14 +7,48 @@ import { User, Settings, Bell, Shield } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 
 export default function Account() {
-  const { data: user, isLoading, error } = useQuery<UserType>({
-    queryKey: ["/api/auth/current-user"],
-  });
+  const [user, setUser] = useState<UserType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Try to get user data from localStorage first
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        setIsLoading(false);
+        return;
+      } catch (e) {
+        console.log('Error parsing stored user data');
+      }
+    }
+
+    // Fallback to API call
+    fetch('/api/auth/current-user')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch user');
+        }
+        return response.json();
+      })
+      .then(userData => {
+        setUser(userData);
+        // Store in localStorage for future use
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+      })
+      .catch(error => {
+        console.log('Failed to fetch user data:', error);
+        setUser(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   // Debug logging
   console.log('Account page - User data:', user);
   console.log('Account page - Loading:', isLoading);
-  console.log('Account page - Error:', error);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
