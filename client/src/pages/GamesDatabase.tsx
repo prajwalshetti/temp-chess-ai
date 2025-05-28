@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -49,10 +50,30 @@ export default function GamesDatabase() {
   const [tacticalGames, setTacticalGames] = useState<any[]>([]);
 
   // Fetch user's Lichess games automatically
-  const { data: lichessGames, isLoading: isLoadingLichess } = useQuery({
+  const { data: lichessGames = [], isLoading: isLoadingLichess } = useQuery({
     queryKey: ['/api/lichess/games', user?.lichessId],
     enabled: isAuthenticated && !!user?.lichessId,
   });
+
+  // Auto-select user's profile when logged in
+  React.useEffect(() => {
+    if (isAuthenticated && user && lichessGames.length > 0 && !selectedOpponent) {
+      setSelectedOpponent({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        password: '', // Not needed for display
+        phoneNumber: user.phoneNumber || null,
+        fideId: user.fideId,
+        aicfId: user.aicfId,
+        lichessId: user.lichessId,
+        currentRating: user.currentRating,
+        puzzleRating: user.puzzleRating,
+        createdAt: user.createdAt || new Date()
+      });
+      setSearchQuery(user.lichessId);
+    }
+  }, [isAuthenticated, user, lichessGames, selectedOpponent]);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
