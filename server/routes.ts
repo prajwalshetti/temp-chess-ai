@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
-import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
+import { insertGameSchema, insertPuzzleAttemptSchema, insertUserSchema } from "@shared/schema";
 import { LichessService, ChessAnalyzer } from "./lichess";
 
 export async function registerRoutes(app: Express): Promise<Server> {

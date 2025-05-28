@@ -31,12 +31,7 @@ export default function SignUp() {
 
   const signUpMutation = useMutation({
     mutationFn: async (data: InsertUser) => {
-      const response = await apiRequest("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      return response.json();
+      return await apiRequest("/api/users", "POST", data);
     },
     onSuccess: (user) => {
       toast({
