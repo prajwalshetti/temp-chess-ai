@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,48 +7,9 @@ import { User, Settings, Bell, Shield } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 
 export default function Account() {
-  const [user, setUser] = useState<UserType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Try to get user data from localStorage first
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-        setIsLoading(false);
-        return;
-      } catch (e) {
-        console.log('Error parsing stored user data');
-      }
-    }
-
-    // Fallback to API call
-    fetch('/api/auth/current-user')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch user');
-        }
-        return response.json();
-      })
-      .then(userData => {
-        setUser(userData);
-        // Store in localStorage for future use
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-      })
-      .catch(error => {
-        console.log('Failed to fetch user data:', error);
-        setUser(null);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []);
-
-  // Debug logging
-  console.log('Account page - User data:', user);
-  console.log('Account page - Loading:', isLoading);
+  const { data: user } = useQuery<UserType>({
+    queryKey: ["/api/user/1"],
+  });
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -70,34 +31,26 @@ export default function Account() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" value={user?.name || ""} readOnly />
+                  <Label htmlFor="username">Username</Label>
+                  <Input id="username" value={user?.username || ""} readOnly />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" value={user?.email || ""} readOnly />
                 </div>
-                <div>
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input id="phoneNumber" value={user?.phoneNumber || ""} readOnly />
-                </div>
-                <div>
-                  <Label htmlFor="username">Username</Label>
-                  <Input id="username" value={user?.username || ""} readOnly />
-                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="fideId">FIDE ID</Label>
-                  <Input id="fideId" value={user?.fideId || "Not provided"} readOnly />
+                  <Input id="fideId" value={user?.fideId || ""} placeholder="Enter FIDE ID" />
                 </div>
                 <div>
                   <Label htmlFor="aicfId">AICF ID</Label>
-                  <Input id="aicfId" value={user?.aicfId || "Not provided"} readOnly />
+                  <Input id="aicfId" value={user?.aicfId || ""} placeholder="Enter AICF ID" />
                 </div>
                 <div>
-                  <Label htmlFor="lichessUsername">Lichess Username</Label>
-                  <Input id="lichessUsername" value={user?.lichessUsername || "Not provided"} readOnly />
+                  <Label htmlFor="lichessId">Lichess ID</Label>
+                  <Input id="lichessId" value={user?.lichessId || ""} placeholder="Enter Lichess ID" />
                 </div>
               </div>
               <Button className="bg-chess-dark hover:bg-chess-green">

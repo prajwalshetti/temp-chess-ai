@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Crown, Database, GraduationCap, User, Plus, Search, Brain, Menu, X, LogOut } from "lucide-react";
+import { Crown, Database, GraduationCap, User, Plus, Search, Brain, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Navigation() {
@@ -12,6 +12,7 @@ export function Navigation() {
     { href: "/games", label: "Games DB", icon: Database },
     { href: "/scout", label: "Opponent Scout", icon: Search },
     { href: "/learn", label: "Learn Chess", icon: GraduationCap },
+    { href: "/account", label: "Account", icon: User },
   ];
 
   const isActive = (href: string) => {
@@ -54,6 +55,10 @@ export function Navigation() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
+            <Button className="bg-chess-dark text-white hover:bg-chess-green">
+              <Plus className="mr-2 h-4 w-4" />
+              New Game
+            </Button>
             <div className="w-8 h-8 chess-gold rounded-full flex items-center justify-center">
               <User className="text-white text-sm" />
             </div>
@@ -101,6 +106,10 @@ export function Navigation() {
               
               {/* Mobile Actions */}
               <div className="px-3 py-2 space-y-3">
+                <Button className="bg-chess-dark text-white hover:bg-chess-green w-full">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Game
+                </Button>
                 <div className="flex items-center space-x-2 text-gray-600">
                   <div className="w-8 h-8 chess-gold rounded-full flex items-center justify-center">
                     <User className="text-white text-sm" />

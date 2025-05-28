@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import GamesDatabase from "@/pages/GamesDatabase";
 import PlayerProfile from "@/pages/PlayerProfile";
 import LearnChess from "@/pages/LearnChess";
+import Account from "@/pages/Account";
 import OpponentScout from "@/pages/OpponentScout";
 import NotFound from "@/pages/not-found";
 
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/scout" component={OpponentScout} />
       <Route path="/opponent-scout" component={OpponentScout} />
       <Route path="/learn" component={LearnChess} />
+      <Route path="/account" component={Account} />
       <Route component={NotFound} />
     </Switch>
   );

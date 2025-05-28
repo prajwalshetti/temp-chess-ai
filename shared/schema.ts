@@ -4,14 +4,11 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
-  phoneNumber: text("phone_number").notNull(),
-  passwordHash: text("password_hash").notNull(),
   fideId: text("fide_id"),
   aicfId: text("aicf_id"),
-  lichessUsername: text("lichess_username"),
+  lichessId: text("lichess_id"),
   currentRating: integer("current_rating").default(1200),
   puzzleRating: integer("puzzle_rating").default(1200),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -11,8 +11,6 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
 
@@ -63,15 +61,21 @@ export class MemStorage implements IStorage {
     this.initializeData();
   }
 
-  // Method to clear all user data
-  clearAllUsers() {
-    this.users.clear();
-    this.currentUserId = 1;
-  }
-
   private initializeData() {
-    // Start with clean data - no mock users
-    this.currentUserId = 1;
+    // Create sample user
+    const user: User = {
+      id: 1,
+      username: "ChessPlayer2023",
+      email: "player@chess.com",
+      fideId: "2345678",
+      aicfId: "IN123456",
+      lichessId: "chessplayer2023",
+      currentRating: 1847,
+      puzzleRating: 1654,
+      createdAt: new Date(),
+    };
+    this.users.set(1, user);
+    this.currentUserId = 2;
 
     // Create sample puzzles
     const samplePuzzles: Puzzle[] = [
@@ -247,30 +251,6 @@ export class MemStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(user => user.username === username);
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
-  }
-
-  async deleteUserByEmail(email: string): Promise<boolean> {
-    const user = await this.getUserByEmail(email);
-    if (user) {
-      this.users.delete(user.id);
-      // Also clean up related data
-      this.playerStats.delete(user.id);
-      Array.from(this.games.entries()).forEach(([gameId, game]) => {
-        if (game.userId === user.id) {
-          this.games.delete(gameId);
-        }
-      });
-      return true;
-    }
-    return false;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
