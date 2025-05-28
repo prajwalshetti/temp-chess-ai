@@ -7,9 +7,14 @@ import { User, Settings, Bell, Shield } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 
 export default function Account() {
-  const { data: user } = useQuery<UserType>({
+  const { data: user, isLoading, error } = useQuery<UserType>({
     queryKey: ["/api/auth/current-user"],
   });
+
+  // Debug logging
+  console.log('Account page - User data:', user);
+  console.log('Account page - Loading:', isLoading);
+  console.log('Account page - Error:', error);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

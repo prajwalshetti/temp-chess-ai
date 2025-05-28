@@ -62,6 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Automatically log in the user after registration
       (req as any).session.userId = newUser.id;
       console.log('User registered and logged in with ID:', newUser.id);
+      console.log('Session after registration:', (req as any).session);
 
       // Return user without password
       const { passwordHash: _, ...userResponse } = newUser;
