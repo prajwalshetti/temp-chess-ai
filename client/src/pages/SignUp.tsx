@@ -68,7 +68,7 @@ export default function SignUp() {
             Join EduChess Club
           </h1>
           <p className="text-gray-600 text-lg">
-            Advanced chess analysis platform for tournament players
+            Advanced chess analysis platform for chess players
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export default function SignUp() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <UserPlus className="mr-2 h-5 w-5 text-blue-600" />
-              Tournament Player Registration
+              User Registration
             </CardTitle>
             <CardDescription>
               Create your chess analysis profile to get started
@@ -218,7 +218,7 @@ export default function SignUp() {
                   className="w-full"
                   disabled={signUpMutation.isPending}
                 >
-                  {signUpMutation.isPending ? "Creating Account..." : "Create Tournament Profile"}
+                  {signUpMutation.isPending ? "Creating Account..." : "Create User Profile"}
                 </Button>
                 <p className="text-xs text-gray-600 text-center mt-3">
                   By registering, you agree to use authentic chess data for tournament preparation

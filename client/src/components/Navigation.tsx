@@ -53,6 +53,16 @@ export function Navigation() {
             })}
           </nav>
 
+          {/* Sign Up / Login */}
+          <div className="hidden md:flex items-center space-x-3">
+            <Button variant="outline" asChild>
+              <Link href="/login">Login</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Sign Up</Link>
+            </Button>
+          </div>
+
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
             <Button className="bg-chess-dark text-white hover:bg-chess-green">
