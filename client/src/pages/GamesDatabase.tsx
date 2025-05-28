@@ -51,8 +51,9 @@ export default function GamesDatabase() {
 
   // Fetch user's Lichess games automatically
   const { data: lichessGames = [], isLoading: isLoadingLichess } = useQuery({
-    queryKey: ['/api/lichess/games', user?.lichessId],
+    queryKey: ['/api/lichess/user', user?.lichessId, 'games'],
     enabled: isAuthenticated && !!user?.lichessId,
+    queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/games`).then(res => res.json())
   });
 
   // Auto-select user's profile when logged in and lichess is selected
