@@ -6,6 +6,11 @@ import { insertGameSchema, insertPuzzleAttemptSchema, insertUserSchema } from "@
 import { LichessService, ChessAnalyzer } from "./lichess";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Test route to verify API is working
+  app.get("/api/test", (req, res) => {
+    res.json({ message: "API is working!" });
+  });
+
   // Initialize Lichess service
   const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
   const chessAnalyzer = new ChessAnalyzer();
@@ -149,17 +154,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   // Create new user (registration)
   app.post("/api/users", async (req, res) => {
+    console.log("POST /api/users hit with body:", req.body);
     try {
       const userData = insertUserSchema.parse(req.body);
+      console.log("Parsed user data:", userData);
       
       // Check if username already exists
       const existingUser = await storage.getUserByUsername(userData.username);
       if (existingUser) {
+        console.log("User already exists:", existingUser.username);
         return res.status(400).json({ message: "Username already exists" });
       }
       
       const user = await storage.createUser(userData);
-      res.status(201).json(user);
+      console.log("Created user:", user);
+      return res.status(201).json(user);
     } catch (error: any) {
       console.error("Error creating user:", error);
       if (error.name === 'ZodError') {
@@ -168,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors 
         });
       }
-      res.status(500).json({ message: "Failed to create user" });
+      return res.status(500).json({ message: "Failed to create user" });
     }
   });
 
