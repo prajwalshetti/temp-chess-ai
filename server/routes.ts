@@ -147,6 +147,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User routes
+  // Create new user (registration)
+  app.post("/api/users", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      const user = await storage.createUser(userData);
+      res.status(201).json(user);
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Invalid user data", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   app.get("/api/user/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

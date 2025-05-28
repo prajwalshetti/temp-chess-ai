@@ -6,9 +6,10 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
+  phoneNumber: text("phone_number"),
   fideId: text("fide_id"),
   aicfId: text("aicf_id"),
-  lichessId: text("lichess_id"),
+  lichessId: text("lichess_id").notNull(),
   currentRating: integer("current_rating").default(1200),
   puzzleRating: integer("puzzle_rating").default(1200),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -163,6 +164,12 @@ export const opponentEncounters = pgTable("opponent_encounters", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+}).extend({
+  email: z.string().email("Please enter a valid email address"),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits").optional(),
+  lichessId: z.string().min(1, "Lichess ID is required for tournament analysis"),
+  fideId: z.string().optional(),
+  aicfId: z.string().optional(),
 });
 
 export const insertGameSchema = createInsertSchema(games).omit({
