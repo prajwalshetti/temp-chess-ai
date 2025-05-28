@@ -18,15 +18,17 @@ import type { User, PlayerStats, Game } from "@shared/schema";
 
 export default function Home() {
   const { data: user } = useQuery<User>({
-    queryKey: ["/api/user/1"],
+    queryKey: ["/api/auth/current-user"],
   });
 
   const { data: stats } = useQuery<PlayerStats>({
-    queryKey: ["/api/player-stats/1"],
+    queryKey: ["/api/player-stats", user?.id],
+    enabled: !!user?.id,
   });
 
   const { data: games } = useQuery<Game[]>({
-    queryKey: ["/api/games/user/1"],
+    queryKey: ["/api/games/user", user?.id],
+    enabled: !!user?.id,
   });
 
   const quickAccessItems = [

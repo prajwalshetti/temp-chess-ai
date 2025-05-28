@@ -32,8 +32,13 @@ export default function GameAnalysisEnhanced() {
     reset 
   } = useChess();
 
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/current-user"],
+  });
+
   const { data: games } = useQuery<Game[]>({
-    queryKey: ["/api/games/user/1"],
+    queryKey: ["/api/games/user", user?.id],
+    enabled: !!user?.id,
   });
 
   // Enhanced analysis with detailed tactical insights

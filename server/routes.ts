@@ -85,6 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Store user ID in session
       (req as any).session.userId = user.id;
+      console.log('User logged in with session ID:', user.id, 'User data:', JSON.stringify(user, null, 2));
 
       // Return user without password
       const { passwordHash: _, ...userResponse } = user;
