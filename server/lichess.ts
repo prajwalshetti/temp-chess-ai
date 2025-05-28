@@ -138,7 +138,7 @@ export class LichessService {
   async getUserGames(username: string, maxGames: number = 50): Promise<ProcessedLichessGame[]> {
     try {
       const response = await fetch(
-        `${this.baseUrl}/games/user/${username}?max=${maxGames}&rated=true&perfType=rapid,blitz,classical&opening=true&format=json`,
+        `${this.baseUrl}/games/user/${username}?max=${maxGames}&rated=true&perfType=rapid,blitz,classical&opening=true&sort=dateDesc&format=json`,
         {
           headers: {
             'Authorization': `Bearer ${this.apiToken}`,
