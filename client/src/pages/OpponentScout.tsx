@@ -222,7 +222,7 @@ export default function OpponentScout() {
   };
 
   // Navigate through moves and calculate positions
-  const navigateToMove = (moveIndex: number) => {
+  const navigateToMove = async (moveIndex: number) => {
     if (!selectedOpeningGame || !selectedOpeningGame.moves) return;
     
     setCurrentMoveIndex(moveIndex);
@@ -230,10 +230,13 @@ export default function OpponentScout() {
     // Calculate the position after the specified move
     try {
       const chess = new Chess();
+      let newPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
       
       // If moveIndex is -1, show starting position
       if (moveIndex < 0) {
-        setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        setCurrentPosition(newPosition);
+        // Auto-analyze starting position
+        await analyzePositionAutomatically(newPosition, 0);
         return;
       }
       
@@ -251,12 +254,46 @@ export default function OpponentScout() {
           }
         }
       }
-      const newPosition = chess.fen();
+      newPosition = chess.fen();
       console.log(`Setting new position: ${newPosition}`);
       setCurrentPosition(newPosition);
+      
+      // Automatically analyze the new position
+      await analyzePositionAutomatically(newPosition, moveIndex + 1);
     } catch (error) {
       console.log("Error calculating position:", error);
-      setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      const startPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+      setCurrentPosition(startPos);
+      await analyzePositionAutomatically(startPos, 0);
+    }
+  };
+
+  // Automatic position analysis when navigating
+  const analyzePositionAutomatically = async (fen: string, moveNumber: number) => {
+    if (!selectedOpeningGame) return;
+    
+    try {
+      const response = await fetch('/api/analyze/position', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fen: fen,
+          gameId: selectedOpeningGame.id,
+          moveNumber: moveNumber
+        }),
+      });
+
+      if (response.ok) {
+        const analysisData = await response.json();
+        console.log('Analysis data received:', analysisData);
+        setEngineAnalysis(analysisData);
+      } else {
+        console.error('Analysis request failed:', response.status);
+      }
+    } catch (error) {
+      console.error('Auto-analysis error:', error);
     }
   };
 
