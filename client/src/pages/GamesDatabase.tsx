@@ -50,11 +50,13 @@ export default function GamesDatabase() {
   const [tacticalGames, setTacticalGames] = useState<any[]>([]);
 
   // Fetch user's Lichess games automatically
-  const { data: lichessGames = [], isLoading: isLoadingLichess } = useQuery({
+  const { data: lichessData, isLoading: isLoadingLichess } = useQuery({
     queryKey: ['/api/lichess/user', user?.lichessId, 'games'],
     enabled: isAuthenticated && !!user?.lichessId,
     queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/games`).then(res => res.json())
   });
+
+  const lichessGames = lichessData?.games || [];
 
   // Auto-select user's profile when logged in and lichess is selected
   React.useEffect(() => {
