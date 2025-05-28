@@ -14,9 +14,21 @@ app.use(session({
   saveUninitialized: false,
   cookie: { 
     secure: false, // Set to true in production with HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true,
+    sameSite: 'lax'
   }
 }));
+
+// Add session debugging middleware
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth')) {
+    console.log('Session middleware - Path:', req.path);
+    console.log('Session middleware - Session ID:', (req as any).session?.id);
+    console.log('Session middleware - User ID:', (req as any).session?.userId);
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
