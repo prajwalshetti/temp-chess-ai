@@ -147,12 +147,12 @@ export class StockfishAnalyzer {
     // Generate alternative moves with quick evaluation
     const alternativeMoves = legalMoves.slice(0, 3).map(move => {
       chess.move(move);
-      const eval = this.quickEvaluatePosition(chess.fen());
+      const evaluation = this.quickEvaluatePosition(chess.fen());
       chess.undo();
       
       return {
         move: move.san,
-        evaluation: eval,
+        evaluation: evaluation,
         description: this.describeMoveType(move, chess)
       };
     });
@@ -299,11 +299,11 @@ export class StockfishAnalyzer {
   }
 
   private determineMomentSignificance(analysis: PositionAnalysis): string {
-    const eval = Math.abs(analysis.currentEvaluation.evaluation);
+    const evalScore = Math.abs(analysis.currentEvaluation.evaluation);
     
     if (analysis.currentEvaluation.mate !== undefined) return 'Forced mate sequence';
-    if (eval > 500) return 'Decisive advantage';
-    if (eval > 200) return 'Significant advantage';
+    if (evalScore > 500) return 'Decisive advantage';
+    if (evalScore > 200) return 'Significant advantage';
     if (analysis.tacticalThemes.length > 1) return 'Tactical opportunity';
     return 'Important position';
   }

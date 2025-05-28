@@ -1002,61 +1002,45 @@ export default function OpponentScout() {
                                     </div>
                                     <div className="text-right">
                                       <div className="text-sm font-semibold">
-                                        Eval: {(() => {
-                                          const baseEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                          const gamePhase = currentMoveIndex / selectedOpeningGame.moves.length;
-                                          const adjustment = (Math.random() - 0.5) * 0.4;
-                                          const finalEval = baseEval + (gamePhase * 0.5) + adjustment;
-                                          return finalEval >= 0 ? `+${finalEval.toFixed(2)}` : finalEval.toFixed(2);
-                                        })()}
+                                        {engineAnalysis ? (
+                                          `Eval: ${(engineAnalysis.analysis.currentEvaluation.evaluation / 100).toFixed(2)}`
+                                        ) : (
+                                          'Click "Analyze Position" for evaluation'
+                                        )}
                                       </div>
-                                      <div className="text-xs text-gray-500">Engine depth {Math.min(20, currentMoveIndex + 15)}</div>
+                                      <div className="text-xs text-gray-500">
+                                        {engineAnalysis ? 
+                                          `Engine depth ${engineAnalysis.analysis.currentEvaluation.depth}` :
+                                          'Stockfish analysis available'
+                                        }
+                                      </div>
                                     </div>
                                   </div>
                                   
-                                  {/* Move Quality Assessment */}
-                                  <div className="flex items-center space-x-4 mb-3">
-                                    <Badge className={(() => {
-                                      const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                      const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                      const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                      const evalChange = currentEval - prevEval;
-                                      
-                                      if (currentMoveIndex < 6) return 'bg-green-500';
-                                      if (evalChange > 0.2) return 'bg-green-500';
-                                      if (evalChange > -0.1) return 'bg-blue-500';
-                                      if (evalChange > -0.3) return 'bg-yellow-500';
-                                      return 'bg-red-500';
-                                    })()}>
-                                      {(() => {
-                                        const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (currentMoveIndex < 6) return 'Book Move';
-                                        if (evalChange > 0.2) return 'Excellent!';
-                                        if (evalChange > -0.1) return 'Good';
-                                        if (evalChange > -0.3) return 'Inaccuracy';
-                                        return 'Mistake';
-                                      })()}
-                                    </Badge>
-                                    <span className="text-xs text-gray-600">
-                                      {(() => {
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (evalChange > 0.2) {
-                                          return `+${evalChange.toFixed(2)} gain!`;
-                                        } else if (evalChange < -0.2) {
-                                          return `${evalChange.toFixed(2)} loss`;
-                                        } else {
-                                          return 'Maintaining balance';
-                                        }
-                                      })()}
-                                    </span>
-                                  </div>
+                                  {/* Move Quality Assessment - Only show with Stockfish analysis */}
+                                  {engineAnalysis && (
+                                    <div className="flex items-center space-x-4 mb-3">
+                                      <Badge className={(() => {
+                                        const evaluation = engineAnalysis.analysis.currentEvaluation.evaluation;
+                                        if (Math.abs(evaluation) > 300) return 'bg-red-500';
+                                        if (Math.abs(evaluation) > 150) return 'bg-yellow-500';
+                                        if (Math.abs(evaluation) > 50) return 'bg-blue-500';
+                                        return 'bg-green-500';
+                                      })()}>
+                                        {(() => {
+                                          const evaluation = engineAnalysis.analysis.currentEvaluation.evaluation;
+                                          if (currentMoveIndex < 6) return 'Opening';
+                                          if (Math.abs(evaluation) > 300) return 'Decisive';
+                                          if (Math.abs(evaluation) > 150) return 'Advantage';
+                                          if (Math.abs(evaluation) > 50) return 'Slight Edge';
+                                          return 'Balanced';
+                                        })()}
+                                      </Badge>
+                                      <span className="text-xs text-gray-600">
+                                        Best move: {engineAnalysis.analysis.currentEvaluation.bestMove}
+                                      </span>
+                                    </div>
+                                  )}
 
                                   {/* All Moves Display */}
                                   <div className="mt-4">
@@ -1080,67 +1064,41 @@ export default function OpponentScout() {
                                 </div>
                               )}
                               
-                              {/* Engine Analysis for Current Position */}
-                              <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                                <h4 className="font-medium mb-3 flex items-center">
-                                  <Brain className="mr-2 h-4 w-4 text-blue-500" />
-                                  Position Analysis
-                                </h4>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                  <div>
-                                    <span className="text-gray-600">Position Eval:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        const baseEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const gamePhase = currentMoveIndex / selectedOpeningGame.moves.length;
-                                        const finalEval = baseEval + (gamePhase * 0.3);
-                                        return finalEval >= 0 ? `+${finalEval.toFixed(2)}` : finalEval.toFixed(2);
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Best Move:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        // Generate contextual best moves based on position and game state
-                                        const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (currentMoveIndex < 8) {
-                                          // Opening moves
-                                          const openingMoves = ['Nf3', 'Bc4', 'd3', 'Nc3', 'Be2', 'O-O', 'h3', 'a3'];
-                                          return openingMoves[currentMoveIndex % openingMoves.length];
-                                        } else if (currentMoveIndex < 20) {
-                                          // Middlegame - tactical moves
-                                          const middlegameMoves = ['Qd2', 'Rd1', 'Bg5', 'Bxf6', 'Nd5', 'f4', 'Qh4', 'Rfe1'];
-                                          return middlegameMoves[currentMoveIndex % middlegameMoves.length];
-                                        } else {
-                                          // Endgame - precise moves
-                                          const endgameMoves = ['Kf2', 'Rd7', 'a4', 'g4', 'Ke3', 'Rb1', 'f3', 'Kh3'];
-                                          return endgameMoves[currentMoveIndex % endgameMoves.length];
-                                        }
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Accuracy:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        const baseAccuracy = 85;
-                                        const variation = Math.sin(currentMoveIndex * 0.4) * 10;
-                                        return Math.round(baseAccuracy + variation);
-                                      })()}%
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Phase:</span>
-                                    <span className="ml-2 font-medium">
-                                      {currentMoveIndex < 8 ? 'Opening' : currentMoveIndex < 25 ? 'Middlegame' : 'Endgame'}
-                                    </span>
+                              {/* Only show Position Analysis when Stockfish analysis is available */}
+                              {engineAnalysis && (
+                                <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                                  <h4 className="font-medium mb-3 flex items-center">
+                                    <Brain className="mr-2 h-4 w-4 text-blue-500" />
+                                    Position Analysis (Stockfish)
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                      <span className="text-gray-600">Position Eval:</span>
+                                      <span className="ml-2 font-medium">
+                                        {(engineAnalysis.analysis.currentEvaluation.evaluation / 100).toFixed(2)}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-600">Best Move:</span>
+                                      <span className="ml-2 font-medium">
+                                        {engineAnalysis.analysis.currentEvaluation.bestMove}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-600">Depth:</span>
+                                      <span className="ml-2 font-medium">
+                                        {engineAnalysis.analysis.currentEvaluation.depth} ply
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-600">Phase:</span>
+                                      <span className="ml-2 font-medium">
+                                        {engineAnalysis.analysis.positionType}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
+                              )}
 
                                 {/* All Moves Display */}
                                 <div className="mt-4">
