@@ -609,7 +609,7 @@ export default function GamesDatabase() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <BarChart3 className="mr-2 h-5 w-5 text-blue-500" />
-                  Performance Overview - {selectedOpponent.username}
+                  Performance Overview - {selectedOpponent.lichessId}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -621,13 +621,13 @@ export default function GamesDatabase() {
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <div className="text-3xl font-bold text-green-600">
-                      {lichessGames.length > 0 ? Math.round((opponentStats.wins / lichessGames.length) * 100) : 0}%
+                      {lichessData?.winRate ? `${lichessData.winRate}%` : 'Calculating...'}
                     </div>
                     <div className="text-sm text-gray-600">Win Rate</div>
-                    <div className="text-xs text-green-600 mt-1">{opponentStats.wins} wins</div>
+                    <div className="text-xs text-green-600 mt-1">{lichessData?.wins || 0} wins</div>
                   </div>
                   <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <div className="text-3xl font-bold text-orange-600">{selectedOpponent.currentRating || 'Unrated'}</div>
+                    <div className="text-3xl font-bold text-orange-600">{lichessData?.currentRating || selectedOpponent.currentRating || 'Loading...'}</div>
                     <div className="text-sm text-gray-600">Current Rating</div>
                     <div className="text-xs text-orange-600 mt-1">Peak: {(selectedOpponent.currentRating || 0) + 47}</div>
                   </div>
