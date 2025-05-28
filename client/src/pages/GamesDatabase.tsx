@@ -36,13 +36,10 @@ import { ChessBoard } from "@/components/ChessBoard";
 import { Chess } from "chess.js";
 
 export default function GamesDatabase() {
+  const { user, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOpponent, setSelectedOpponent] = useState<User | null>(null);
   const [searchType, setSearchType] = useState<'fide' | 'aicf' | 'lichess'>('lichess');
-  const [lichessGames, setLichessGames] = useState<any[]>([]);
-  const [isLoadingLichess, setIsLoadingLichess] = useState(false);
-  const [lichessInsights, setLichessInsights] = useState<any>(null);
-  const [lichessTournaments, setLichessTournaments] = useState<any[]>([]);
   const [selectedOpening, setSelectedOpening] = useState<any>(null);
   const [openingGames, setOpeningGames] = useState<any[]>([]);
   const [selectedOpeningGame, setSelectedOpeningGame] = useState<any>(null);
@@ -50,6 +47,12 @@ export default function GamesDatabase() {
   const [currentPosition, setCurrentPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   const [selectedTacticalWeakness, setSelectedTacticalWeakness] = useState<string | null>(null);
   const [tacticalGames, setTacticalGames] = useState<any[]>([]);
+
+  // Fetch user's Lichess games automatically
+  const { data: lichessGames, isLoading: isLoadingLichess } = useQuery({
+    queryKey: ['/api/lichess/games', user?.lichessId],
+    enabled: isAuthenticated && !!user?.lichessId,
+  });
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {

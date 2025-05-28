@@ -253,6 +253,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fetch user's Lichess games
+  app.get("/api/lichess/games/:lichessId", async (req, res) => {
+    try {
+      const lichessId = req.params.lichessId;
+      
+      if (!process.env.LICHESS_API_TOKEN) {
+        return res.status(500).json({ message: "Lichess API token not configured" });
+      }
+
+      const lichessService = new LichessService(process.env.LICHESS_API_TOKEN);
+      const games = await lichessService.getUserGames(lichessId, 50);
+      
+      res.json(games);
+    } catch (error: any) {
+      console.error("Error fetching Lichess games:", error);
+      res.status(500).json({ message: "Failed to fetch Lichess games" });
+    }
+  });
+
   app.put("/api/user/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
