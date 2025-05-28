@@ -33,15 +33,17 @@ export default function SignUp() {
 
   const signUpMutation = useMutation({
     mutationFn: async (data: InsertUser) => {
-      return await apiRequest("/api/users", "POST", data);
+      const response = await apiRequest("POST", "/api/users", data);
+      return response.json();
     },
     onSuccess: (user) => {
+      login(user);
       toast({
         title: "Registration Successful!",
-        description: `Welcome ${user.username}! Your tournament analysis profile is ready.`,
+        description: `Welcome ${user.username}! Your chess analysis profile is ready.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      setLocation("/games-database");
+      setLocation("/games");
     },
     onError: (error: any) => {
       toast({
