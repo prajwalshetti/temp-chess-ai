@@ -1119,7 +1119,6 @@ export default function OpponentScout() {
                                     ))}
                                   </div>
                                 </div>
-                              </div>
                             </div>
                           )}
                         </div>
