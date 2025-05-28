@@ -63,6 +63,12 @@ export class MemStorage implements IStorage {
     this.initializeData();
   }
 
+  // Method to clear all user data
+  clearAllUsers() {
+    this.users.clear();
+    this.currentUserId = 1;
+  }
+
   private initializeData() {
     // Start with clean data - no mock users
     this.currentUserId = 1;

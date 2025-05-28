@@ -23,6 +23,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: 'API is working', timestamp: new Date().toISOString() });
   });
 
+  // Delete all users route
+  app.delete('/api/auth/delete-all-users', async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      console.log(`Deleting ${allUsers.length} users from system`);
+      
+      // Clear all users from storage
+      storage.clearAllUsers();
+      
+      const remainingUsers = await storage.getAllUsers();
+      console.log(`Users remaining after deletion: ${remainingUsers.length}`);
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        message: "All user registrations deleted successfully", 
+        deletedCount: allUsers.length,
+        remainingCount: remainingUsers.length
+      }));
+    } catch (error: any) {
+      console.error('Error deleting all users:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: "Failed to delete users" }));
+    }
+  });
+
   // Registration schema
   const registerSchema = z.object({
     name: z.string().min(2),
