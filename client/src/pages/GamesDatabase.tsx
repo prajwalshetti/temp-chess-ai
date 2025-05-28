@@ -1755,8 +1755,8 @@ export default function GamesDatabase() {
                   <div>
                     <h4 className="font-medium mb-4">Recent Tournaments</h4>
                     <div className="space-y-3">
-                      {lichessTournaments.length > 0 ? (
-                        lichessTournaments.slice(0, 5).map((tournament, index) => (
+                      {false ? (
+                        [].map((tournament, index) => (
                           <div key={index} className="p-3 border rounded-lg">
                             <div className="flex justify-between items-start mb-2">
                               <div>
@@ -1818,8 +1818,8 @@ export default function GamesDatabase() {
                               }).length / Math.min(10, lichessGames.length)) * 100)}% win rate).
                             </p>
                             <p>
-                              <strong>Tournament Activity:</strong> {lichessTournaments.length > 0 ? (
-                                `Active player with ${lichessTournaments.length} recent tournaments. Latest: ${lichessTournaments[0]?.name} (${lichessTournaments[0]?.position}/${lichessTournaments[0]?.players}).`
+                              <strong>Tournament Activity:</strong> {lichessGames.length > 0 ? (
+                                `Active player with ${lichessGames.length} recent games analyzed.`
                               ) : (
                                 'Limited recent tournament activity - may focus on casual play.'
                               )}
