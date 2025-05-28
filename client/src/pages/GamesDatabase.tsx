@@ -268,23 +268,41 @@ export default function GamesDatabase() {
     (player.aicfId && player.aicfId.includes(searchQuery))
   ) : [];
 
-  // Mock opponent data
-  const opponentStats = selectedOpponent ? {
+  // Real opponent data from Lichess
+  const opponentStats = selectedOpponent && lichessGames && lichessGames.length > 0 ? {
     id: 1,
     userId: selectedOpponent.id,
-    gamesPlayed: 187,
-    wins: 89,
-    losses: 68,
-    draws: 30,
-    winsAsWhite: 52,
-    winsAsBlack: 37,
-    lossesAsWhite: 31,
-    lossesAsBlack: 37,
-    drawsAsWhite: 16,
-    drawsAsBlack: 14,
+    gamesPlayed: lichessGames.length,
+    wins: lichessGames.filter((game: any) => {
+      const isWhite = game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase();
+      return (isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1');
+    }).length,
+    losses: lichessGames.filter((game: any) => {
+      const isWhite = game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase();
+      return (isWhite && game.result === '0-1') || (!isWhite && game.result === '1-0');
+    }).length,
+    draws: lichessGames.filter((game: any) => game.result === '1/2-1/2').length,
+    winsAsWhite: lichessGames.filter((game: any) => 
+      game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '1-0'
+    ).length,
+    winsAsBlack: lichessGames.filter((game: any) => 
+      game.blackPlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '0-1'
+    ).length,
+    lossesAsWhite: lichessGames.filter((game: any) => 
+      game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '0-1'
+    ).length,
+    lossesAsBlack: lichessGames.filter((game: any) => 
+      game.blackPlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '1-0'
+    ).length,
+    drawsAsWhite: lichessGames.filter((game: any) => 
+      game.whitePlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '1/2-1/2'
+    ).length,
+    drawsAsBlack: lichessGames.filter((game: any) => 
+      game.blackPlayer.toLowerCase() === selectedOpponent.username.toLowerCase() && game.result === '1/2-1/2'
+    ).length,
     rapidRating: selectedOpponent.currentRating,
-    blitzRating: selectedOpponent.currentRating - 100,
-    classicalRating: selectedOpponent.currentRating + 50,
+    blitzRating: selectedOpponent.currentRating,
+    classicalRating: selectedOpponent.currentRating,
     tacticalStrengths: {
       pins: 18,
       discoveredAttacks: 15,
