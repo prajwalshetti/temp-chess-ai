@@ -77,7 +77,9 @@ export default function Auth() {
         description: "You've been logged in successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      window.location.href = "/";
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1000);
     },
     onError: (error: any) => {
       toast({
@@ -97,10 +99,11 @@ export default function Auth() {
     onSuccess: () => {
       toast({
         title: "Registration successful!",
-        description: "Your account has been created. You can now log in.",
+        description: "Your account has been created. Welcome to Chess Mastery!",
       });
-      setActiveTab("login");
-      registerForm.reset();
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
     },
     onError: (error: any) => {
       toast({

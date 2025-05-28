@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Crown, Database, GraduationCap, User, Plus, Search, Brain, Menu, X } from "lucide-react";
+import { Crown, Database, GraduationCap, User, Plus, Search, Brain, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Navigation() {
@@ -58,6 +58,14 @@ export function Navigation() {
             <Button className="bg-chess-dark text-white hover:bg-chess-green">
               <Plus className="mr-2 h-4 w-4" />
               New Game
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/auth'}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
             </Button>
             <div className="w-8 h-8 chess-gold rounded-full flex items-center justify-center">
               <User className="text-white text-sm" />

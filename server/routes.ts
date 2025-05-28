@@ -83,6 +83,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Store user ID in session
+      (req as any).session.userId = user.id;
+
       // Return user without password
       const { passwordHash: _, ...userResponse } = user;
       res.json({ user: userResponse, message: "Login successful" });

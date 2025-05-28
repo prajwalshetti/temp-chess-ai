@@ -63,20 +63,8 @@ export class MemStorage implements IStorage {
   }
 
   private initializeData() {
-    // Create sample user
-    const user: User = {
-      id: 1,
-      username: "ChessPlayer2023",
-      email: "player@chess.com",
-      fideId: "2345678",
-      aicfId: "IN123456",
-      lichessId: "chessplayer2023",
-      currentRating: 1847,
-      puzzleRating: 1654,
-      createdAt: new Date(),
-    };
-    this.users.set(1, user);
-    this.currentUserId = 2;
+    // Start with clean data - no mock users
+    this.currentUserId = 1;
 
     // Create sample puzzles
     const samplePuzzles: Puzzle[] = [
