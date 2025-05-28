@@ -55,9 +55,9 @@ export default function GamesDatabase() {
     enabled: isAuthenticated && !!user?.lichessId,
   });
 
-  // Auto-select user's profile when logged in
+  // Auto-select user's profile when logged in and games are loaded
   React.useEffect(() => {
-    if (isAuthenticated && user && !selectedOpponent) {
+    if (isAuthenticated && user && lichessGames.length > 0 && !selectedOpponent) {
       setSelectedOpponent({
         id: user.id,
         username: user.username,
@@ -73,7 +73,40 @@ export default function GamesDatabase() {
       });
       setSearchQuery(user.lichessId);
     }
-  }, [isAuthenticated, user, selectedOpponent]);
+  }, [isAuthenticated, user, lichessGames, selectedOpponent]);
+
+  // Display loading state when fetching your real Lichess data
+  if (isAuthenticated && isLoadingLichess) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-chess-dark mx-auto mb-4"></div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Loading Your Chess Profile</h1>
+            <p className="text-gray-600">Fetching your latest games from Lichess account: {user?.lichessId}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication message when not logged in
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-16">
+            <Crown className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Games Database</h1>
+            <p className="text-gray-600 mb-8">Please log in to view your personalized game analysis and Lichess data</p>
+            <Button asChild>
+              <Link href="/auth">Login to Access Your Games</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -201,45 +234,7 @@ export default function GamesDatabase() {
     }
   };
 
-  // Handle Lichess search - automatically use damodar111
-  const handleLichessSearch = async () => {
-    const username = "damodar111"; // Always use your username
-    setIsLoadingLichess(true);
-    try {
-      const [gamesResponse, insightsResponse, tournamentsResponse] = await Promise.all([
-        fetch(`/api/lichess/user/${username}/games?max=50`),
-        fetch(`/api/lichess/user/${username}/insights`),
-        fetch(`/api/lichess/user/${username}/tournaments`)
-      ]);
-      
-      if (gamesResponse.ok && insightsResponse.ok) {
-        const gamesData = await gamesResponse.json();
-        const insightsData = await insightsResponse.json();
-        const tournamentsData = tournamentsResponse.ok ? await tournamentsResponse.json() : { tournaments: [] };
-        
-        setLichessGames(gamesData.games);
-        setLichessInsights(insightsData);
-        setLichessTournaments(tournamentsData.tournaments);
-        
-        // Create a mock opponent profile from Lichess data
-        setSelectedOpponent({
-          id: Date.now(),
-          username: searchQuery,
-          email: `${searchQuery}@lichess.org`,
-          fideId: null,
-          aicfId: null,
-          lichessId: searchQuery,
-          currentRating: insightsData.averageRating,
-          puzzleRating: null,
-          createdAt: new Date()
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching Lichess data:', error);
-    } finally {
-      setIsLoadingLichess(false);
-    }
-  };
+
 
   // Mock search results - in real app, this would search the database
   const mockOpponents = [
