@@ -11,6 +11,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
   const chessAnalyzer = new ChessAnalyzer();
 
+  // Add debugging middleware specifically for API routes
+  app.use('/api/*', (req, res, next) => {
+    console.log(`=== API Request: ${req.method} ${req.path} ===`);
+    next();
+  });
+
+  // Test route to verify API is working
+  app.get('/api/test', (req, res) => {
+    console.log('Test route hit successfully');
+    res.json({ message: 'API is working', timestamp: new Date().toISOString() });
+  });
+
   // Registration schema
   const registerSchema = z.object({
     name: z.string().min(2),

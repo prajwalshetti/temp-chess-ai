@@ -61,7 +61,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Register API routes first, before any middleware that might interfere
   const server = await registerRoutes(app);
+
+  // Add explicit API route handling to ensure JSON responses
+  app.use('/api/*', (req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
