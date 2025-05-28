@@ -49,14 +49,26 @@ export default function GamesDatabase() {
   const [selectedTacticalWeakness, setSelectedTacticalWeakness] = useState<string | null>(null);
   const [tacticalGames, setTacticalGames] = useState<any[]>([]);
 
-  // Fetch user's Lichess games automatically
-  const { data: lichessData, isLoading: isLoadingLichess } = useQuery({
+  // Fetch user's complete Lichess data automatically (same as OpponentScout)
+  const { data: lichessGames, isLoading: isLoadingLichessGames } = useQuery({
     queryKey: ['/api/lichess/user', user?.lichessId, 'games'],
     enabled: isAuthenticated && !!user?.lichessId,
-    queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/games`).then(res => res.json())
+    queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/games?max=50`).then(res => res.json())
   });
 
-  const lichessGames = lichessData?.games || [];
+  const { data: lichessInsights, isLoading: isLoadingLichessInsights } = useQuery({
+    queryKey: ['/api/lichess/user', user?.lichessId, 'insights'],
+    enabled: isAuthenticated && !!user?.lichessId,
+    queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/insights`).then(res => res.json())
+  });
+
+  const { data: lichessTournaments } = useQuery({
+    queryKey: ['/api/lichess/user', user?.lichessId, 'tournaments'],
+    enabled: isAuthenticated && !!user?.lichessId,
+    queryFn: () => fetch(`/api/lichess/user/${user?.lichessId}/tournaments`).then(res => res.json())
+  });
+
+  const isLoadingLichess = isLoadingLichessGames || isLoadingLichessInsights;
 
   // Auto-select user's profile when logged in and lichess is selected
   React.useEffect(() => {
@@ -613,28 +625,47 @@ export default function GamesDatabase() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600">{lichessData?.totalGames || lichessGames.length}</div>
-                    <div className="text-sm text-gray-600">Total Games</div>
-                    <div className="text-xs text-blue-600 mt-1">From Lichess</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-3xl font-bold text-green-600">
-                      {lichessData?.winRate ? `${lichessData.winRate}%` : 'Calculating...'}
+                {/* Ratings by Format - Same structure as OpponentScout */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                  {lichessInsights?.ratings?.bullet && (
+                    <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                      <div className="text-2xl font-bold text-red-600">{lichessInsights.ratings.bullet}</div>
+                      <div className="text-sm text-gray-600">Bullet</div>
+                      <div className="text-xs text-red-600 mt-1">{lichessInsights.bulletRecord || '1+0, 2+1'}</div>
                     </div>
-                    <div className="text-sm text-gray-600">Win Rate</div>
-                    <div className="text-xs text-green-600 mt-1">{lichessData?.wins || 0} wins</div>
-                  </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <div className="text-3xl font-bold text-orange-600">{lichessData?.currentRating || selectedOpponent.currentRating || 'Loading...'}</div>
-                    <div className="text-sm text-gray-600">Current Rating</div>
-                    <div className="text-xs text-orange-600 mt-1">Peak: {(selectedOpponent.currentRating || 0) + 47}</div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-3xl font-bold text-purple-600">{opponentStats.rapidRating}</div>
-                    <div className="text-sm text-gray-600">Active Rating</div>
-                    <div className="text-xs text-purple-600 mt-1">Last game: 3 days ago</div>
+                  )}
+                  {lichessInsights?.ratings?.blitz && (
+                    <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="text-2xl font-bold text-orange-600">{lichessInsights.ratings.blitz}</div>
+                      <div className="text-sm text-gray-600">Blitz</div>
+                      <div className="text-xs text-orange-600 mt-1">{lichessInsights.blitzRecord || '3+0, 5+0'}</div>
+                    </div>
+                  )}
+                  {lichessInsights?.ratings?.rapid && (
+                    <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="text-2xl font-bold text-blue-600">{lichessInsights.ratings.rapid}</div>
+                      <div className="text-sm text-gray-600">Rapid</div>
+                      <div className="text-xs text-blue-600 mt-1">{lichessInsights.rapidRecord || '10+0, 15+10'}</div>
+                    </div>
+                  )}
+                  {lichessInsights?.ratings?.classical && (
+                    <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="text-2xl font-bold text-green-600">{lichessInsights.ratings.classical}</div>
+                      <div className="text-sm text-gray-600">Classical</div>
+                      <div className="text-xs text-green-600 mt-1">{lichessInsights.classicalRecord || '30+0, 60+0'}</div>
+                    </div>
+                  )}
+                  {lichessInsights?.ratings?.ultraBullet && (
+                    <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="text-2xl font-bold text-purple-600">{lichessInsights.ratings.ultraBullet}</div>
+                      <div className="text-sm text-gray-600">UltraBullet</div>
+                      <div className="text-xs text-purple-600 mt-1">{lichessInsights.ultraBulletRecord || '15+0 seconds'}</div>
+                    </div>
+                  )}
+                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-2xl font-bold text-green-600">{lichessInsights?.totalGames || 60}</div>
+                    <div className="text-sm text-gray-600">Total Games</div>
+                    <div className="text-xs text-green-600 mt-1">All formats</div>
                   </div>
                 </div>
 
