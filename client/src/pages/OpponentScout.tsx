@@ -78,6 +78,46 @@ export default function OpponentScout() {
       setIsAnalyzing(false);
     }
   };
+
+  // Analyze current position function
+  const analyzeCurrentPosition = async () => {
+    setIsAnalyzing(true);
+    
+    try {
+      const response = await fetch('/api/analyze/position', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fen: currentPosition,
+          gameId: selectedOpeningGame?.id,
+          moveNumber: currentMoveIndex + 1
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Position analysis failed');
+      }
+
+      const analysisData = await response.json();
+      setEngineAnalysis(analysisData);
+      
+      toast({
+        title: "Position Analyzed!",
+        description: `Engine evaluation: ${(analysisData.analysis.currentEvaluation.evaluation / 100).toFixed(2)}`,
+      });
+    } catch (error) {
+      console.error('Error analyzing position:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Failed to analyze position. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOpponent, setSelectedOpponent] = useState<User | null>(null);
   const [searchType, setSearchType] = useState<'fide' | 'aicf' | 'lichess'>('lichess');
@@ -842,6 +882,76 @@ export default function OpponentScout() {
                               interactive={false}
                             />
                           </div>
+
+                          {/* Stockfish Analysis Button */}
+                          <div className="flex justify-center mb-4">
+                            <button
+                              onClick={() => analyzeCurrentPosition()}
+                              disabled={isAnalyzing}
+                              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg"
+                            >
+                              {isAnalyzing ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                  <span>Analyzing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>🔥</span>
+                                  <span>Analyze Position</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Engine Analysis Results */}
+                          {engineAnalysis && (
+                            <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-l-4 border-blue-500">
+                              <h5 className="font-medium text-blue-900 mb-2 flex items-center">
+                                <Brain className="mr-2 h-4 w-4" />
+                                Stockfish Analysis - Move {currentMoveIndex + 1}
+                              </h5>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex items-center justify-between">
+                                  <span>Engine Evaluation:</span>
+                                  <span className={`font-bold ${
+                                    engineAnalysis.analysis.currentEvaluation.evaluation > 100 ? 'text-green-600' :
+                                    engineAnalysis.analysis.currentEvaluation.evaluation < -100 ? 'text-red-600' :
+                                    'text-gray-600'
+                                  }`}>
+                                    {(engineAnalysis.analysis.currentEvaluation.evaluation / 100).toFixed(2)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span>Best Move:</span>
+                                  <span className="font-bold text-blue-600">
+                                    {engineAnalysis.analysis.currentEvaluation.bestMove}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span>Depth:</span>
+                                  <span className="text-gray-600">
+                                    {engineAnalysis.analysis.currentEvaluation.depth} ply
+                                  </span>
+                                </div>
+                                {engineAnalysis.analysis.tacticalThemes.length > 0 && (
+                                  <div>
+                                    <span>Tactical Themes:</span>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {engineAnalysis.analysis.tacticalThemes.map((theme: string, index: number) => (
+                                        <Badge key={index} variant="outline" className="text-xs">
+                                          {theme}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="text-xs text-gray-500 mt-2">
+                                  Position Type: {engineAnalysis.analysis.positionType}
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Move Navigation */}
                           {selectedOpeningGame.moves && (
