@@ -1188,3 +1188,808 @@ export default App;
   }
 }
 ```
+
+## 17. server/routes.ts
+
+```ts
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { z } from "zod";
+import { storage } from "./storage";
+import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
+import { LichessService, ChessAnalyzer } from "./lichess";
+import { stockfishAnalyzer } from "./stockfish-analyzer";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize Lichess service
+  const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
+  const chessAnalyzer = new ChessAnalyzer();
+
+  // Helper function to analyze openings
+  function analyzeOpenings(games: any[], username: string) {
+    const openings = games.reduce((acc, game) => {
+      // Only analyze games with valid opening data
+      if (!game.opening || game.opening === 'Unknown' || !game.opening.trim()) {
+        return acc;
+      }
+      
+      const opening = game.opening.trim();
+      if (!acc[opening]) {
+        acc[opening] = { games: 0, wins: 0, losses: 0, draws: 0 };
+      }
+      acc[opening].games++;
+      
+      const isWhite = game.whitePlayer.toLowerCase() === username.toLowerCase();
+      if ((isWhite && game.result === '1-0') || (!isWhite && game.result === '0-1')) {
+        acc[opening].wins++;
+      } else if ((isWhite && game.result === '0-1') || (!isWhite && game.result === '1-0')) {
+        acc[opening].losses++;
+      } else if (game.result === '1/2-1/2') {
+        acc[opening].draws++;
+      }
+      
+      return acc;
+    }, {} as any);
+
+    const repertoire: any = {};
+    Object.entries(openings)
+      .filter(([name, stats]: [string, any]) => stats.games >= 2)
+      .forEach(([name, stats]: [string, any]) => {
+        repertoire[name] = {
+          games: stats.games,
+          winRate: stats.wins / stats.games,
+          wins: stats.wins,
+          losses: stats.losses,
+          draws: stats.draws
+        };
+      });
+
+    return repertoire;
+  }
+
+  // User routes
+  app.get("/api/user/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.patch("/api/user/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const user = await storage.updateUser(id, updates);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Game routes
+  app.get("/api/games/user/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const games = await storage.getGamesByUser(userId);
+      res.json(games);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch games" });
+    }
+  });
+
+  app.post("/api/games", async (req, res) => {
+    try {
+      const gameData = insertGameSchema.parse(req.body);
+      const game = await storage.createGame(gameData);
+      res.json(game);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid game data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create game" });
+    }
+  });
+
+  // Player stats routes
+  app.get("/api/player-stats/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const stats = await storage.getPlayerStats(userId);
+      if (!stats) {
+        return res.status(404).json({ message: "Player stats not found" });
+      }
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch player stats" });
+    }
+  });
+
+  // Lichess integration routes
+  app.get("/api/lichess/user/:username/games", async (req, res) => {
+    try {
+      const { username } = req.params;
+      const { maxGames = 50 } = req.query;
+      
+      const games = await lichessService.getUserGames(username, parseInt(maxGames as string));
+      
+      res.json({
+        username,
+        totalGames: games.length,
+        games: games.map(game => ({
+          id: game.id,
+          whitePlayer: game.whitePlayer,
+          blackPlayer: game.blackPlayer,
+          whiteRating: game.whiteRating,
+          blackRating: game.blackRating,
+          result: game.result,
+          opening: game.opening,
+          timeControl: game.timeControl,
+          moves: game.moves,
+          pgn: game.pgn,
+          createdAt: game.createdAt,
+          gameUrl: game.gameUrl
+        }))
+      });
+    } catch (error) {
+      console.error("Error fetching Lichess games:", error);
+      res.status(500).json({ message: "Failed to fetch games from Lichess" });
+    }
+  });
+
+  // Position analysis endpoint
+  app.post("/api/analyze/position", async (req, res) => {
+    try {
+      const { fen, gameId, moveNumber } = req.body;
+      
+      if (!fen) {
+        return res.status(400).json({ message: "FEN position is required" });
+      }
+
+      const { realStockfish } = await import('./real-stockfish');
+      const analysis = await realStockfish.analyzePosition(fen);
+      
+      res.json({
+        position: fen,
+        gameId,
+        moveNumber,
+        analysis
+      });
+    } catch (error) {
+      console.error("Error analyzing position:", error);
+      res.status(500).json({ message: "Failed to analyze position" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
+```
+
+## 18. server/lichess.ts
+
+```ts
+export interface LichessGame {
+  id: string;
+  rated: boolean;
+  variant: string;
+  speed: string;
+  perf: string;
+  createdAt: number;
+  lastMoveAt: number;
+  status: string;
+  players: {
+    white: {
+      user: {
+        name: string;
+        id: string;
+      };
+      rating: number;
+    };
+    black: {
+      user: {
+        name: string;
+        id: string;
+      };
+      rating: number;
+    };
+  };
+  opening?: {
+    eco: string;
+    name: string;
+    ply: number;
+  };
+  moves: string;
+  clock?: {
+    initial: number;
+    increment: number;
+  };
+  winner?: 'white' | 'black';
+}
+
+export interface ProcessedLichessGame {
+  id: string;
+  whitePlayer: string;
+  blackPlayer: string;
+  whiteRating: number;
+  blackRating: number;
+  result: string;
+  opening: string;
+  timeControl: string;
+  moves: string[];
+  pgn: string;
+  createdAt: Date;
+  gameUrl: string;
+}
+
+export class LichessService {
+  private apiToken: string;
+  private baseUrl = 'https://lichess.org/api';
+
+  constructor(apiToken: string) {
+    this.apiToken = apiToken;
+  }
+
+  async getUserGames(username: string, maxGames: number = 50): Promise<ProcessedLichessGame[]> {
+    const response = await fetch(`${this.baseUrl}/games/user/${username}?max=${maxGames}&pgnInJson=true&opening=true`, {
+      headers: {
+        'Authorization': `Bearer ${this.apiToken}`,
+        'Accept': 'application/x-ndjson'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch games: ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    const lines = text.trim().split('\n').filter(line => line.trim());
+    
+    return lines.map(line => {
+      try {
+        const game = JSON.parse(line) as LichessGame;
+        return this.processGame(game);
+      } catch (error) {
+        console.error('Error parsing game line:', error);
+        return null;
+      }
+    }).filter(game => game !== null) as ProcessedLichessGame[];
+  }
+
+  private processGame(game: LichessGame): ProcessedLichessGame {
+    const moves = game.moves ? game.moves.split(' ') : [];
+    const result = game.winner ? (game.winner === 'white' ? '1-0' : '0-1') : '1/2-1/2';
+    
+    return {
+      id: game.id,
+      whitePlayer: game.players.white.user.name,
+      blackPlayer: game.players.black.user.name,
+      whiteRating: game.players.white.rating,
+      blackRating: game.players.black.rating,
+      result,
+      opening: game.opening?.name || 'Unknown',
+      timeControl: game.clock ? `${game.clock.initial / 1000}+${game.clock.increment}` : 'Unknown',
+      moves,
+      pgn: this.generatePGN(game, moves),
+      createdAt: new Date(game.createdAt),
+      gameUrl: `https://lichess.org/${game.id}`
+    };
+  }
+
+  private generatePGN(game: LichessGame, moves: string[]): string {
+    const date = new Date(game.createdAt).toISOString().split('T')[0].replace(/-/g, '.');
+    const result = game.winner ? (game.winner === 'white' ? '1-0' : '0-1') : '1/2-1/2';
+    
+    let pgn = `[Event "Lichess ${game.perf}"]\n`;
+    pgn += `[Site "https://lichess.org/${game.id}"]\n`;
+    pgn += `[Date "${date}"]\n`;
+    pgn += `[White "${game.players.white.user.name}"]\n`;
+    pgn += `[Black "${game.players.black.user.name}"]\n`;
+    pgn += `[Result "${result}"]\n`;
+    
+    if (game.opening) {
+      pgn += `[Opening "${game.opening.name}"]\n`;
+    }
+    
+    pgn += `\n`;
+    
+    for (let i = 0; i < moves.length; i += 2) {
+      const moveNumber = Math.floor(i / 2) + 1;
+      pgn += `${moveNumber}.${moves[i]}`;
+      if (i + 1 < moves.length) {
+        pgn += ` ${moves[i + 1]} `;
+      }
+    }
+    
+    pgn += ` ${result}`;
+    
+    return pgn;
+  }
+}
+
+export class ChessAnalyzer {
+  analyzeGame(moves: string[], targetPlayer: string, isWhite: boolean): any {
+    const accuracy = this.calculateAccuracy(moves, isWhite);
+    
+    return {
+      accuracy,
+      blunders: Math.floor(Math.random() * 3),
+      mistakes: Math.floor(Math.random() * 5),
+      inaccuracies: Math.floor(Math.random() * 8),
+      tacticalOpportunities: Math.floor(Math.random() * 4)
+    };
+  }
+
+  private calculateAccuracy(moves: string[], isWhite: boolean): number {
+    return Math.floor(80 + Math.random() * 20);
+  }
+}
+```
+
+## 19. client/src/components/Navigation.tsx
+
+```tsx
+import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Home, Search, Database, BookOpen, User, Target } from "lucide-react";
+
+export default function Navigation() {
+  const [location] = useLocation();
+
+  const navItems = [
+    { path: "/", label: "Home", icon: Home },
+    { path: "/opponent-scout", label: "Opponent Scout", icon: Search },
+    { path: "/games", label: "Games Database", icon: Database },
+    { path: "/learn", label: "Learn Chess", icon: BookOpen },
+    { path: "/analysis", label: "Analysis", icon: Target },
+    { path: "/account", label: "Account", icon: User },
+  ];
+
+  return (
+    <nav className="border-b bg-white dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex">
+            <div className="flex-shrink-0 flex items-center">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                EduChessClub
+              </h1>
+            </div>
+            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.path;
+                return (
+                  <Link key={item.path} href={item.path}>
+                    <Button
+                      variant={isActive ? "default" : "ghost"}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium"
+                    >
+                      <Icon className="w-4 h-4 mr-2" />
+                      {item.label}
+                    </Button>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+```
+
+## 20. client/src/components/ChessBoard.tsx
+
+```tsx
+import { useState, useEffect } from "react";
+import { Chess, Square } from "chess.js";
+
+interface ChessBoardProps {
+  fen?: string;
+  onMove?: (move: string) => void;
+  className?: string;
+  size?: number;
+  interactive?: boolean;
+}
+
+const PIECES = {
+  'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+  'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
+};
+
+export function ChessBoard({ 
+  fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  onMove,
+  className = "",
+  size = 400,
+  interactive = true
+}: ChessBoardProps) {
+  const [chess] = useState(() => new Chess(fen));
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
+
+  useEffect(() => {
+    chess.load(fen);
+  }, [fen, chess]);
+
+  const getSquareName = (file: number, rank: number): Square => {
+    return (String.fromCharCode(97 + file) + (8 - rank)) as Square;
+  };
+
+  const handleSquareClick = (square: Square) => {
+    if (!interactive) return;
+
+    if (selectedSquare === square) {
+      setSelectedSquare(null);
+      setPossibleMoves([]);
+      return;
+    }
+
+    if (selectedSquare && possibleMoves.includes(square)) {
+      // Make move
+      try {
+        const move = chess.move({
+          from: selectedSquare,
+          to: square,
+          promotion: 'q'
+        });
+        
+        if (move && onMove) {
+          onMove(move.san);
+        }
+      } catch (error) {
+        console.error('Invalid move:', error);
+      }
+      
+      setSelectedSquare(null);
+      setPossibleMoves([]);
+    } else {
+      // Select new square
+      setSelectedSquare(square);
+      const moves = chess.moves({ square, verbose: true });
+      setPossibleMoves(moves.map(move => move.to));
+    }
+  };
+
+  const renderSquare = (file: number, rank: number) => {
+    const square = getSquareName(file, rank);
+    const piece = chess.get(square);
+    const isLight = (file + rank) % 2 === 0;
+    const isSelected = selectedSquare === square;
+    const isHighlighted = possibleMoves.includes(square);
+
+    let squareClass = "chess-square ";
+    squareClass += isLight ? "light " : "dark ";
+    if (isSelected) squareClass += "selected ";
+    if (isHighlighted) squareClass += "highlighted ";
+
+    return (
+      <div
+        key={square}
+        className={squareClass}
+        onClick={() => handleSquareClick(square)}
+        style={{
+          width: `${size / 8}px`,
+          height: `${size / 8}px`,
+        }}
+      >
+        {piece && (
+          <span className="chess-piece text-2xl">
+            {PIECES[piece.type + (piece.color === 'w' ? piece.type.toUpperCase() : piece.type) as keyof typeof PIECES]}
+          </span>
+        )}
+        {(file === 0) && (
+          <span className="absolute bottom-0 left-1 text-xs font-semibold">
+            {8 - rank}
+          </span>
+        )}
+        {(rank === 7) && (
+          <span className="absolute bottom-0 right-1 text-xs font-semibold">
+            {String.fromCharCode(97 + file)}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`chess-board ${className}`}>
+      <div 
+        className="grid grid-cols-8 border-2 border-gray-800 relative"
+        style={{ width: `${size}px`, height: `${size}px` }}
+      >
+        {Array.from({ length: 8 }, (_, rank) =>
+          Array.from({ length: 8 }, (_, file) => renderSquare(file, rank))
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+## 21. client/src/lib/utils.ts
+
+```ts
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatDate(date: Date | string): string {
+  const d = new Date(date);
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function formatTimeControl(timeControl: string): string {
+  if (!timeControl || timeControl === "Unknown") return "Unknown";
+  return timeControl;
+}
+
+export function calculateWinPercentage(wins: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((wins / total) * 100);
+}
+
+export function formatRating(rating: number | null): string {
+  if (!rating) return "Unrated";
+  return rating.toString();
+}
+
+export function getPlayerColor(game: any, username: string): 'white' | 'black' | null {
+  if (game.whitePlayer.toLowerCase() === username.toLowerCase()) return 'white';
+  if (game.blackPlayer.toLowerCase() === username.toLowerCase()) return 'black';
+  return null;
+}
+
+export function getGameResult(game: any, username: string): 'win' | 'loss' | 'draw' {
+  const playerColor = getPlayerColor(game, username);
+  if (!playerColor) return 'draw';
+  
+  if (game.result === '1/2-1/2') return 'draw';
+  if ((playerColor === 'white' && game.result === '1-0') || 
+      (playerColor === 'black' && game.result === '0-1')) {
+    return 'win';
+  }
+  return 'loss';
+}
+```
+
+## 22. client/src/lib/queryClient.ts
+
+```ts
+import { QueryClient } from "@tanstack/react-query";
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+    },
+  },
+});
+
+export async function apiRequest(url: string, options: RequestInit = {}) {
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  return response.text();
+}
+```
+
+## 23. client/src/hooks/use-toast.ts
+
+```ts
+import * as React from "react";
+
+const TOAST_LIMIT = 1;
+const TOAST_REMOVE_DELAY = 1000000;
+
+type ToasterToast = {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  variant?: "default" | "destructive";
+};
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const;
+
+let count = 0;
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER;
+  return count.toString();
+}
+
+type ActionType = typeof actionTypes;
+
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"];
+      toast: ToasterToast;
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"];
+      toast: Partial<ToasterToast>;
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"];
+      toastId?: ToasterToast["id"];
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"];
+      toastId?: ToasterToast["id"];
+    };
+
+interface State {
+  toasts: ToasterToast[];
+}
+
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return;
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId);
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    });
+  }, TOAST_REMOVE_DELAY);
+
+  toastTimeouts.set(toastId, timeout);
+};
+
+export const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "ADD_TOAST":
+      return {
+        ...state,
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+      };
+
+    case "UPDATE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
+      };
+
+    case "DISMISS_TOAST": {
+      const { toastId } = action;
+
+      if (toastId) {
+        addToRemoveQueue(toastId);
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id);
+        });
+      }
+
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+                open: false,
+              }
+            : t
+        ),
+      };
+    }
+    case "REMOVE_TOAST":
+      if (action.toastId === undefined) {
+        return {
+          ...state,
+          toasts: [],
+        };
+      }
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      };
+  }
+};
+
+const listeners: Array<(state: State) => void> = [];
+
+let memoryState: State = { toasts: [] };
+
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action);
+  listeners.forEach((listener) => {
+    listener(memoryState);
+  });
+}
+
+type Toast = Omit<ToasterToast, "id">;
+
+function toast({ ...props }: Toast) {
+  const id = genId();
+
+  const update = (props: ToasterToast) =>
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { ...props, id },
+    });
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
+
+  dispatch({
+    type: "ADD_TOAST",
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open: boolean) => {
+        if (!open) dismiss();
+      },
+    },
+  });
+
+  return {
+    id: id,
+    dismiss,
+    update,
+  };
+}
+
+function useToast() {
+  const [state, setState] = React.useState<State>(memoryState);
+
+  React.useEffect(() => {
+    listeners.push(setState);
+    return () => {
+      const index = listeners.indexOf(setState);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    };
+  }, [state]);
+
+  return {
+    ...state,
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+  };
+}
+
+export { useToast, toast };
+```
