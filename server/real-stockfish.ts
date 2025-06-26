@@ -51,21 +51,8 @@ export class RealStockfishEngine {
     }
   }
 
-  // Complete game analysis matching the screenshot format
-  async analyzeCompleteGame(pgn: string): Promise<{
-    moves: Array<{
-      moveNumber: number;
-      move: string;
-      evaluation: number;
-      accuracy: number;
-      phase: string;
-      bestMove: string;
-      insights: string[];
-    }>;
-    positionEval: number;
-    accuracy: number;
-    phase: string;
-  }> {
+  // Simple move analysis matching your Python code output
+  async analyzeCompleteGame(pgn: string): Promise<string> {
     const chess = new Chess();
     
     // Clean and parse PGN
@@ -73,8 +60,7 @@ export class RealStockfishEngine {
     chess.loadPgn(cleanPgn);
     
     const history = chess.history({ verbose: true });
-    const moves = [];
-    let totalAccuracy = 0;
+    let output = "Analyzing moves:\n\n";
     
     // Reset to start position
     chess.reset();
@@ -82,68 +68,23 @@ export class RealStockfishEngine {
     for (let i = 0; i < history.length; i++) {
       const move = history[i];
       
-      // Analyze position before the move
-      const beforeAnalysis = await this.analyzePosition(chess.fen());
-      const beforeEval = beforeAnalysis.currentEvaluation.evaluation;
-      const bestMove = beforeAnalysis.currentEvaluation.bestMove;
-      
       // Make the move
       chess.move(move);
       
-      // Analyze position after the move
-      const afterAnalysis = await this.analyzePosition(chess.fen());
-      const afterEval = afterAnalysis.currentEvaluation.evaluation;
+      // Analyze position after the move (like your Python code)
+      const analysis = await this.analyzePosition(chess.fen());
+      const evaluation = analysis.currentEvaluation.evaluation;
       
-      // Calculate move accuracy (0-100%)
-      const evalLoss = Math.max(0, beforeEval - (-afterEval)); // Flip sign for opponent
-      const accuracy = Math.max(0, 100 - Math.min(100, evalLoss / 10)); // Scale eval loss to accuracy
-      totalAccuracy += accuracy;
+      // Convert to pawn units and format like your Python output
+      const evalInPawns = evaluation / 100;
+      const formattedEval = evalInPawns >= 0 ? `+${evalInPawns.toFixed(2)}` : evalInPawns.toFixed(2);
       
-      // Determine game phase
-      const moveNumber = Math.floor(i / 2) + 1;
-      const phase = moveNumber <= 12 ? "Opening" : moveNumber <= 25 ? "Middlegame" : "Endgame";
-      
-      // Generate insights based on move quality
-      const insights: string[] = [];
-      if (move.san === bestMove) {
-        insights.push("Excellent Find: " + move.san + " seizes the advantage");
-      } else if (evalLoss > 100) {
-        insights.push("Missed opportunity: " + bestMove + " was stronger");
-      }
-      
-      // Add tactical insights
-      if (afterAnalysis.tacticalThemes.includes('Check')) {
-        insights.push("Tactical move with check");
-      }
-      if (afterAnalysis.tacticalThemes.includes('Capture')) {
-        insights.push("Material advantage gained");
-      }
-      
-      const moveAnalysis = {
-        moveNumber: i + 1,
-        move: move.san,
-        evaluation: Math.round(afterEval / 100 * 100) / 100, // Round to 2 decimal places
-        accuracy: Math.round(accuracy),
-        phase: phase,
-        bestMove: bestMove,
-        insights: insights
-      };
-      
-      moves.push(moveAnalysis);
+      // Format output exactly like your Python code
+      const moveStr = move.san.padEnd(6);
+      output += `${i + 1}. ${moveStr} | Eval: ${formattedEval}\n`;
     }
     
-    // Final position analysis
-    const finalAnalysis = await this.analyzePosition(chess.fen());
-    const finalEval = finalAnalysis.currentEvaluation.evaluation / 100;
-    const avgAccuracy = moves.length > 0 ? Math.round(totalAccuracy / moves.length) : 100;
-    const finalPhase = this.classifyGamePhase(chess);
-    
-    return { 
-      moves,
-      positionEval: Math.round(finalEval * 100) / 100,
-      accuracy: avgAccuracy,
-      phase: finalPhase
-    };
+    return output;
   }
 
   // Main evaluation function using Stockfish-style analysis

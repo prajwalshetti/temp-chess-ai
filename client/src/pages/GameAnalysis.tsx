@@ -8,27 +8,14 @@ import { AlertTriangle, TrendingDown, TrendingUp, Target, Clock } from "lucide-r
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-interface GameAnalysisData {
-  moves: Array<{
-    moveNumber: number;
-    move: string;
-    evaluation: number;
-    accuracy: number;
-    phase: string;
-    bestMove: string;
-    insights: string[];
-  }>;
-  positionEval: number;
-  accuracy: number;
-  phase: string;
-}
+// Simple text output interface matching Python code
 
 export default function GameAnalysis() {
   const [pgn, setPgn] = useState("");
-  const [analysisData, setAnalysisData] = useState<GameAnalysisData | null>(null);
+  const [analysisOutput, setAnalysisOutput] = useState<string | null>(null);
 
   const analyzeGameMutation = useMutation({
-    mutationFn: async (gameData: { pgn: string }): Promise<GameAnalysisData> => {
+    mutationFn: async (gameData: { pgn: string }): Promise<string> => {
       const response = await fetch("/api/analyze/game", {
         method: "POST",
         headers: {
@@ -41,10 +28,10 @@ export default function GameAnalysis() {
         throw new Error("Failed to analyze game");
       }
       
-      return response.json();
+      return response.text();
     },
     onSuccess: (data) => {
-      setAnalysisData(data);
+      setAnalysisOutput(data);
     },
   });
 
@@ -109,125 +96,23 @@ export default function GameAnalysis() {
         </CardContent>
       </Card>
 
-      {analysisData && (
-        <div className="space-y-6">
-          {/* Position Analysis Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                Position Analysis
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-6">
-                <div className="text-center space-y-2">
-                  <div className="text-sm text-muted-foreground">Position Eval</div>
-                  <div className={`text-2xl font-bold ${getEvaluationColor(analysisData.positionEval)}`}>
-                    {formatEvaluation(analysisData.positionEval)}
-                  </div>
-                </div>
-                <div className="text-center space-y-2">
-                  <div className="text-sm text-muted-foreground">Accuracy</div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {analysisData.accuracy}%
-                  </div>
-                </div>
-                <div className="text-center space-y-2">
-                  <div className="text-sm text-muted-foreground">Phase</div>
-                  <div className="text-2xl font-bold">
-                    {analysisData.phase}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Insights & Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" />
-                AI Insights & Analysis
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {analysisData.moves
-                  .filter(move => move.insights.length > 0)
-                  .map((move, index) => (
-                    <div key={index} className="border-l-4 border-green-500 pl-4 py-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold">Move {move.moveNumber}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {move.accuracy}% accuracy
-                        </Badge>
-                      </div>
-                      {move.insights.map((insight, i) => (
-                        <div key={i} className="text-sm text-muted-foreground">
-                          {insight}
-                        </div>
-                      ))}
-                    </div>
-                  ))
-                }
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Move-by-Move Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Move Analysis
-              </CardTitle>
-              <CardDescription>
-                Detailed evaluation of each move with accuracy and phase
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {analysisData.moves.map((move, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center justify-between p-3 rounded-lg border bg-gray-50 dark:bg-gray-900/50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm text-muted-foreground w-8">
-                        {move.moveNumber}.
-                      </div>
-                      <div className="font-mono font-semibold w-16">
-                        {move.move}
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {move.phase}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="text-muted-foreground">
-                        Best: <span className="font-mono">{move.bestMove}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span>Eval:</span>
-                        <span className={getEvaluationColor(move.evaluation)}>
-                          {formatEvaluation(move.evaluation)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span>Accuracy:</span>
-                        <span className="font-semibold text-blue-600">
-                          {move.accuracy}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {analysisOutput && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Game Analysis Output
+            </CardTitle>
+            <CardDescription>
+              Move-by-move analysis matching Python Stockfish format
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto">
+              {analysisOutput}
+            </pre>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

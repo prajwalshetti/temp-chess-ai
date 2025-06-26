@@ -417,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete game analysis endpoint (matching screenshot format)
+  // Simple move analysis endpoint (matching your Python code output)
   app.post("/api/analyze/game", async (req, res) => {
     try {
       const { pgn } = req.body;
@@ -429,8 +429,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realStockfish } = await import('./real-stockfish');
       const gameAnalysis = await realStockfish.analyzeCompleteGame(pgn);
       
-      // Return complete analysis with position eval, accuracy, and moves
-      res.json(gameAnalysis);
+      // Return plain text output like your Python script
+      res.type('text/plain').send(gameAnalysis);
     } catch (error) {
       console.error("Error analyzing game:", error);
       res.status(500).json({ message: "Failed to analyze game" });
@@ -449,12 +449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realStockfish } = await import('./real-stockfish');
       const gameAnalysis = await realStockfish.analyzeCompleteGame(pgn);
       
-      res.json({
-        moves: gameAnalysis.moves,
-        positionEval: gameAnalysis.positionEval,
-        accuracy: gameAnalysis.accuracy,
-        phase: gameAnalysis.phase
-      });
+      res.type('text/plain').send(gameAnalysis);
     } catch (error) {
       console.error("Error analyzing game:", error);
       res.status(500).json({ message: "Failed to analyze game" });
