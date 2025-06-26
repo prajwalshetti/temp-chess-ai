@@ -398,6 +398,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete game analysis using Python chess analyzer
+  app.post("/api/analyze/game", async (req, res) => {
+    try {
+      const { pgn, gameId } = req.body;
+      
+      if (!pgn) {
+        return res.status(400).json({ message: "PGN is required" });
+      }
+
+      console.log(`Analyzing complete game: ${gameId}`);
+
+      // Use Python chess analyzer for authentic Stockfish evaluation
+      const pythonScript = path.join(__dirname, 'chess_analyzer.py');
+      
+      const child = spawn('python3', [pythonScript, '--mode', 'accurate'], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      let isResponseSent = false;
+      
+      // Send PGN to Python script
+      child.stdin.write(pgn);
+      child.stdin.end();
+      
+      child.stdout.on('data', (data: Buffer) => {
+        output += data.toString();
+      });
+      
+      child.stderr.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+      
+      child.on('close', (code: number) => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        
+        if (code !== 0) {
+          console.error("Game analysis error:", errorOutput);
+          return res.status(500).json({ message: `Analysis failed: ${errorOutput}` });
+        }
+        
+        // Parse the output to extract move-by-move evaluations
+        const moveEvaluations = [];
+        const lines = output.split('\n');
+        
+        for (const line of lines) {
+          const moveMatch = line.match(/Move (\d+):\s*(.+?)\s*Eval:\s*([-+]?\d*\.?\d+)/);
+          if (moveMatch) {
+            const moveNumber = parseInt(moveMatch[1]);
+            const move = moveMatch[2].trim();
+            const evaluation = parseFloat(moveMatch[3]);
+            
+            moveEvaluations.push({
+              moveNumber,
+              move,
+              evaluation: Math.round(evaluation * 100), // Convert to centipawns
+              evaluationFloat: evaluation
+            });
+          }
+        }
+        
+        res.json({
+          gameId,
+          pgn,
+          moveEvaluations,
+          rawOutput: output.trim(),
+          totalMoves: moveEvaluations.length
+        });
+      });
+      
+      child.on('error', (error: Error) => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        console.error("Game analysis process error:", error);
+        res.status(500).json({ message: `Process error: ${error.message}` });
+      });
+      
+      // Set longer timeout for full game analysis (2 minutes)
+      const timeout = setTimeout(() => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        child.kill('SIGTERM');
+        res.status(408).json({ message: "Game analysis timeout" });
+      }, 120000);
+      
+      child.on('close', () => clearTimeout(timeout));
+      
+    } catch (error) {
+      console.error("Game analysis endpoint error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Position analysis using Python chess analyzer for real-time evaluations
   app.post("/api/analyze/position", async (req, res) => {
     try {

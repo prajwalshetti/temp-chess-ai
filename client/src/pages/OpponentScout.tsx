@@ -39,7 +39,7 @@ export default function OpponentScout() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Stockfish analysis function
+  // Complete game analysis function
   const analyzeGameWithStockfish = async (game: any) => {
     setIsAnalyzing(true);
     setSelectedGameForAnalysis(game);
@@ -52,7 +52,7 @@ export default function OpponentScout() {
         },
         body: JSON.stringify({
           pgn: game.pgn,
-          moveNumber: currentMoveIndex || 10
+          gameId: game.id
         }),
       });
 
@@ -61,11 +61,18 @@ export default function OpponentScout() {
       }
 
       const analysisData = await response.json();
-      setEngineAnalysis(analysisData);
+      setGameAnalysis(analysisData);
+      setMoveEvaluations(analysisData.moveEvaluations || []);
+      
+      // Set current evaluation based on current move
+      if (analysisData.moveEvaluations && analysisData.moveEvaluations.length > 0) {
+        const currentMoveEval = analysisData.moveEvaluations[currentMoveIndex] || analysisData.moveEvaluations[0];
+        setCurrentEvaluation(currentMoveEval.evaluationFloat || 0);
+      }
       
       toast({
-        title: "Analysis Complete!",
-        description: `Found ${analysisData.criticalMoments?.length || 0} critical moments in the game.`,
+        title: "Game Analysis Complete!",
+        description: `Analyzed ${analysisData.totalMoves || 0} moves with Stockfish engine.`,
       });
     } catch (error) {
       console.error('Error analyzing game:', error);
@@ -138,6 +145,8 @@ export default function OpponentScout() {
   const [currentEvaluation, setCurrentEvaluation] = useState<number | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evaluationCache, setEvaluationCache] = useState<Map<string, number>>(new Map());
+  const [gameAnalysis, setGameAnalysis] = useState<any>(null);
+  const [moveEvaluations, setMoveEvaluations] = useState<any[]>([]);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -226,8 +235,8 @@ export default function OpponentScout() {
     setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   };
 
-  // Navigate through moves and calculate positions
-  const navigateToMove = async (moveIndex: number) => {
+  // Navigate through moves and display stored evaluations
+  const navigateToMove = (moveIndex: number) => {
     if (!selectedOpeningGame || !selectedOpeningGame.moves) return;
     
     setCurrentMoveIndex(moveIndex);
@@ -240,8 +249,12 @@ export default function OpponentScout() {
       // If moveIndex is -1, show starting position
       if (moveIndex < 0) {
         setCurrentPosition(newPosition);
-        // Auto-analyze starting position
-        await analyzePositionAutomatically(newPosition, 0);
+        // Show evaluation for starting position if available
+        if (moveEvaluations.length > 0) {
+          setCurrentEvaluation(moveEvaluations[0]?.evaluationFloat || 0);
+        } else {
+          setCurrentEvaluation(0);
+        }
         return;
       }
       
@@ -263,13 +276,18 @@ export default function OpponentScout() {
       console.log(`Setting new position: ${newPosition}`);
       setCurrentPosition(newPosition);
       
-      // Automatically analyze the new position
-      await analyzePositionAutomatically(newPosition, moveIndex + 1);
+      // Display stored evaluation for this move
+      if (moveEvaluations.length > moveIndex + 1) {
+        const moveEval = moveEvaluations[moveIndex + 1];
+        setCurrentEvaluation(moveEval?.evaluationFloat || 0);
+      } else {
+        setCurrentEvaluation(null);
+      }
     } catch (error) {
       console.log("Error calculating position:", error);
       const startPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
       setCurrentPosition(startPos);
-      await analyzePositionAutomatically(startPos, 0);
+      setCurrentEvaluation(0);
     }
   };
 
