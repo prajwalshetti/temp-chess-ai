@@ -4,7 +4,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
 import { LichessService, ChessAnalyzer } from "./lichess";
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -426,7 +426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Game analysis using Python-based chess analyzer (matching your Python code)
   app.post("/api/analyze/game", async (req, res) => {
     try {
-      const { pgn } = req.body;
+      const { pgn, mode = "accurate" } = req.body;
       
       if (!pgn) {
         return res.status(400).json({ message: "PGN is required" });
@@ -434,31 +434,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Received PGN:", JSON.stringify(pgn));
 
-      // Use Python chess analyzer for authentic Stockfish analysis
+      // Use Python chess analyzer with stdin input like your original script
       const pythonScript = path.join(__dirname, 'chess_analyzer.py');
-      const escapedPgn = pgn.replace(/'/g, "\\'").replace(/"/g, '\\"');
+      const command = `echo ${JSON.stringify(pgn)} | python3 "${pythonScript}" --mode ${mode}`;
       
-      try {
-        const output = execSync(`python3 "${pythonScript}" '${escapedPgn}'`, {
-          encoding: 'utf8',
-          timeout: 30000, // 30 second timeout
-          maxBuffer: 1024 * 1024 // 1MB buffer
-        });
-        
-        const result = JSON.parse(output.trim());
-        
-        if (result.error) {
-          return res.status(400).json({ message: result.error });
-        }
-        
-        // Return formatted output like your Python script
-        res.type('text/plain').send(result.output);
-        
-      } catch (execError: any) {
-        console.error("Python execution error:", execError);
-        const errorMessage = execError?.message || 'Unknown execution error';
-        throw new Error(`Analysis execution failed: ${errorMessage}`);
-      }
+      const output = execSync(command, {
+        encoding: 'utf8',
+        timeout: 60000, // 60 second timeout
+        maxBuffer: 1024 * 1024 // 1MB buffer
+      });
+      
+      // Return formatted output like your Python script
+      res.type('text/plain').send(output.trim());
       
     } catch (error) {
       console.error("Error analyzing game:", error);
