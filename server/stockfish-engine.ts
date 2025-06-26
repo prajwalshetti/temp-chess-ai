@@ -25,20 +25,12 @@ export class StockfishEngine {
       const lines = output.split('\n');
       
       for (const line of lines) {
-        // Look for "Final evaluation" or "Total evaluation" lines
-        if (line.includes('Final evaluation') || line.includes('Total evaluation')) {
-          const evalMatch = line.match(/([+-]?\d+\.?\d*)/);
+        // Look for "Final evaluation" line from Stockfish
+        if (line.includes('Final evaluation')) {
+          const evalMatch = line.match(/Final evaluation\s+([+-]?\d+\.?\d*)/);
           if (evalMatch) {
             const evaluation = parseFloat(evalMatch[1]);
             return Math.round(evaluation * 100); // Convert to centipawns
-          }
-        }
-        
-        // Also check for direct centipawn values
-        if (line.includes('cp')) {
-          const cpMatch = line.match(/cp\s+([+-]?\d+)/);
-          if (cpMatch) {
-            return parseInt(cpMatch[1]);
           }
         }
       }
