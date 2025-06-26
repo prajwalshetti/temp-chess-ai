@@ -121,6 +121,9 @@ EduChessClub is a comprehensive chess analysis platform designed for tournament 
 
 Changelog:
 - June 26, 2025. Initial setup
+- June 26, 2025. Implemented authentic Stockfish 16 engine integration with real evaluations
+- June 26, 2025. Fixed PGN parsing to handle full Lichess format with headers and game results
+- June 26, 2025. Added robust error handling and improved user feedback for game analysis
 
 ## User Preferences
 
