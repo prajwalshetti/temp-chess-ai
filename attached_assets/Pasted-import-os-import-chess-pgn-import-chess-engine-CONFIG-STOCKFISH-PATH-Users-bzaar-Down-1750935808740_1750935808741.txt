@@ -1,0 +1,57 @@
+import os
+import chess.pgn
+import chess.engine
+
+# === CONFIG ===
+STOCKFISH_PATH = "/Users/bzaar/Downloads/stockfish/stockfish"  # Adjust if needed
+PGN_FOLDER = "lichess_games"
+
+def analyze_game(path, engine):
+    with open(path, "r") as f:
+        game = chess.pgn.read_game(f)
+        board = game.board()
+        node = game
+
+        big_drops = []
+
+        while node.variations:
+            next_node = node.variation(0)
+            played_move = next_node.move
+
+            # Evaluate BEFORE player's move
+            info_before = engine.analyse(board, chess.engine.Limit(depth=15))
+            score_before = info_before["score"].relative.score(mate_score=10000)
+            best_move = info_before.get("pv", [None])[0]  # Suggested best move
+
+            board.push(played_move)
+            # Evaluate AFTER player's move
+            info_after = engine.analyse(board, chess.engine.Limit(depth=15))
+            score_after = info_after["score"].relative.score(mate_score=10000)
+
+            move_number = board.fullmove_number
+            print(f"Move {move_number}: {played_move}, Eval: {score_before} -> {score_after}")
+
+            if score_before is not None and score_after is not None:
+                delta = abs(score_before - score_after)
+                if delta >= 200 and played_move != best_move:
+                    big_drops.append((move_number, played_move, best_move, score_before, score_after))
+
+            node = next_node
+
+        if big_drops:
+            print("\n⚠️  Significant Evaluation Drops with Missed Best Moves:")
+            for move_num, played, best, before, after in big_drops:
+                print(f"  Move {move_num}: Played {played}, Best was {best}, Eval dropped from {before} to {after} (Δ = {before - after})")
+        else:
+            print("\n✅ No major evaluation drops detected.")
+
+def main():
+    with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
+        for filename in os.listdir(PGN_FOLDER):
+            if filename.endswith(".pgn"):
+                path = os.path.join(PGN_FOLDER, filename)
+                print(f"\nGame: {filename}")
+                analyze_game(path, engine)
+
+if __name__ == "__main__":
+    main()

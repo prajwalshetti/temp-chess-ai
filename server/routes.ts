@@ -417,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Game analysis endpoint
+  // Complete game analysis endpoint using Stockfish-style evaluation
   app.post("/api/analyze/game", async (req, res) => {
     try {
       const { pgn, moveNumber } = req.body;
@@ -426,12 +426,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "PGN is required" });
       }
 
-      const gameAnalysis = await stockfishAnalyzer.analyzeGame(pgn, moveNumber);
+      const { realStockfish } = await import('./real-stockfish');
+      const gameAnalysis = await realStockfish.analyzeCompleteGame(pgn);
       
       res.json({
         pgn,
-        moveNumber,
-        ...gameAnalysis
+        totalMoves: gameAnalysis.moves.length,
+        moves: gameAnalysis.moves,
+        bigDrops: gameAnalysis.bigDrops,
+        blunders: gameAnalysis.bigDrops.length,
+        accuracy: gameAnalysis.moves.length > 0 ? 
+          Math.round((1 - gameAnalysis.bigDrops.length / gameAnalysis.moves.length) * 100) : 100
       });
     } catch (error) {
       console.error("Error analyzing game:", error);
