@@ -137,7 +137,7 @@ def format_analysis_output(analysis):
     
     # Game header
     output.append(f"📂 Game: {game_info['event']}")
-    if game_info['white'] != "Unknown" and game_info['black'] != "Unknown":
+    if game_info['white'] and game_info['black']:
         output.append(f"White: {game_info['white']} vs Black: {game_info['black']}")
     output.append("")
     

@@ -124,6 +124,8 @@ Changelog:
 - June 26, 2025. Implemented authentic Stockfish 16 engine integration with real evaluations
 - June 26, 2025. Fixed PGN parsing to handle full Lichess format with headers and game results
 - June 26, 2025. Added robust error handling and improved user feedback for game analysis
+- June 26, 2025. Replaced TypeScript Stockfish with Python-based chess analyzer using chess.pgn and chess.engine libraries
+- June 26, 2025. Integrated user's original Python analysis code for authentic move-by-move evaluation and blunder detection
 
 ## User Preferences
 
