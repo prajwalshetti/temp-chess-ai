@@ -26,7 +26,7 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
         else:
             limit = chess.engine.Limit(time=0.5)
         
-        # Initialize engine
+        # Initialize engine exactly like your local script
         with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
             board = game.board()
             node = game
@@ -34,6 +34,7 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
             moves_analysis = []
             big_drops = []
             move_count = 0
+            max_moves = 80  # Reasonable limit to prevent timeouts
             
             # Extract game info
             headers = game.headers
@@ -46,7 +47,7 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
                 "result": headers.get("Result", "*")
             }
             
-            while node.variations:
+            while node.variations and move_count < max_moves:
                 next_node = node.variation(0)
                 played_move = next_node.move
                 move_count += 1
@@ -226,11 +227,6 @@ def format_analysis_output(analysis):
         output.append(move_line)
     
     output.append("")
-    
-    # Add truncation notice if applicable
-    if analysis.get("truncated", False):
-        output.append("ℹ️  Analysis limited to first 60 moves for performance")
-        output.append("")
     
     # Significant drops
     if analysis["big_drops"]:
