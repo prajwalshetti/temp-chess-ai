@@ -398,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stockfish analysis endpoint with real engine
+  // Position analysis using Python chess analyzer for real-time evaluations
   app.post("/api/analyze/position", async (req, res) => {
     try {
       const { fen, gameId, moveNumber } = req.body;
@@ -407,16 +407,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "FEN position is required" });
       }
 
-      // Use real Stockfish engine for authentic evaluations
-      const { realStockfish } = await import('./real-stockfish');
-      const analysis = await realStockfish.analyzePosition(fen);
+      // Create a minimal PGN from the current position for Python analyzer
+      const tempPgn = `[Event "Position Analysis"]
+[Site "Chess Platform"]
+[Date "2025.06.26"]
+[Round "1"]
+[White "Player"]
+[Black "Opponent"]
+[Result "*"]
+[FEN "${fen}"]
+
+*`;
+
+      console.log(`Analyzing position: ${fen}`);
+
+      // Use Python chess analyzer for authentic Stockfish evaluation
+      const pythonScript = path.join(__dirname, 'chess_analyzer.py');
       
-      res.json({
-        position: fen,
-        gameId,
-        moveNumber,
-        analysis
+      const child = spawn('python3', [pythonScript, '--mode', 'fast'], {
+        stdio: ['pipe', 'pipe', 'pipe']
       });
+      
+      let output = '';
+      let errorOutput = '';
+      let isResponseSent = false;
+      
+      // Send position PGN to Python script
+      child.stdin.write(tempPgn);
+      child.stdin.end();
+      
+      child.stdout.on('data', (data: Buffer) => {
+        output += data.toString();
+      });
+      
+      child.stderr.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+      
+      child.on('close', (code: number) => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        
+        if (code !== 0) {
+          console.error("Position analysis error:", errorOutput);
+          return res.status(500).json({ message: `Analysis failed: ${errorOutput}` });
+        }
+        
+        // Parse the output to extract evaluation
+        let evaluation = 0.0;
+        const lines = output.split('\n');
+        
+        // Look for evaluation pattern in output
+        for (const line of lines) {
+          const evalMatch = line.match(/Eval:\s*([-+]?\d*\.?\d+)/);
+          if (evalMatch) {
+            evaluation = parseFloat(evalMatch[1]);
+            break;
+          }
+        }
+        
+        res.json({
+          position: fen,
+          gameId,
+          moveNumber,
+          evaluation: evaluation,
+          rawOutput: output.trim(),
+          analysis: {
+            currentEvaluation: {
+              evaluation: Math.round(evaluation * 100), // Convert to centipawns
+              mate: evaluation > 30 ? Math.ceil(evaluation - 30) : null
+            }
+          }
+        });
+      });
+      
+      child.on('error', (error: Error) => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        console.error("Position analysis process error:", error);
+        res.status(500).json({ message: `Process error: ${error.message}` });
+      });
+      
+      // Set shorter timeout for position analysis (30 seconds)
+      const timeout = setTimeout(() => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        child.kill('SIGTERM');
+        res.status(408).json({ message: "Position analysis timeout" });
+      }, 30000);
+      
+      child.on('close', () => clearTimeout(timeout));
+      
     } catch (error) {
       console.error("Error analyzing position:", error);
       res.status(500).json({ message: "Failed to analyze position" });

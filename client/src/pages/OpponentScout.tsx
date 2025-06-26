@@ -79,7 +79,7 @@ export default function OpponentScout() {
     }
   };
 
-  // Analyze current position function
+  // Analyze current position function with real-time evaluation
   const analyzeCurrentPosition = async () => {
     setIsAnalyzing(true);
     
@@ -118,6 +118,8 @@ export default function OpponentScout() {
       setIsAnalyzing(false);
     }
   };
+
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOpponent, setSelectedOpponent] = useState<User | null>(null);
   const [searchType, setSearchType] = useState<'fide' | 'aicf' | 'lichess'>('lichess');
@@ -133,6 +135,9 @@ export default function OpponentScout() {
   const [engineAnalysis, setEngineAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedGameForAnalysis, setSelectedGameForAnalysis] = useState<any>(null);
+  const [currentEvaluation, setCurrentEvaluation] = useState<number | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluationCache, setEvaluationCache] = useState<Map<string, number>>(new Map());
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -272,6 +277,15 @@ export default function OpponentScout() {
   const analyzePositionAutomatically = async (fen: string, moveNumber: number) => {
     if (!selectedOpeningGame) return;
     
+    // Check cache first
+    if (evaluationCache.has(fen)) {
+      setCurrentEvaluation(evaluationCache.get(fen)!);
+      setIsEvaluating(false);
+      return;
+    }
+
+    setIsEvaluating(true);
+    
     try {
       const response = await fetch('/api/analyze/position', {
         method: 'POST',
@@ -288,12 +302,22 @@ export default function OpponentScout() {
       if (response.ok) {
         const analysisData = await response.json();
         console.log('Analysis data received:', analysisData);
+        
+        const evaluation = analysisData.evaluation || 0;
+        
+        // Cache the evaluation and update state
+        setEvaluationCache(prev => new Map(prev.set(fen, evaluation)));
+        setCurrentEvaluation(evaluation);
         setEngineAnalysis(analysisData);
       } else {
         console.error('Analysis request failed:', response.status);
+        setCurrentEvaluation(null);
       }
     } catch (error) {
       console.error('Auto-analysis error:', error);
+      setCurrentEvaluation(null);
+    } finally {
+      setIsEvaluating(false);
     }
   };
 
