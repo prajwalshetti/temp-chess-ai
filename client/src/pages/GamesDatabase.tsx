@@ -51,6 +51,9 @@ export default function GamesDatabase() {
   const [currentEvaluation, setCurrentEvaluation] = useState<number | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evaluationCache, setEvaluationCache] = useState<Map<string, number>>(new Map());
+  const [gameAnalysis, setGameAnalysis] = useState<any>(null);
+  const [moveEvaluations, setMoveEvaluations] = useState<any[]>([]);
+  const [isAnalyzingGame, setIsAnalyzingGame] = useState(false);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -139,6 +142,46 @@ export default function GamesDatabase() {
     setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   };
 
+  // Complete game analysis function
+  const analyzeCompleteGame = async (game: any) => {
+    if (!game || !game.pgn) return;
+    
+    setIsAnalyzingGame(true);
+    
+    try {
+      const response = await fetch('/api/analyze/game', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pgn: game.pgn,
+          gameId: game.id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Game analysis failed');
+      }
+
+      const analysisData = await response.json();
+      setGameAnalysis(analysisData);
+      setMoveEvaluations(analysisData.moveEvaluations || []);
+      
+      // Set current evaluation based on current move
+      if (analysisData.moveEvaluations && analysisData.moveEvaluations.length > 0) {
+        const currentMoveEval = analysisData.moveEvaluations[currentMoveIndex] || analysisData.moveEvaluations[0];
+        setCurrentEvaluation(currentMoveEval.evaluationFloat || 0);
+      }
+    } catch (error) {
+      console.error('Error analyzing game:', error);
+      setGameAnalysis(null);
+      setMoveEvaluations([]);
+    } finally {
+      setIsAnalyzingGame(false);
+    }
+  };
+
   // Automatic position analysis for real-time evaluation display
   const analyzePositionAutomatically = async (fen: string, moveNumber: number) => {
     if (!selectedOpeningGame) return;
@@ -186,8 +229,8 @@ export default function GamesDatabase() {
     }
   };
 
-  // Navigate through moves and calculate positions with real-time analysis
-  const navigateToMove = async (moveIndex: number) => {
+  // Navigate through moves and display stored evaluations
+  const navigateToMove = (moveIndex: number) => {
     if (!selectedOpeningGame || !selectedOpeningGame.moves) return;
     
     setCurrentMoveIndex(moveIndex);
@@ -200,7 +243,12 @@ export default function GamesDatabase() {
       // If moveIndex is -1, show starting position
       if (moveIndex < 0) {
         setCurrentPosition(newPosition);
-        await analyzePositionAutomatically(newPosition, 0);
+        // Show evaluation for starting position if available
+        if (moveEvaluations.length > 0) {
+          setCurrentEvaluation(moveEvaluations[0]?.evaluationFloat || 0);
+        } else {
+          setCurrentEvaluation(0);
+        }
         return;
       }
       
@@ -222,13 +270,18 @@ export default function GamesDatabase() {
       console.log(`Setting new position: ${newPosition}`);
       setCurrentPosition(newPosition);
       
-      // Automatically analyze the new position
-      await analyzePositionAutomatically(newPosition, moveIndex + 1);
+      // Display stored evaluation for this move
+      if (moveEvaluations.length > moveIndex + 1) {
+        const moveEval = moveEvaluations[moveIndex + 1];
+        setCurrentEvaluation(moveEval?.evaluationFloat || 0);
+      } else {
+        setCurrentEvaluation(null);
+      }
     } catch (error) {
       console.log("Error calculating position:", error);
       const startPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
       setCurrentPosition(startPos);
-      await analyzePositionAutomatically(startPos, 0);
+      setCurrentEvaluation(0);
     }
   };
 

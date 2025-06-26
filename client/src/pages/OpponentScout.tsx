@@ -965,8 +965,8 @@ export default function OpponentScout() {
                           {/* Stockfish Analysis Button */}
                           <div className="flex justify-center mb-4">
                             <button
-                              onClick={() => analyzeCurrentPosition()}
-                              disabled={isAnalyzing}
+                              onClick={() => analyzeGameWithStockfish(selectedOpeningGame)}
+                              disabled={isAnalyzing || !selectedOpeningGame}
                               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg"
                             >
                               {isAnalyzing ? (
@@ -977,7 +977,7 @@ export default function OpponentScout() {
                               ) : (
                                 <>
                                   <span>🔥</span>
-                                  <span>Analyze Position</span>
+                                  <span>Analyze Game</span>
                                 </>
                               )}
                             </button>
