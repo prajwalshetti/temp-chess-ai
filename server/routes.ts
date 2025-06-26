@@ -417,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Move-by-move analysis endpoint (matching your Flask code format)
+  // Complete game analysis endpoint (matching screenshot format)
   app.post("/api/analyze/game", async (req, res) => {
     try {
       const { pgn } = req.body;
@@ -429,8 +429,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realStockfish } = await import('./real-stockfish');
       const gameAnalysis = await realStockfish.analyzeCompleteGame(pgn);
       
-      // Return the analysis array directly (like your Flask jsonify(analysis))
-      res.json(gameAnalysis.moves);
+      // Return complete analysis with position eval, accuracy, and moves
+      res.json(gameAnalysis);
     } catch (error) {
       console.error("Error analyzing game:", error);
       res.status(500).json({ message: "Failed to analyze game" });
@@ -451,7 +451,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         moves: gameAnalysis.moves,
-        summary: gameAnalysis.summary
+        positionEval: gameAnalysis.positionEval,
+        accuracy: gameAnalysis.accuracy,
+        phase: gameAnalysis.phase
       });
     } catch (error) {
       console.error("Error analyzing game:", error);

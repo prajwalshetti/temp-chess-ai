@@ -8,21 +8,27 @@ import { AlertTriangle, TrendingDown, TrendingUp, Target, Clock } from "lucide-r
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-interface MoveAnalysis {
-  moveNumber: number;
-  move: string;
-  evaluation: number;
-  label: string;
-  bestMove: string;
-  delta: number;
+interface GameAnalysisData {
+  moves: Array<{
+    moveNumber: number;
+    move: string;
+    evaluation: number;
+    accuracy: number;
+    phase: string;
+    bestMove: string;
+    insights: string[];
+  }>;
+  positionEval: number;
+  accuracy: number;
+  phase: string;
 }
 
 export default function GameAnalysis() {
   const [pgn, setPgn] = useState("");
-  const [analysisData, setAnalysisData] = useState<MoveAnalysis[] | null>(null);
+  const [analysisData, setAnalysisData] = useState<GameAnalysisData | null>(null);
 
   const analyzeGameMutation = useMutation({
-    mutationFn: async (gameData: { pgn: string }): Promise<MoveAnalysis[]> => {
+    mutationFn: async (gameData: { pgn: string }): Promise<GameAnalysisData> => {
       const response = await fetch("/api/analyze/game", {
         method: "POST",
         headers: {
@@ -105,38 +111,66 @@ export default function GameAnalysis() {
 
       {analysisData && (
         <div className="space-y-6">
-          {/* Game Summary */}
+          {/* Position Analysis Summary */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Analysis Summary
+                <Target className="w-5 h-5" />
+                Position Analysis
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold">{analysisData.length}</div>
-                  <div className="text-sm text-muted-foreground">Total Moves</div>
-                </div>
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-green-600">
-                    {analysisData.filter(move => move.label === "Excellent Find").length}
+              <div className="grid grid-cols-3 gap-6">
+                <div className="text-center space-y-2">
+                  <div className="text-sm text-muted-foreground">Position Eval</div>
+                  <div className={`text-2xl font-bold ${getEvaluationColor(analysisData.positionEval)}`}>
+                    {formatEvaluation(analysisData.positionEval)}
                   </div>
-                  <div className="text-sm text-muted-foreground">Excellent Finds</div>
                 </div>
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-red-600">
-                    {analysisData.filter(move => move.label === "Missed Tactic").length}
+                <div className="text-center space-y-2">
+                  <div className="text-sm text-muted-foreground">Accuracy</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {analysisData.accuracy}%
                   </div>
-                  <div className="text-sm text-muted-foreground">Missed Tactics</div>
                 </div>
-                <div className="text-center space-y-1">
+                <div className="text-center space-y-2">
+                  <div className="text-sm text-muted-foreground">Phase</div>
                   <div className="text-2xl font-bold">
-                    {analysisData.filter(move => move.label === "Normal").length}
+                    {analysisData.phase}
                   </div>
-                  <div className="text-sm text-muted-foreground">Normal Moves</div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Insights & Analysis */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                AI Insights & Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {analysisData.moves
+                  .filter(move => move.insights.length > 0)
+                  .map((move, index) => (
+                    <div key={index} className="border-l-4 border-green-500 pl-4 py-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold">Move {move.moveNumber}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {move.accuracy}% accuracy
+                        </Badge>
+                      </div>
+                      {move.insights.map((insight, i) => (
+                        <div key={i} className="text-sm text-muted-foreground">
+                          {insight}
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                }
               </div>
             </CardContent>
           </Card>
@@ -146,32 +180,28 @@ export default function GameAnalysis() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5" />
-                Move-by-Move Analysis
+                Move Analysis
               </CardTitle>
               <CardDescription>
-                Each move analyzed with evaluation and quality assessment
+                Detailed evaluation of each move with accuracy and phase
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {analysisData.map((move, index) => (
+                {analysisData.moves.map((move, index) => (
                   <div 
                     key={index} 
-                    className={`flex items-center justify-between p-3 rounded-lg border ${getLabelColor(move.label)}`}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-gray-50 dark:bg-gray-900/50"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <div className="text-sm text-muted-foreground w-8">
                         {move.moveNumber}.
                       </div>
-                      <div className="font-mono font-semibold w-20">
+                      <div className="font-mono font-semibold w-16">
                         {move.move}
                       </div>
-                      <Badge 
-                        variant={move.label === "Excellent Find" ? "default" : 
-                                move.label === "Missed Tactic" ? "destructive" : "secondary"}
-                        className="text-xs"
-                      >
-                        {move.label}
+                      <Badge variant="outline" className="text-xs">
+                        {move.phase}
                       </Badge>
                     </div>
                     
@@ -180,15 +210,17 @@ export default function GameAnalysis() {
                         Best: <span className="font-mono">{move.bestMove}</span>
                       </div>
                       <div className="flex items-center gap-2">
+                        <span>Eval:</span>
                         <span className={getEvaluationColor(move.evaluation)}>
                           {formatEvaluation(move.evaluation)}
                         </span>
                       </div>
-                      {Math.abs(move.delta) > 50 && (
-                        <div className={move.delta > 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-                          {move.delta > 0 ? '+' : ''}{move.delta}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span>Accuracy:</span>
+                        <span className="font-semibold text-blue-600">
+                          {move.accuracy}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}

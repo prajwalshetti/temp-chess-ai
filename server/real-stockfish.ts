@@ -51,22 +51,20 @@ export class RealStockfishEngine {
     }
   }
 
-  // Move-by-move analysis like your Flask code
+  // Complete game analysis matching the screenshot format
   async analyzeCompleteGame(pgn: string): Promise<{
     moves: Array<{
       moveNumber: number;
       move: string;
       evaluation: number;
-      label: string;
+      accuracy: number;
+      phase: string;
       bestMove: string;
-      delta: number;
+      insights: string[];
     }>;
-    summary: {
-      totalMoves: number;
-      excellentFinds: number;
-      missedTactics: number;
-      normalMoves: number;
-    };
+    positionEval: number;
+    accuracy: number;
+    phase: string;
   }> {
     const chess = new Chess();
     
@@ -76,10 +74,7 @@ export class RealStockfishEngine {
     
     const history = chess.history({ verbose: true });
     const moves = [];
-    let previousEval = 0;
-    let excellentFinds = 0;
-    let missedTactics = 0;
-    let normalMoves = 0;
+    let totalAccuracy = 0;
     
     // Reset to start position
     chess.reset();
@@ -87,49 +82,67 @@ export class RealStockfishEngine {
     for (let i = 0; i < history.length; i++) {
       const move = history[i];
       
-      // Make the move first
+      // Analyze position before the move
+      const beforeAnalysis = await this.analyzePosition(chess.fen());
+      const beforeEval = beforeAnalysis.currentEvaluation.evaluation;
+      const bestMove = beforeAnalysis.currentEvaluation.bestMove;
+      
+      // Make the move
       chess.move(move);
       
-      // Analyze the position after the move (like your Flask code)
-      const positionAnalysis = await this.analyzePosition(chess.fen());
-      const currentEval = positionAnalysis.currentEvaluation.evaluation;
+      // Analyze position after the move
+      const afterAnalysis = await this.analyzePosition(chess.fen());
+      const afterEval = afterAnalysis.currentEvaluation.evaluation;
       
-      // Calculate delta from previous evaluation
-      const delta = currentEval - previousEval;
+      // Calculate move accuracy (0-100%)
+      const evalLoss = Math.max(0, beforeEval - (-afterEval)); // Flip sign for opponent
+      const accuracy = Math.max(0, 100 - Math.min(100, evalLoss / 10)); // Scale eval loss to accuracy
+      totalAccuracy += accuracy;
       
-      // Label the move quality (same logic as your Flask code)
-      let label = "Normal";
-      if (delta > 30) {
-        label = "Excellent Find";
-        excellentFinds++;
-      } else if (delta < -100) {
-        label = "Missed Tactic";
-        missedTactics++;
-      } else {
-        normalMoves++;
+      // Determine game phase
+      const moveNumber = Math.floor(i / 2) + 1;
+      const phase = moveNumber <= 12 ? "Opening" : moveNumber <= 25 ? "Middlegame" : "Endgame";
+      
+      // Generate insights based on move quality
+      const insights: string[] = [];
+      if (move.san === bestMove) {
+        insights.push("Excellent Find: " + move.san + " seizes the advantage");
+      } else if (evalLoss > 100) {
+        insights.push("Missed opportunity: " + bestMove + " was stronger");
+      }
+      
+      // Add tactical insights
+      if (afterAnalysis.tacticalThemes.includes('Check')) {
+        insights.push("Tactical move with check");
+      }
+      if (afterAnalysis.tacticalThemes.includes('Capture')) {
+        insights.push("Material advantage gained");
       }
       
       const moveAnalysis = {
         moveNumber: i + 1,
         move: move.san,
-        evaluation: Math.round(currentEval / 100), // Convert to pawns like your Flask code
-        label: label,
-        bestMove: positionAnalysis.currentEvaluation.bestMove,
-        delta: Math.round(delta)
+        evaluation: Math.round(afterEval / 100 * 100) / 100, // Round to 2 decimal places
+        accuracy: Math.round(accuracy),
+        phase: phase,
+        bestMove: bestMove,
+        insights: insights
       };
       
       moves.push(moveAnalysis);
-      previousEval = currentEval;
     }
+    
+    // Final position analysis
+    const finalAnalysis = await this.analyzePosition(chess.fen());
+    const finalEval = finalAnalysis.currentEvaluation.evaluation / 100;
+    const avgAccuracy = moves.length > 0 ? Math.round(totalAccuracy / moves.length) : 100;
+    const finalPhase = this.classifyGamePhase(chess);
     
     return { 
       moves,
-      summary: {
-        totalMoves: moves.length,
-        excellentFinds,
-        missedTactics,
-        normalMoves
-      }
+      positionEval: Math.round(finalEval * 100) / 100,
+      accuracy: avgAccuracy,
+      phase: finalPhase
     };
   }
 
