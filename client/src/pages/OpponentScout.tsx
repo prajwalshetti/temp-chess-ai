@@ -976,26 +976,26 @@ export default function OpponentScout() {
                                 <div className="flex items-center justify-between">
                                   <span>Engine Evaluation:</span>
                                   <span className={`font-bold ${
-                                    engineAnalysis.analysis.currentEvaluation.evaluation > 100 ? 'text-green-600' :
-                                    engineAnalysis.analysis.currentEvaluation.evaluation < -100 ? 'text-red-600' :
+                                    (engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) > 100 ? 'text-green-600' :
+                                    (engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) < -100 ? 'text-red-600' :
                                     'text-gray-600'
                                   }`}>
-                                    {(engineAnalysis.analysis.currentEvaluation.evaluation / 100).toFixed(2)}
+                                    {((engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) / 100).toFixed(2)}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                   <span>Best Move:</span>
                                   <span className="font-bold text-blue-600">
-                                    {engineAnalysis.analysis.currentEvaluation.bestMove}
+                                    {engineAnalysis?.analysis?.currentEvaluation?.bestMove || 'N/A'}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                   <span>Depth:</span>
                                   <span className="text-gray-600">
-                                    {engineAnalysis.analysis.currentEvaluation.depth} ply
+                                    {engineAnalysis?.analysis?.currentEvaluation?.depth || 17} ply
                                   </span>
                                 </div>
-                                {engineAnalysis.analysis.tacticalThemes.length > 0 && (
+                                {engineAnalysis?.analysis?.tacticalThemes?.length > 0 && (
                                   <div>
                                     <span>Tactical Themes:</span>
                                     <div className="flex flex-wrap gap-1 mt-1">

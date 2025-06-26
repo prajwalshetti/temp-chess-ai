@@ -131,6 +131,9 @@ Changelog:
 - June 26, 2025. Updated Python analyzer with improved code structure including argparse, analysis modes (fast/accurate), and proper command-line interface matching user's original Python script exactly
 - June 26, 2025. Fixed timeout issues with proper subprocess handling, performance optimizations, and 60-move limit for complex games
 - June 26, 2025. Verified authentic Stockfish analysis working correctly with mate detection, proper blunder identification, and complete game processing matching user's Python script structure
+- June 26, 2025. Implemented real-time Stockfish evaluation display in game viewers - users now see live engine evaluations when navigating through moves
+- June 26, 2025. Added position analysis API endpoint and integrated with both OpponentScout and GamesDatabase components for automatic evaluation display
+- June 26, 2025. Fixed null safety issues and added evaluation caching system for optimal performance during move navigation
 
 ## User Preferences
 
