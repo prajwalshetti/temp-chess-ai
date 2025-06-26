@@ -37,11 +37,20 @@ export default function GameAnalysis() {
   const [analysisData, setAnalysisData] = useState<GameAnalysisData | null>(null);
 
   const analyzeGameMutation = useMutation({
-    mutationFn: async (gameData: { pgn: string }) => {
-      return apiRequest("/api/analyze/game", {
+    mutationFn: async (gameData: { pgn: string }): Promise<GameAnalysisData> => {
+      const response = await fetch("/api/analyze/game", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(gameData),
       });
+      
+      if (!response.ok) {
+        throw new Error("Failed to analyze game");
+      }
+      
+      return response.json();
     },
     onSuccess: (data) => {
       setAnalysisData(data);
@@ -54,16 +63,16 @@ export default function GameAnalysis() {
     }
   };
 
-  const formatEvaluation = (eval: number) => {
-    if (Math.abs(eval) > 500) {
-      return eval > 0 ? `+${(eval / 100).toFixed(1)}` : `${(eval / 100).toFixed(1)}`;
+  const formatEvaluation = (evalValue: number) => {
+    if (Math.abs(evalValue) > 500) {
+      return evalValue > 0 ? `+${(evalValue / 100).toFixed(1)}` : `${(evalValue / 100).toFixed(1)}`;
     }
-    return eval > 0 ? `+${eval}` : `${eval}`;
+    return evalValue > 0 ? `+${evalValue}` : `${evalValue}`;
   };
 
-  const getEvaluationColor = (eval: number) => {
-    if (eval > 200) return "text-green-600 dark:text-green-400";
-    if (eval < -200) return "text-red-600 dark:text-red-400";
+  const getEvaluationColor = (evalValue: number) => {
+    if (evalValue > 200) return "text-green-600 dark:text-green-400";
+    if (evalValue < -200) return "text-red-600 dark:text-red-400";
     return "text-yellow-600 dark:text-yellow-400";
   };
 

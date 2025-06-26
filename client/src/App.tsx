@@ -21,6 +21,7 @@ function Router() {
       <Route path="/profile" component={PlayerProfile} />
       <Route path="/scout" component={OpponentScout} />
       <Route path="/opponent-scout" component={OpponentScout} />
+      <Route path="/analysis" component={GameAnalysis} />
       <Route path="/learn" component={LearnChess} />
       <Route path="/account" component={Account} />
       <Route component={NotFound} />
