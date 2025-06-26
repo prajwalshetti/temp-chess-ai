@@ -41,10 +41,10 @@ def analyze_game_file(path, engine):
             
             # Extract game information
             game_info = {
-                "event": game.headers.get("Event", "Unknown Event"),
-                "white": game.headers.get("White", "Unknown"),
-                "black": game.headers.get("Black", "Unknown"),
-                "date": game.headers.get("Date", "Unknown"),
+                "event": game.headers.get("Event", "PGN Game"),
+                "white": game.headers.get("White", ""),
+                "black": game.headers.get("Black", ""),
+                "date": game.headers.get("Date", ""),
                 "result": game.headers.get("Result", "*")
             }
             

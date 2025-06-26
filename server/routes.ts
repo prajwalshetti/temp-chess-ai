@@ -6,6 +6,11 @@ import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
 import { LichessService, ChessAnalyzer } from "./lichess";
 import { execSync } from 'child_process';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Lichess service
@@ -449,9 +454,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Return formatted output like your Python script
         res.type('text/plain').send(result.output);
         
-      } catch (execError) {
+      } catch (execError: any) {
         console.error("Python execution error:", execError);
-        throw new Error(`Analysis execution failed: ${execError.message}`);
+        const errorMessage = execError?.message || 'Unknown execution error';
+        throw new Error(`Analysis execution failed: ${errorMessage}`);
       }
       
     } catch (error) {
