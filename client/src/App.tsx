@@ -10,6 +10,7 @@ import PlayerProfile from "@/pages/PlayerProfile";
 import LearnChess from "@/pages/LearnChess";
 import Account from "@/pages/Account";
 import OpponentScout from "@/pages/OpponentScout";
+import GameAnalysis from "@/pages/GameAnalysis";
 import NotFound from "@/pages/not-found";
 
 function Router() {

@@ -366,7 +366,7 @@ export class RealStockfishEngine {
     // Evaluate each move
     moves.forEach(move => {
       chess.move(move);
-      const score = -this.calculateRealEvaluation(chess); // Negate for opponent
+      const score = -this.calculateStockfishStyleEvaluation(chess); // Negate for opponent
       chess.undo();
       
       if (score > bestScore) {
@@ -383,7 +383,7 @@ export class RealStockfishEngine {
     
     return moves.map(move => {
       chess.move(move);
-      const evaluation = -this.calculateRealEvaluation(chess);
+      const evaluation = -this.calculateStockfishStyleEvaluation(chess);
       chess.undo();
       
       return {
@@ -405,7 +405,13 @@ export class RealStockfishEngine {
       if (this.createsPinOrSkewer(chess, move)) tactics.push('Pin');
     });
     
-    return [...new Set(tactics)];
+    const uniqueTactics: string[] = [];
+    tactics.forEach(tactic => {
+      if (!uniqueTactics.includes(tactic)) {
+        uniqueTactics.push(tactic);
+      }
+    });
+    return uniqueTactics;
   }
 
   private classifyGamePhase(chess: Chess): string {

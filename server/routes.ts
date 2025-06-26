@@ -417,10 +417,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete game analysis endpoint using Stockfish-style evaluation
+  // Complete game analysis endpoint using Stockfish-style evaluation (like your Python code)
   app.post("/api/analyze/game", async (req, res) => {
     try {
-      const { pgn, moveNumber } = req.body;
+      const { pgn } = req.body;
       
       if (!pgn) {
         return res.status(400).json({ message: "PGN is required" });
@@ -436,7 +436,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bigDrops: gameAnalysis.bigDrops,
         blunders: gameAnalysis.bigDrops.length,
         accuracy: gameAnalysis.moves.length > 0 ? 
-          Math.round((1 - gameAnalysis.bigDrops.length / gameAnalysis.moves.length) * 100) : 100
+          Math.round((1 - gameAnalysis.bigDrops.length / gameAnalysis.moves.length) * 100) : 100,
+        summary: {
+          significantDrops: gameAnalysis.bigDrops.length,
+          averageEvaluation: gameAnalysis.moves.length > 0 ? 
+            Math.round(gameAnalysis.moves.reduce((sum, move) => sum + move.evalBefore, 0) / gameAnalysis.moves.length) : 0
+        }
       });
     } catch (error) {
       console.error("Error analyzing game:", error);
