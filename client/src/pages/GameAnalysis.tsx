@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 export default function GameAnalysis() {
   const [pgn, setPgn] = useState("");
   const [analysisOutput, setAnalysisOutput] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const analyzeGameMutation = useMutation({
     mutationFn: async (gameData: { pgn: string }): Promise<string> => {
@@ -25,13 +26,19 @@ export default function GameAnalysis() {
       });
       
       if (!response.ok) {
-        throw new Error("Failed to analyze game");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to analyze game");
       }
       
       return response.text();
     },
     onSuccess: (data) => {
       setAnalysisOutput(data);
+      setError(null);
+    },
+    onError: (error) => {
+      setError(error.message);
+      setAnalysisOutput(null);
     },
   });
 
@@ -95,6 +102,20 @@ export default function GameAnalysis() {
           </Button>
         </CardContent>
       </Card>
+
+      {error && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+              <AlertTriangle className="w-5 h-5" />
+              Analysis Error
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-600 dark:text-red-400">{error}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {analysisOutput && (
         <Card>

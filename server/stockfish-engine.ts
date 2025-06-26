@@ -86,19 +86,58 @@ export class StockfishEngine {
 
   async analyzeGame(pgn: string, depth = 15): Promise<string> {
     const chess = new Chess();
+    let moves: string[] = [];
     
-    // Clean and parse PGN
-    const cleanPgn = pgn.replace(/\[.*?\]/g, '').trim();
-    chess.loadPgn(cleanPgn);
+    try {
+      // Try different PGN parsing approaches
+      if (pgn.includes('[') && pgn.includes(']')) {
+        // Full PGN format with headers
+        const cleanPgn = pgn.replace(/\[.*?\]/g, '').trim();
+        chess.loadPgn(cleanPgn);
+        moves = chess.history();
+      } else if (pgn.includes('.')) {
+        // Algebraic notation with move numbers (e.g., "1. e4 e5 2. Nf3")
+        const moveText = pgn.replace(/\d+\./g, '').trim();
+        const moveArray = moveText.split(/\s+/).filter(m => m.length > 0);
+        
+        for (const move of moveArray) {
+          try {
+            chess.move(move);
+          } catch (error) {
+            console.warn(`Invalid move: ${move}`);
+            break;
+          }
+        }
+        moves = chess.history();
+      } else {
+        // Simple space-separated moves
+        const moveArray = pgn.trim().split(/\s+/).filter(m => m.length > 0);
+        
+        for (const move of moveArray) {
+          try {
+            chess.move(move);
+          } catch (error) {
+            console.warn(`Invalid move: ${move}`);
+            break;
+          }
+        }
+        moves = chess.history();
+      }
+    } catch (error) {
+      throw new Error(`Failed to parse PGN: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
     
-    const history = chess.history({ verbose: true });
+    if (moves.length === 0) {
+      throw new Error("No valid moves found in PGN");
+    }
+    
     let output = "Analyzing moves:\n\n";
     
-    // Reset to start position
+    // Reset to start position for analysis
     chess.reset();
     
-    for (let i = 0; i < history.length; i++) {
-      const move = history[i];
+    for (let i = 0; i < moves.length; i++) {
+      const move = moves[i];
       
       // Make the move
       chess.move(move);
@@ -111,7 +150,7 @@ export class StockfishEngine {
       const formattedEval = evalInPawns >= 0 ? `+${evalInPawns.toFixed(2)}` : evalInPawns.toFixed(2);
       
       // Format output exactly like Python code
-      const moveStr = move.san.padEnd(6);
+      const moveStr = move.padEnd(6);
       output += `${i + 1}. ${moveStr} | Eval: ${formattedEval}\n`;
     }
     
