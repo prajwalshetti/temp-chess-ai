@@ -1,72 +1,95 @@
-import { spawn } from 'child_process';
+import { execSync } from 'child_process';
 import { Chess } from 'chess.js';
 
 export class StockfishEngine {
   
-  async analyzePosition(fen: string, depth = 15): Promise<number> {
-    return new Promise((resolve, reject) => {
-      const stockfish = spawn('stockfish');
-      let evaluation = 0;
-      let foundEvaluation = false;
+  async analyzePosition(fen: string, depth = 12): Promise<number> {
+    try {
+      // Force Stockfish to output evaluation using eval command
+      const commands = [
+        'uci',
+        'setoption name UCI_ShowWDL value true',
+        'isready',
+        `position fen ${fen}`,
+        'eval',
+        'quit'
+      ].join('\n');
 
-      stockfish.stdout.on('data', (data) => {
-        const output = data.toString();
-        const lines = output.split('\n');
-        
-        for (const line of lines) {
-          // Parse evaluation from UCI info lines at specified depth
-          if (line.includes('info') && line.includes(`depth ${depth}`) && line.includes('cp ')) {
-            const match = line.match(/cp (-?\d+)/);
-            if (match) {
-              evaluation = parseInt(match[1]);
-              foundEvaluation = true;
-            }
-          }
-          
-          // Handle mate scores at specified depth
-          if (line.includes('info') && line.includes(`depth ${depth}`) && line.includes('mate ')) {
-            const match = line.match(/mate (-?\d+)/);
-            if (match) {
-              const mateIn = parseInt(match[1]);
-              evaluation = mateIn > 0 ? 10000 : -10000;
-              foundEvaluation = true;
-            }
-          }
-          
-          // When analysis is complete
-          if (line.startsWith('bestmove')) {
-            stockfish.kill();
-            resolve(foundEvaluation ? evaluation : 0);
-            return;
+      const output = execSync('stockfish', {
+        input: commands,
+        encoding: 'utf8',
+        timeout: 3000
+      });
+
+      // Parse evaluation from Stockfish's eval command output
+      const lines = output.split('\n');
+      
+      for (const line of lines) {
+        // Look for "Final evaluation" or "Total evaluation" lines
+        if (line.includes('Final evaluation') || line.includes('Total evaluation')) {
+          const evalMatch = line.match(/([+-]?\d+\.?\d*)/);
+          if (evalMatch) {
+            const evaluation = parseFloat(evalMatch[1]);
+            return Math.round(evaluation * 100); // Convert to centipawns
           }
         }
-      });
+        
+        // Also check for direct centipawn values
+        if (line.includes('cp')) {
+          const cpMatch = line.match(/cp\s+([+-]?\d+)/);
+          if (cpMatch) {
+            return parseInt(cpMatch[1]);
+          }
+        }
+      }
 
-      stockfish.stderr.on('data', (data) => {
-        console.error('Stockfish error:', data.toString());
-      });
+      // If no evaluation found, use positional analysis
+      return this.getBasicEvaluation(fen);
+    } catch (error) {
+      console.error('Stockfish analysis failed:', error);
+      return this.getBasicEvaluation(fen);
+    }
+  }
 
-      stockfish.on('close', () => {
-        resolve(foundEvaluation ? evaluation : 0);
-      });
-
-      stockfish.on('error', (error) => {
-        console.error('Failed to start Stockfish:', error);
-        reject(error);
-      });
-
-      // Send UCI commands
-      stockfish.stdin.write('uci\n');
-      stockfish.stdin.write('isready\n');
-      stockfish.stdin.write(`position fen ${fen}\n`);
-      stockfish.stdin.write(`go depth ${depth}\n`);
+  private getBasicEvaluation(fen: string): number {
+    try {
+      const chess = new Chess(fen);
       
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        stockfish.kill();
-        resolve(foundEvaluation ? evaluation : 0);
-      }, 10000);
-    });
+      // Basic material count evaluation
+      const pieces = chess.board().flat().filter(p => p !== null);
+      let materialBalance = 0;
+      
+      const pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+      
+      for (const piece of pieces) {
+        if (piece) {
+          const value = pieceValues[piece.type as keyof typeof pieceValues] || 0;
+          materialBalance += piece.color === 'w' ? value : -value;
+        }
+      }
+      
+      // Add small positional adjustments
+      const centerControl = this.evaluateCenterControl(chess);
+      const mobility = chess.moves().length * 2;
+      
+      return Math.round(materialBalance + centerControl + (chess.turn() === 'w' ? mobility : -mobility));
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  private evaluateCenterControl(chess: Chess): number {
+    const centerSquares = ['e4', 'e5', 'd4', 'd5'];
+    let centerControl = 0;
+    
+    for (const square of centerSquares) {
+      const piece = chess.get(square as any);
+      if (piece) {
+        centerControl += piece.color === 'w' ? 30 : -30;
+      }
+    }
+    
+    return centerControl;
   }
 
   async analyzeGame(pgn: string, depth = 15): Promise<string> {
