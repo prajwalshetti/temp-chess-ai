@@ -86,87 +86,130 @@ export class StockfishEngine {
 
   async analyzeGame(pgn: string, depth = 15): Promise<string> {
     const chess = new Chess();
-    let moves: string[] = [];
     
     try {
-      // Clean PGN input - remove invalid characters and normalize
-      let cleanInput = pgn
-        .replace(/[{}[\]]/g, '') // Remove braces and brackets that aren't PGN headers
-        .replace(/\s+/g, ' ') // Normalize whitespace
-        .trim();
-      
-      // Remove PGN headers if present (like [Event "..."])
-      if (cleanInput.includes('[') && cleanInput.includes(']')) {
-        cleanInput = cleanInput.replace(/\[[^\]]*\]/g, '').trim();
+      // Extract game title from PGN headers for display
+      let gameTitle = "PGN Game";
+      const eventMatch = pgn.match(/\[Event\s+"([^"]+)"\]/);
+      if (eventMatch) {
+        gameTitle = eventMatch[1];
       }
       
-      // Try to parse as standard PGN first
-      if (cleanInput.includes('.')) {
-        // Remove move numbers and extract moves
-        const moveText = cleanInput.replace(/\d+\./g, '').trim();
-        const moveArray = moveText.split(/\s+/).filter(m => m.length > 0 && m !== '');
+      // Parse PGN using chess.js which handles the format properly
+      let moves: any[] = [];
+      
+      try {
+        // First try using chess.js built-in PGN parser
+        chess.loadPgn(pgn);
+        moves = chess.history({ verbose: true });
+      } catch (error) {
+        // If that fails, try manual parsing
+        console.log('Built-in PGN parsing failed, trying manual approach');
         
-        for (const move of moveArray) {
-          const cleanMove = move.replace(/[^a-zA-Z0-9+#=\-]/g, ''); // Keep only valid chess notation characters
-          if (cleanMove.length > 0) {
-            try {
-              chess.move(cleanMove);
-            } catch (error) {
-              console.warn(`Invalid move: ${cleanMove}`);
-              break;
+        // Remove PGN headers (everything in square brackets on separate lines)
+        let moveText = pgn.replace(/\[[^\]]*\]\s*\n/g, '');
+        
+        // Remove remaining brackets and clean up
+        moveText = moveText.replace(/\[[^\]]*\]/g, '');
+        
+        // Remove game result notations
+        moveText = moveText.replace(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/g, '');
+        
+        // Clean whitespace and normalize
+        moveText = moveText.replace(/\s+/g, ' ').trim();
+        
+        // Extract moves by splitting and filtering
+        const tokens = moveText.split(/\s+/);
+        const cleanMoves: string[] = [];
+        
+        for (const token of tokens) {
+          // Skip move numbers
+          if (/^\d+\.+$/.test(token)) continue;
+          
+          // Skip empty tokens
+          if (!token || token.trim() === '') continue;
+          
+          // Skip result markers
+          if (['1-0', '0-1', '1/2-1/2', '*'].includes(token)) continue;
+          
+          // Add valid moves
+          cleanMoves.push(token);
+        }
+        
+        // Reset chess and play moves manually
+        chess.reset();
+        moves = [];
+        
+        for (const moveStr of cleanMoves) {
+          try {
+            const moveObj = chess.move(moveStr);
+            if (moveObj) {
+              moves.push(moveObj);
             }
+          } catch (error) {
+            console.warn(`Invalid move: ${moveStr}`);
+            break;
           }
         }
-        moves = chess.history();
-      } else {
-        // Simple space-separated moves
-        const moveArray = cleanInput.split(/\s+/).filter(m => m.length > 0);
-        
-        for (const move of moveArray) {
-          const cleanMove = move.replace(/[^a-zA-Z0-9+#=\-]/g, '');
-          if (cleanMove.length > 0) {
-            try {
-              chess.move(cleanMove);
-            } catch (error) {
-              console.warn(`Invalid move: ${cleanMove}`);
-              break;
-            }
-          }
-        }
-        moves = chess.history();
       }
+      }
+      
+      if (moves.length === 0) {
+        throw new Error("No valid moves found in PGN");
+      }
+      
+      let output = `Analyzing: ${gameTitle}\n\n`;
+      
+      // Reset chess for analysis
+      chess.reset();
+      
+      // Play through moves and analyze each position
+      for (let i = 0; i < moves.length; i++) {
+        const move = moves[i];
+        
+        try {
+          // Make the move (move is already a move object if from history())
+          let moveObj;
+          if (typeof move === 'string') {
+            moveObj = chess.move(move);
+          } else {
+            moveObj = chess.move(move);
+          }
+          
+          if (!moveObj) {
+            console.warn(`Invalid move at position ${i}`);
+            break;
+          }
+          
+          // Get real Stockfish evaluation for current position
+          const evaluation = await this.analyzePosition(chess.fen(), depth);
+          
+          // Format evaluation like Python code
+          let evalStr: string;
+          if (Math.abs(evaluation) >= 1000) {
+            // Mate score
+            const mateIn = Math.sign(evaluation) * Math.ceil(Math.abs(evaluation - 1000) / 100);
+            evalStr = `Mate in ${mateIn}`;
+          } else {
+            // Centipawn score
+            const evalInPawns = evaluation / 100;
+            evalStr = evalInPawns.toFixed(2);
+          }
+          
+          // Format output exactly like Python code
+          const moveStr = moveObj.san.padEnd(6);
+          output += `${(i + 1).toString().padStart(2)}. ${moveStr} | Eval: ${evalStr}\n`;
+          
+        } catch (error) {
+          console.warn(`Failed to process move at position ${i}:`, error);
+          break;
+        }
+      }
+      
+      return output;
     } catch (error) {
       throw new Error(`Failed to parse PGN: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    if (moves.length === 0) {
-      throw new Error("No valid moves found in PGN");
-    }
-    
-    let output = "Analyzing moves:\n\n";
-    
-    // Reset to start position for analysis
-    chess.reset();
-    
-    for (let i = 0; i < moves.length; i++) {
-      const move = moves[i];
-      
-      // Make the move
-      chess.move(move);
-      
-      // Get real Stockfish evaluation for current position
-      const evaluation = await this.analyzePosition(chess.fen(), depth);
-      
-      // Convert centipawns to pawn units and format
-      const evalInPawns = evaluation / 100;
-      const formattedEval = evalInPawns >= 0 ? `+${evalInPawns.toFixed(2)}` : evalInPawns.toFixed(2);
-      
-      // Format output exactly like Python code
-      const moveStr = move.padEnd(6);
-      output += `${i + 1}. ${moveStr} | Eval: ${formattedEval}\n`;
-    }
-    
-    return output;
   }
 }
 
