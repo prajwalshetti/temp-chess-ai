@@ -129,6 +129,7 @@ Changelog:
 - June 26, 2025. Successfully implemented authentic Python chess analysis matching local script output exactly
 - June 26, 2025. Verified blunder detection and mate score handling working correctly with real Stockfish evaluations
 - June 26, 2025. Updated Python analyzer with improved code structure including argparse, analysis modes (fast/accurate), and proper command-line interface matching user's original Python script exactly
+- June 26, 2025. Fixed timeout issues with proper subprocess handling, performance optimizations, and 60-move limit for complex games
 
 ## User Preferences
 

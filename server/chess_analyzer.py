@@ -20,11 +20,11 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
         if not game:
             return {"error": "Failed to parse PGN content"}
         
-        # Set engine limit based on mode with optimizations for long games
+        # Set engine limit to match your local script exactly
         if analysis_mode == "fast":
-            limit = chess.engine.Limit(depth=10, time=0.2)  # Faster for long games
+            limit = chess.engine.Limit(depth=12)
         else:
-            limit = chess.engine.Limit(depth=12, time=0.3)  # Balance of speed and accuracy
+            limit = chess.engine.Limit(time=0.5)
         
         # Initialize engine
         with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
@@ -34,7 +34,6 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
             moves_analysis = []
             big_drops = []
             move_count = 0
-            max_moves = 60  # Limit analysis to first 60 moves for performance
             
             # Extract game info
             headers = game.headers
@@ -47,7 +46,7 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
                 "result": headers.get("Result", "*")
             }
             
-            while node.variations and move_count < max_moves:
+            while node.variations:
                 next_node = node.variation(0)
                 played_move = next_node.move
                 move_count += 1
@@ -58,9 +57,14 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
                 best_move = info_before.get("pv", [None])[0]
                 
                 if score_before_raw.is_mate():
-                    score_before = 100.0 if score_before_raw.mate() > 0 else -100.0
+                    mate_value = score_before_raw.mate()
+                    if mate_value > 0:
+                        score_before = 100.0
+                    else:
+                        score_before = -100.0
                 else:
-                    score_before = score_before_raw.score() / 100
+                    # Use exact centipawn evaluation matching your local script
+                    score_before = score_before_raw.score() / 100.0
                 
                 # Convert moves to SAN (before board state changes)
                 try:
@@ -81,9 +85,14 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
                 score_after_raw = info_after["score"].relative
                 
                 if score_after_raw.is_mate():
-                    score_after = 100.0 if score_after_raw.mate() > 0 else -100.0
+                    mate_value = score_after_raw.mate()
+                    if mate_value > 0:
+                        score_after = 100.0
+                    else:
+                        score_after = -100.0
                 else:
-                    score_after = score_after_raw.score() / 100
+                    # Use exact centipawn evaluation matching your local script
+                    score_after = score_after_raw.score() / 100.0
                 
                 move_number = board.fullmove_number
                 
@@ -113,8 +122,7 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
             return {
                 "game_info": game_info,
                 "moves_analysis": moves_analysis,
-                "big_drops": big_drops,
-                "truncated": move_count >= max_moves
+                "big_drops": big_drops
             }
             
     except Exception as e:
