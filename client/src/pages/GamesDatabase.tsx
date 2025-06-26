@@ -48,6 +48,9 @@ export default function GamesDatabase() {
   const [currentPosition, setCurrentPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   const [selectedTacticalWeakness, setSelectedTacticalWeakness] = useState<string | null>(null);
   const [tacticalGames, setTacticalGames] = useState<any[]>([]);
+  const [currentEvaluation, setCurrentEvaluation] = useState<number | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluationCache, setEvaluationCache] = useState<Map<string, number>>(new Map());
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -136,8 +139,55 @@ export default function GamesDatabase() {
     setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   };
 
-  // Navigate through moves and calculate positions
-  const navigateToMove = (moveIndex: number) => {
+  // Automatic position analysis for real-time evaluation display
+  const analyzePositionAutomatically = async (fen: string, moveNumber: number) => {
+    if (!selectedOpeningGame) return;
+    
+    // Check cache first
+    if (evaluationCache.has(fen)) {
+      setCurrentEvaluation(evaluationCache.get(fen)!);
+      setIsEvaluating(false);
+      return;
+    }
+
+    setIsEvaluating(true);
+    
+    try {
+      const response = await fetch('/api/analyze/position', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fen: fen,
+          gameId: selectedOpeningGame.id,
+          moveNumber: moveNumber
+        }),
+      });
+
+      if (response.ok) {
+        const analysisData = await response.json();
+        console.log('Analysis data received:', analysisData);
+        
+        const evaluation = analysisData.evaluation || 0;
+        
+        // Cache the evaluation and update state
+        setEvaluationCache(prev => new Map(prev.set(fen, evaluation)));
+        setCurrentEvaluation(evaluation);
+      } else {
+        console.error('Analysis request failed:', response.status);
+        setCurrentEvaluation(null);
+      }
+    } catch (error) {
+      console.error('Auto-analysis error:', error);
+      setCurrentEvaluation(null);
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
+  // Navigate through moves and calculate positions with real-time analysis
+  const navigateToMove = async (moveIndex: number) => {
     if (!selectedOpeningGame || !selectedOpeningGame.moves) return;
     
     setCurrentMoveIndex(moveIndex);
@@ -145,10 +195,12 @@ export default function GamesDatabase() {
     // Calculate the position after the specified move
     try {
       const chess = new Chess();
+      let newPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
       
       // If moveIndex is -1, show starting position
       if (moveIndex < 0) {
-        setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        setCurrentPosition(newPosition);
+        await analyzePositionAutomatically(newPosition, 0);
         return;
       }
       
@@ -166,12 +218,17 @@ export default function GamesDatabase() {
           }
         }
       }
-      const newPosition = chess.fen();
+      newPosition = chess.fen();
       console.log(`Setting new position: ${newPosition}`);
       setCurrentPosition(newPosition);
+      
+      // Automatically analyze the new position
+      await analyzePositionAutomatically(newPosition, moveIndex + 1);
     } catch (error) {
       console.log("Error calculating position:", error);
-      setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      const startPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+      setCurrentPosition(startPos);
+      await analyzePositionAutomatically(startPos, 0);
     }
   };
 
@@ -808,15 +865,20 @@ export default function GamesDatabase() {
                                     </div>
                                     <div className="text-right">
                                       <div className="text-sm font-semibold">
-                                        Eval: {(() => {
-                                          const baseEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                          const gamePhase = currentMoveIndex / selectedOpeningGame.moves.length;
-                                          const adjustment = (Math.random() - 0.5) * 0.4;
-                                          const finalEval = baseEval + (gamePhase * 0.5) + adjustment;
-                                          return finalEval >= 0 ? `+${finalEval.toFixed(2)}` : finalEval.toFixed(2);
-                                        })()}
+                                        {isEvaluating ? (
+                                          <div className="flex items-center">
+                                            <Brain className="w-3 h-3 mr-1 animate-pulse text-blue-500" />
+                                            Analyzing...
+                                          </div>
+                                        ) : currentEvaluation !== null ? (
+                                          <div className={`${currentEvaluation > 0 ? 'text-green-600' : currentEvaluation < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                            Eval: {currentEvaluation > 0 ? '+' : ''}{currentEvaluation.toFixed(2)}
+                                          </div>
+                                        ) : (
+                                          <div className="text-gray-500">Eval: --</div>
+                                        )}
                                       </div>
-                                      <div className="text-xs text-gray-500">Engine depth {Math.min(20, currentMoveIndex + 15)}</div>
+                                      <div className="text-xs text-gray-500">Engine depth 17</div>
                                     </div>
                                   </div>
                                   

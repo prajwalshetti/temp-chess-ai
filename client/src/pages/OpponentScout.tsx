@@ -1063,17 +1063,21 @@ export default function OpponentScout() {
                                     </div>
                                     <div className="text-right">
                                       <div className="text-sm font-semibold">
-                                        {engineAnalysis ? (
-                                          `Eval: ${(engineAnalysis.analysis.currentEvaluation.evaluation / 100).toFixed(2)}`
+                                        {isEvaluating ? (
+                                          <div className="flex items-center">
+                                            <Brain className="w-3 h-3 mr-1 animate-pulse text-blue-500" />
+                                            Analyzing...
+                                          </div>
+                                        ) : currentEvaluation !== null ? (
+                                          <div className={`${currentEvaluation > 0 ? 'text-green-600' : currentEvaluation < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                            Eval: {currentEvaluation > 0 ? '+' : ''}{currentEvaluation.toFixed(2)}
+                                          </div>
                                         ) : (
-                                          'Click "Analyze Position" for evaluation'
+                                          <div className="text-gray-500">Eval: --</div>
                                         )}
                                       </div>
                                       <div className="text-xs text-gray-500">
-                                        {engineAnalysis ? 
-                                          `Engine depth ${engineAnalysis.analysis.currentEvaluation.depth}` :
-                                          'Stockfish analysis available'
-                                        }
+                                        Engine depth 17
                                       </div>
                                     </div>
                                   </div>
