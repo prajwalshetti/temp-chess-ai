@@ -8,36 +8,21 @@ import { AlertTriangle, TrendingDown, TrendingUp, Target, Clock } from "lucide-r
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-interface GameAnalysisData {
-  pgn: string;
-  totalMoves: number;
-  moves: Array<{
-    moveNumber: number;
-    move: string;
-    evalBefore: number;
-    evalAfter: number;
-    bestMove: string;
-    isBlunder: boolean;
-    evalDrop: number;
-  }>;
-  bigDrops: Array<{
-    moveNumber: number;
-    playedMove: string;
-    bestMove: string;
-    evalBefore: number;
-    evalAfter: number;
-    evalDrop: number;
-  }>;
-  blunders: number;
-  accuracy: number;
+interface MoveAnalysis {
+  moveNumber: number;
+  move: string;
+  evaluation: number;
+  label: string;
+  bestMove: string;
+  delta: number;
 }
 
 export default function GameAnalysis() {
   const [pgn, setPgn] = useState("");
-  const [analysisData, setAnalysisData] = useState<GameAnalysisData | null>(null);
+  const [analysisData, setAnalysisData] = useState<MoveAnalysis[] | null>(null);
 
   const analyzeGameMutation = useMutation({
-    mutationFn: async (gameData: { pgn: string }): Promise<GameAnalysisData> => {
+    mutationFn: async (gameData: { pgn: string }): Promise<MoveAnalysis[]> => {
       const response = await fetch("/api/analyze/game", {
         method: "POST",
         headers: {
@@ -64,16 +49,21 @@ export default function GameAnalysis() {
   };
 
   const formatEvaluation = (evalValue: number) => {
-    if (Math.abs(evalValue) > 500) {
-      return evalValue > 0 ? `+${(evalValue / 100).toFixed(1)}` : `${(evalValue / 100).toFixed(1)}`;
-    }
-    return evalValue > 0 ? `+${evalValue}` : `${evalValue}`;
+    return evalValue > 0 ? `+${evalValue.toFixed(1)}` : `${evalValue.toFixed(1)}`;
   };
 
   const getEvaluationColor = (evalValue: number) => {
-    if (evalValue > 200) return "text-green-600 dark:text-green-400";
-    if (evalValue < -200) return "text-red-600 dark:text-red-400";
+    if (evalValue > 2) return "text-green-600 dark:text-green-400";
+    if (evalValue < -2) return "text-red-600 dark:text-red-400";
     return "text-yellow-600 dark:text-yellow-400";
+  };
+
+  const getLabelColor = (label: string) => {
+    switch (label) {
+      case "Excellent Find": return "text-green-600 bg-green-50 dark:bg-green-900/20";
+      case "Missed Tactic": return "text-red-600 bg-red-50 dark:bg-red-900/20";
+      default: return "text-gray-600 bg-gray-50 dark:bg-gray-900/20";
+    }
   };
 
   return (
@@ -126,68 +116,30 @@ export default function GameAnalysis() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold">{analysisData.totalMoves}</div>
+                  <div className="text-2xl font-bold">{analysisData.length}</div>
                   <div className="text-sm text-muted-foreground">Total Moves</div>
                 </div>
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-red-600">{analysisData.blunders}</div>
-                  <div className="text-sm text-muted-foreground">Blunders</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {analysisData.filter(move => move.label === "Excellent Find").length}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Excellent Finds</div>
                 </div>
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-green-600">{analysisData.accuracy}%</div>
-                  <div className="text-sm text-muted-foreground">Accuracy</div>
+                  <div className="text-2xl font-bold text-red-600">
+                    {analysisData.filter(move => move.label === "Missed Tactic").length}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Missed Tactics</div>
                 </div>
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold">{analysisData.bigDrops.length}</div>
-                  <div className="text-sm text-muted-foreground">Major Errors</div>
+                  <div className="text-2xl font-bold">
+                    {analysisData.filter(move => move.label === "Normal").length}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Normal Moves</div>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Significant Blunders */}
-          {analysisData.bigDrops.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
-                  Major Evaluation Drops (200+ centipawns)
-                </CardTitle>
-                <CardDescription>
-                  Critical moments where better moves were available
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {analysisData.bigDrops.map((drop, index) => (
-                    <div key={index} className="border rounded-lg p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="destructive">Move {drop.moveNumber}</Badge>
-                          <span className="font-mono font-semibold">{drop.playedMove}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm text-muted-foreground">Evaluation Drop</div>
-                          <div className="font-bold text-red-600">-{drop.evalDrop}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Best move: </span>
-                          <span className="font-mono font-semibold text-green-600">{drop.bestMove}</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span>
-                            {formatEvaluation(drop.evalBefore)} → {formatEvaluation(drop.evalAfter)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Move-by-Move Analysis */}
           <Card>
@@ -197,31 +149,30 @@ export default function GameAnalysis() {
                 Move-by-Move Analysis
               </CardTitle>
               <CardDescription>
-                Detailed evaluation of each move in the game
+                Each move analyzed with evaluation and quality assessment
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {analysisData.moves.map((move, index) => (
+                {analysisData.map((move, index) => (
                   <div 
                     key={index} 
-                    className={`flex items-center justify-between p-3 rounded-lg border ${
-                      move.isBlunder ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 
-                      'bg-gray-50 dark:bg-gray-900/50'
-                    }`}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${getLabelColor(move.label)}`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="text-sm text-muted-foreground w-8">
                         {move.moveNumber}.
                       </div>
-                      <div className="font-mono font-semibold w-16">
+                      <div className="font-mono font-semibold w-20">
                         {move.move}
                       </div>
-                      {move.isBlunder && (
-                        <Badge variant="destructive" className="text-xs">
-                          Blunder
-                        </Badge>
-                      )}
+                      <Badge 
+                        variant={move.label === "Excellent Find" ? "default" : 
+                                move.label === "Missed Tactic" ? "destructive" : "secondary"}
+                        className="text-xs"
+                      >
+                        {move.label}
+                      </Badge>
                     </div>
                     
                     <div className="flex items-center gap-4 text-sm">
@@ -229,17 +180,13 @@ export default function GameAnalysis() {
                         Best: <span className="font-mono">{move.bestMove}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={getEvaluationColor(move.evalBefore)}>
-                          {formatEvaluation(move.evalBefore)}
-                        </span>
-                        <TrendingDown className="w-3 h-3 text-muted-foreground" />
-                        <span className={getEvaluationColor(move.evalAfter)}>
-                          {formatEvaluation(move.evalAfter)}
+                        <span className={getEvaluationColor(move.evaluation)}>
+                          {formatEvaluation(move.evaluation)}
                         </span>
                       </div>
-                      {move.evalDrop > 50 && (
-                        <div className="text-red-600 font-semibold">
-                          -{move.evalDrop}
+                      {Math.abs(move.delta) > 50 && (
+                        <div className={move.delta > 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+                          {move.delta > 0 ? '+' : ''}{move.delta}
                         </div>
                       )}
                     </div>

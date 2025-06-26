@@ -417,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete game analysis endpoint using Stockfish-style evaluation (like your Python code)
+  // Move-by-move analysis endpoint (matching your Flask code format)
   app.post("/api/analyze/game", async (req, res) => {
     try {
       const { pgn } = req.body;
@@ -429,19 +429,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realStockfish } = await import('./real-stockfish');
       const gameAnalysis = await realStockfish.analyzeCompleteGame(pgn);
       
+      // Return the analysis array directly (like your Flask jsonify(analysis))
+      res.json(gameAnalysis.moves);
+    } catch (error) {
+      console.error("Error analyzing game:", error);
+      res.status(500).json({ message: "Failed to analyze game" });
+    }
+  });
+
+  // Additional endpoint for detailed summary
+  app.post("/api/analyze/game/summary", async (req, res) => {
+    try {
+      const { pgn } = req.body;
+      
+      if (!pgn) {
+        return res.status(400).json({ message: "PGN is required" });
+      }
+
+      const { realStockfish } = await import('./real-stockfish');
+      const gameAnalysis = await realStockfish.analyzeCompleteGame(pgn);
+      
       res.json({
-        pgn,
-        totalMoves: gameAnalysis.moves.length,
         moves: gameAnalysis.moves,
-        bigDrops: gameAnalysis.bigDrops,
-        blunders: gameAnalysis.bigDrops.length,
-        accuracy: gameAnalysis.moves.length > 0 ? 
-          Math.round((1 - gameAnalysis.bigDrops.length / gameAnalysis.moves.length) * 100) : 100,
-        summary: {
-          significantDrops: gameAnalysis.bigDrops.length,
-          averageEvaluation: gameAnalysis.moves.length > 0 ? 
-            Math.round(gameAnalysis.moves.reduce((sum, move) => sum + move.evalBefore, 0) / gameAnalysis.moves.length) : 0
-        }
+        summary: gameAnalysis.summary
       });
     } catch (error) {
       console.error("Error analyzing game:", error);

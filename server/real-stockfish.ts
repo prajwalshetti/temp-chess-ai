@@ -51,78 +51,86 @@ export class RealStockfishEngine {
     }
   }
 
-  // Analyze a complete game like your Python script
+  // Move-by-move analysis like your Flask code
   async analyzeCompleteGame(pgn: string): Promise<{
     moves: Array<{
       moveNumber: number;
       move: string;
-      evalBefore: number;
-      evalAfter: number;
+      evaluation: number;
+      label: string;
       bestMove: string;
-      isBlunder: boolean;
-      evalDrop: number;
+      delta: number;
     }>;
-    bigDrops: Array<{
-      moveNumber: number;
-      playedMove: string;
-      bestMove: string;
-      evalBefore: number;
-      evalAfter: number;
-      evalDrop: number;
-    }>;
+    summary: {
+      totalMoves: number;
+      excellentFinds: number;
+      missedTactics: number;
+      normalMoves: number;
+    };
   }> {
     const chess = new Chess();
-    chess.loadPgn(pgn);
+    
+    // Clean and parse PGN
+    const cleanPgn = pgn.replace(/\[.*?\]/g, '').trim();
+    chess.loadPgn(cleanPgn);
     
     const history = chess.history({ verbose: true });
     const moves = [];
-    const bigDrops = [];
+    let previousEval = 0;
+    let excellentFinds = 0;
+    let missedTactics = 0;
+    let normalMoves = 0;
     
-    // Reset to start
+    // Reset to start position
     chess.reset();
     
     for (let i = 0; i < history.length; i++) {
       const move = history[i];
       
-      // Evaluate position BEFORE the move (like your Python code)
-      const evalBefore = this.calculateStockfishStyleEvaluation(chess);
-      const bestMove = this.findBestMoveUsingEvaluation(chess);
-      
-      // Make the move
+      // Make the move first
       chess.move(move);
       
-      // Evaluate position AFTER the move
-      const evalAfter = -this.calculateStockfishStyleEvaluation(chess); // Negate for opponent
+      // Analyze the position after the move (like your Flask code)
+      const positionAnalysis = await this.analyzePosition(chess.fen());
+      const currentEval = positionAnalysis.currentEvaluation.evaluation;
       
-      const evalDrop = Math.abs(evalBefore - evalAfter);
-      const isBlunder = evalDrop >= 200 && move.san !== bestMove;
+      // Calculate delta from previous evaluation
+      const delta = currentEval - previousEval;
+      
+      // Label the move quality (same logic as your Flask code)
+      let label = "Normal";
+      if (delta > 30) {
+        label = "Excellent Find";
+        excellentFinds++;
+      } else if (delta < -100) {
+        label = "Missed Tactic";
+        missedTactics++;
+      } else {
+        normalMoves++;
+      }
       
       const moveAnalysis = {
-        moveNumber: Math.floor(i / 2) + 1,
+        moveNumber: i + 1,
         move: move.san,
-        evalBefore: Math.round(evalBefore),
-        evalAfter: Math.round(evalAfter),
-        bestMove: bestMove,
-        isBlunder: isBlunder,
-        evalDrop: Math.round(evalDrop)
+        evaluation: Math.round(currentEval / 100), // Convert to pawns like your Flask code
+        label: label,
+        bestMove: positionAnalysis.currentEvaluation.bestMove,
+        delta: Math.round(delta)
       };
       
       moves.push(moveAnalysis);
-      
-      // Track significant drops (like your Python logic)
-      if (isBlunder) {
-        bigDrops.push({
-          moveNumber: moveAnalysis.moveNumber,
-          playedMove: move.san,
-          bestMove: bestMove,
-          evalBefore: Math.round(evalBefore),
-          evalAfter: Math.round(evalAfter),
-          evalDrop: Math.round(evalDrop)
-        });
-      }
+      previousEval = currentEval;
     }
     
-    return { moves, bigDrops };
+    return { 
+      moves,
+      summary: {
+        totalMoves: moves.length,
+        excellentFinds,
+        missedTactics,
+        normalMoves
+      }
+    };
   }
 
   // Main evaluation function using Stockfish-style analysis
