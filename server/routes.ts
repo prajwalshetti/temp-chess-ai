@@ -4,7 +4,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
 import { LichessService, ChessAnalyzer } from "./lichess";
-import { execSync, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -434,18 +434,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Received PGN:", JSON.stringify(pgn));
 
-      // Use Python chess analyzer with stdin input like your original script
+      // Use proper subprocess with timeout handling
       const pythonScript = path.join(__dirname, 'chess_analyzer.py');
-      const command = `echo ${JSON.stringify(pgn)} | python3 "${pythonScript}" --mode ${mode}`;
       
-      const output = execSync(command, {
-        encoding: 'utf8',
-        timeout: 60000, // 60 second timeout
-        maxBuffer: 1024 * 1024 // 1MB buffer
+      const child = spawn('python3', [pythonScript, '--mode', mode], {
+        stdio: ['pipe', 'pipe', 'pipe']
       });
       
-      // Return formatted output like your Python script
-      res.type('text/plain').send(output.trim());
+      let output = '';
+      let errorOutput = '';
+      let isResponseSent = false;
+      
+      // Send PGN to Python script via stdin
+      child.stdin.write(pgn);
+      child.stdin.end();
+      
+      child.stdout.on('data', (data: Buffer) => {
+        output += data.toString();
+      });
+      
+      child.stderr.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+      
+      child.on('close', (code: number) => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        
+        if (code !== 0) {
+          console.error("Python script error:", errorOutput);
+          return res.status(500).json({ message: `Analysis failed: ${errorOutput}` });
+        }
+        
+        // Return formatted output like your Python script
+        res.type('text/plain').send(output.trim());
+      });
+      
+      child.on('error', (error: Error) => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        console.error("Python process error:", error);
+        res.status(500).json({ message: `Process error: ${error.message}` });
+      });
+      
+      // Set timeout for analysis (2 minutes for complex games)
+      const timeout = setTimeout(() => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        child.kill('SIGTERM');
+        res.status(408).json({ message: "Analysis timeout - game too complex for current time limit" });
+      }, 120000); // 2 minute timeout
+      
+      // Clear timeout when response is sent
+      child.on('close', () => clearTimeout(timeout));
       
     } catch (error) {
       console.error("Error analyzing game:", error);

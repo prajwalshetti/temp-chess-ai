@@ -20,11 +20,11 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
         if not game:
             return {"error": "Failed to parse PGN content"}
         
-        # Set engine limit based on mode
+        # Set engine limit based on mode with optimizations for long games
         if analysis_mode == "fast":
-            limit = chess.engine.Limit(depth=12)
+            limit = chess.engine.Limit(depth=10, time=0.2)  # Faster for long games
         else:
-            limit = chess.engine.Limit(time=0.5)
+            limit = chess.engine.Limit(depth=12, time=0.3)  # Balance of speed and accuracy
         
         # Initialize engine
         with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
@@ -33,6 +33,8 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
             
             moves_analysis = []
             big_drops = []
+            move_count = 0
+            max_moves = 60  # Limit analysis to first 60 moves for performance
             
             # Extract game info
             headers = game.headers
@@ -45,9 +47,10 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
                 "result": headers.get("Result", "*")
             }
             
-            while node.variations:
+            while node.variations and move_count < max_moves:
                 next_node = node.variation(0)
                 played_move = next_node.move
+                move_count += 1
                 
                 # === Evaluate before the move ===
                 info_before = engine.analyse(board, limit)
@@ -110,7 +113,8 @@ def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
             return {
                 "game_info": game_info,
                 "moves_analysis": moves_analysis,
-                "big_drops": big_drops
+                "big_drops": big_drops,
+                "truncated": move_count >= max_moves
             }
             
     except Exception as e:
@@ -214,6 +218,11 @@ def format_analysis_output(analysis):
         output.append(move_line)
     
     output.append("")
+    
+    # Add truncation notice if applicable
+    if analysis.get("truncated", False):
+        output.append("ℹ️  Analysis limited to first 60 moves for performance")
+        output.append("")
     
     # Significant drops
     if analysis["big_drops"]:
