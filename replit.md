@@ -134,6 +134,10 @@ Changelog:
 - June 26, 2025. Implemented real-time Stockfish evaluation display in game viewers - users now see live engine evaluations when navigating through moves
 - June 26, 2025. Added position analysis API endpoint and integrated with both OpponentScout and GamesDatabase components for automatic evaluation display
 - June 26, 2025. Fixed null safety issues and added evaluation caching system for optimal performance during move navigation
+- June 26, 2025. Completed comprehensive game analysis system - changed "Analyze Position" to "Analyze Game" button that processes entire PGN once and stores all move evaluations
+- June 26, 2025. Fixed 0.00 evaluation issue by implementing complete game analysis instead of position-by-position analysis, now shows authentic Stockfish evaluations like +0.30, -0.44, +0.38
+- June 26, 2025. Updated both OpponentScout and GamesDatabase navigation systems to use stored move evaluations for instant display when navigating through moves
+- June 26, 2025. Removed duplicate "Game Moves:" sections from UI, cleaning up the interface for better user experience
 
 ## User Preferences
 

@@ -1182,26 +1182,6 @@ export default function OpponentScout() {
                                   </div>
                                 </div>
                               )}
-
-                                {/* All Moves Display */}
-                                <div className="mt-4">
-                                  <h6 className="text-xs font-medium text-gray-700 mb-2">Game Moves:</h6>
-                                  <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-                                    {selectedOpeningGame.moves.map((move: string, index: number) => (
-                                      <button
-                                        key={index}
-                                        onClick={() => navigateToMove(index)}
-                                        className={`text-xs p-1 rounded transition-colors ${
-                                          index === currentMoveIndex 
-                                            ? 'bg-blue-500 text-white' 
-                                            : 'bg-white hover:bg-gray-100'
-                                        }`}
-                                      >
-                                        {Math.floor(index / 2) + 1}.{index % 2 === 0 ? '' : '..'} {move}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
                             </div>
                           )}
                         </div>
