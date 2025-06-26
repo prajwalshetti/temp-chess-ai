@@ -4,7 +4,8 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { insertGameSchema, insertPuzzleAttemptSchema } from "@shared/schema";
 import { LichessService, ChessAnalyzer } from "./lichess";
-import { stockfishAnalyzer } from "./stockfish-analyzer";
+import { execSync } from 'child_process';
+import path from 'path';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Lichess service
@@ -417,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple move analysis endpoint (matching your Python code output)
+  // Game analysis using Python-based chess analyzer (matching your Python code)
   app.post("/api/analyze/game", async (req, res) => {
     try {
       const { pgn } = req.body;
@@ -426,14 +427,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "PGN is required" });
       }
 
-      // Log the incoming PGN for debugging
       console.log("Received PGN:", JSON.stringify(pgn));
 
-      const { realStockfish } = await import('./real-stockfish');
-      const gameAnalysis = await realStockfish.analyzeCompleteGame(pgn);
+      // Use Python chess analyzer for authentic Stockfish analysis
+      const pythonScript = path.join(__dirname, 'chess_analyzer.py');
+      const escapedPgn = pgn.replace(/'/g, "\\'").replace(/"/g, '\\"');
       
-      // Return plain text output like your Python script
-      res.type('text/plain').send(gameAnalysis);
+      try {
+        const output = execSync(`python3 "${pythonScript}" '${escapedPgn}'`, {
+          encoding: 'utf8',
+          timeout: 30000, // 30 second timeout
+          maxBuffer: 1024 * 1024 // 1MB buffer
+        });
+        
+        const result = JSON.parse(output.trim());
+        
+        if (result.error) {
+          return res.status(400).json({ message: result.error });
+        }
+        
+        // Return formatted output like your Python script
+        res.type('text/plain').send(result.output);
+        
+      } catch (execError) {
+        console.error("Python execution error:", execError);
+        throw new Error(`Analysis execution failed: ${execError.message}`);
+      }
+      
     } catch (error) {
       console.error("Error analyzing game:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to analyze game";
