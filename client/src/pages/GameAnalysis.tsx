@@ -87,19 +87,36 @@ export default function GameAnalysis() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
-            placeholder="1. e4 e5 2. Nf3 Nc6 3. Bb5 a6..."
+            placeholder="Enter your game moves like: 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6"
             value={pgn}
             onChange={(e) => setPgn(e.target.value)}
             rows={6}
             className="font-mono text-sm"
           />
-          <Button 
-            onClick={handleAnalyze} 
-            disabled={!pgn.trim() || analyzeGameMutation.isPending}
-            className="w-full"
-          >
-            {analyzeGameMutation.isPending ? "Analyzing..." : "Analyze Game"}
-          </Button>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="mb-2">Sample input formats supported:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Standard notation: "1. e4 e5 2. Nf3 Nc6"</li>
+              <li>Simple moves: "e4 e5 Nf3 Nc6"</li>
+              <li>Full PGN with headers is also supported</li>
+            </ul>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleAnalyze} 
+              disabled={!pgn.trim() || analyzeGameMutation.isPending}
+              className="flex-1"
+            >
+              {analyzeGameMutation.isPending ? "Analyzing..." : "Analyze Game"}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setPgn("1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7")}
+              disabled={analyzeGameMutation.isPending}
+            >
+              Load Sample
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

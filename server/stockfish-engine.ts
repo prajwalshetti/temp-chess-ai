@@ -89,36 +89,48 @@ export class StockfishEngine {
     let moves: string[] = [];
     
     try {
-      // Try different PGN parsing approaches
-      if (pgn.includes('[') && pgn.includes(']')) {
-        // Full PGN format with headers
-        const cleanPgn = pgn.replace(/\[.*?\]/g, '').trim();
-        chess.loadPgn(cleanPgn);
-        moves = chess.history();
-      } else if (pgn.includes('.')) {
-        // Algebraic notation with move numbers (e.g., "1. e4 e5 2. Nf3")
-        const moveText = pgn.replace(/\d+\./g, '').trim();
-        const moveArray = moveText.split(/\s+/).filter(m => m.length > 0);
+      // Clean PGN input - remove invalid characters and normalize
+      let cleanInput = pgn
+        .replace(/[{}[\]]/g, '') // Remove braces and brackets that aren't PGN headers
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+      
+      // Remove PGN headers if present (like [Event "..."])
+      if (cleanInput.includes('[') && cleanInput.includes(']')) {
+        cleanInput = cleanInput.replace(/\[[^\]]*\]/g, '').trim();
+      }
+      
+      // Try to parse as standard PGN first
+      if (cleanInput.includes('.')) {
+        // Remove move numbers and extract moves
+        const moveText = cleanInput.replace(/\d+\./g, '').trim();
+        const moveArray = moveText.split(/\s+/).filter(m => m.length > 0 && m !== '');
         
         for (const move of moveArray) {
-          try {
-            chess.move(move);
-          } catch (error) {
-            console.warn(`Invalid move: ${move}`);
-            break;
+          const cleanMove = move.replace(/[^a-zA-Z0-9+#=\-]/g, ''); // Keep only valid chess notation characters
+          if (cleanMove.length > 0) {
+            try {
+              chess.move(cleanMove);
+            } catch (error) {
+              console.warn(`Invalid move: ${cleanMove}`);
+              break;
+            }
           }
         }
         moves = chess.history();
       } else {
         // Simple space-separated moves
-        const moveArray = pgn.trim().split(/\s+/).filter(m => m.length > 0);
+        const moveArray = cleanInput.split(/\s+/).filter(m => m.length > 0);
         
         for (const move of moveArray) {
-          try {
-            chess.move(move);
-          } catch (error) {
-            console.warn(`Invalid move: ${move}`);
-            break;
+          const cleanMove = move.replace(/[^a-zA-Z0-9+#=\-]/g, '');
+          if (cleanMove.length > 0) {
+            try {
+              chess.move(cleanMove);
+            } catch (error) {
+              console.warn(`Invalid move: ${cleanMove}`);
+              break;
+            }
           }
         }
         moves = chess.history();

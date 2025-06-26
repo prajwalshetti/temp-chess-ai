@@ -426,6 +426,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "PGN is required" });
       }
 
+      // Log the incoming PGN for debugging
+      console.log("Received PGN:", JSON.stringify(pgn));
+
       const { realStockfish } = await import('./real-stockfish');
       const gameAnalysis = await realStockfish.analyzeCompleteGame(pgn);
       
@@ -433,7 +436,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.type('text/plain').send(gameAnalysis);
     } catch (error) {
       console.error("Error analyzing game:", error);
-      res.status(500).json({ message: "Failed to analyze game" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze game";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
