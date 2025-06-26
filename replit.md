@@ -128,6 +128,7 @@ Changelog:
 - June 26, 2025. Integrated user's original Python analysis code for authentic move-by-move evaluation and blunder detection
 - June 26, 2025. Successfully implemented authentic Python chess analysis matching local script output exactly
 - June 26, 2025. Verified blunder detection and mate score handling working correctly with real Stockfish evaluations
+- June 26, 2025. Updated Python analyzer with improved code structure including argparse, analysis modes (fast/accurate), and proper command-line interface matching user's original Python script exactly
 
 ## User Preferences
 
