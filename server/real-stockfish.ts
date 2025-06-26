@@ -51,40 +51,10 @@ export class RealStockfishEngine {
     }
   }
 
-  // Simple move analysis matching your Python code output
+  // Real Stockfish analysis matching your Python code output
   async analyzeCompleteGame(pgn: string): Promise<string> {
-    const chess = new Chess();
-    
-    // Clean and parse PGN
-    const cleanPgn = pgn.replace(/\[.*?\]/g, '').trim();
-    chess.loadPgn(cleanPgn);
-    
-    const history = chess.history({ verbose: true });
-    let output = "Analyzing moves:\n\n";
-    
-    // Reset to start position
-    chess.reset();
-    
-    for (let i = 0; i < history.length; i++) {
-      const move = history[i];
-      
-      // Make the move
-      chess.move(move);
-      
-      // Analyze position after the move (like your Python code)
-      const analysis = await this.analyzePosition(chess.fen());
-      const evaluation = analysis.currentEvaluation.evaluation;
-      
-      // Convert to pawn units and format like your Python output
-      const evalInPawns = evaluation / 100;
-      const formattedEval = evalInPawns >= 0 ? `+${evalInPawns.toFixed(2)}` : evalInPawns.toFixed(2);
-      
-      // Format output exactly like your Python code
-      const moveStr = move.san.padEnd(6);
-      output += `${i + 1}. ${moveStr} | Eval: ${formattedEval}\n`;
-    }
-    
-    return output;
+    const { stockfishEngine } = await import('./stockfish-engine');
+    return await stockfishEngine.analyzeGame(pgn, 15);
   }
 
   // Main evaluation function using Stockfish-style analysis
