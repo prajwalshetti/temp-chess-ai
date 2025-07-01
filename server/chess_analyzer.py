@@ -20,7 +20,7 @@ import chess.engine
 # === CONFIGURATION ===
 # Assumes 'stockfish' is in your system's PATH.
 # You can change this to the full path of your Stockfish executable.
-STOCKFISH_PATH = "/nix/store/y8i8d3bvg7xxzd6qmsazz7kwgdgvqzxr-stockfish-16/bin/stockfish"
+STOCKFISH_PATH = "/nix/store/qk9j36nbh500grvxa514gin0yx5yp38i-stockfish-16/bin/stockfish"
 
 
 def _get_eval_in_pawns(score_pov):

@@ -446,17 +446,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const lines = output.split('\n');
         
         for (const line of lines) {
-          const moveMatch = line.match(/Move (\d+):\s*(.+?)\s*Eval:\s*([-+]?\d*\.?\d+)/);
+          // Updated regex to match the new format: "Move 1    : e4      | Eval:  0.40 →  0.36"
+          const moveMatch = line.match(/Move\s+(.+?)\s*:\s*(.+?)\s*\|\s*Eval:\s*([-+]?\d*\.?\d+)\s*→\s*([-+]?\d*\.?\d+)/);
           if (moveMatch) {
-            const moveNumber = parseInt(moveMatch[1]);
+            const moveNumberStr = moveMatch[1].trim();
             const move = moveMatch[2].trim();
-            const evaluation = parseFloat(moveMatch[3]);
+            const evaluationBefore = parseFloat(moveMatch[3]);
+            const evaluationAfter = parseFloat(moveMatch[4]);
             
             moveEvaluations.push({
-              moveNumber,
+              moveNumber: moveNumberStr,
               move,
-              evaluation: Math.round(evaluation * 100), // Convert to centipawns
-              evaluationFloat: evaluation
+              evaluation: Math.round(evaluationAfter * 100), // Convert to centipawns
+              evaluationFloat: evaluationAfter,
+              evaluationBefore: evaluationBefore
             });
           }
         }
