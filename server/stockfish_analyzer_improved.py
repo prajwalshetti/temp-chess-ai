@@ -26,7 +26,7 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
         # The stockfish library requires a valid path to the executable
         stockfish = Stockfish(path=STOCKFISH_PATH, depth=stockfish_depth, parameters={
             "Threads": 2,  # Use 2 threads for analysis
-            "Minimum Thinking Time": 30
+            "Minimum Thinking Time": 2000  # 2 seconds in milliseconds for better performance
         })
     except FileNotFoundError:
         print(f"ERROR: Stockfish executable not found at '{STOCKFISH_PATH}'", file=sys.stderr)
@@ -152,7 +152,7 @@ def find_blunders(analysis_results):
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze chess games with improved Stockfish integration')
-    parser.add_argument('--depth', type=int, default=15, help='Stockfish analysis depth')
+    parser.add_argument('--depth', type=int, default=30, help='Stockfish analysis depth')
     parser.add_argument('--format', choices=['json', 'text'], default='json', help='Output format')
     args = parser.parse_args()
 

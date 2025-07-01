@@ -412,7 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use improved Python Stockfish analyzer
       const pythonScript = path.join(__dirname, 'stockfish_analyzer_improved.py');
       
-      const child = spawn('python3', [pythonScript, '--depth', '15', '--format', 'json'], {
+      const child = spawn('python3', [pythonScript, '--depth', '30', '--format', 'json'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
@@ -470,13 +470,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ message: `Process error: ${error.message}` });
       });
       
-      // Set longer timeout for full game analysis (2 minutes)
+      // Set longer timeout for deep analysis (5 minutes for depth 30 with 5-second thinking time)
       const timeout = setTimeout(() => {
         if (isResponseSent) return;
         isResponseSent = true;
         child.kill('SIGTERM');
         res.status(408).json({ message: "Game analysis timeout" });
-      }, 120000);
+      }, 300000);
       
       child.on('close', () => clearTimeout(timeout));
       
