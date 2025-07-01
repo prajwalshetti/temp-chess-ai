@@ -447,7 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         for (const line of lines) {
           // Updated regex to match the new format: "Move 1    : e4      | Eval:  0.40 →  0.36"
-          const moveMatch = line.match(/Move\s+(.+?)\s*:\s*(.+?)\s*\|\s*Eval:\s*([-+]?\d*\.?\d+)\s*→\s*([-+]?\d*\.?\d+)/);
+          const moveMatch = line.match(/Move\s+([^:]+)\s*:\s*([^|]+)\s*\|\s*Eval:\s*([-+]?\d*\.?\d+)\s*→\s*([-+]?\d*\.?\d+)/);
           if (moveMatch) {
             const moveNumberStr = moveMatch[1].trim();
             const move = moveMatch[2].trim();
