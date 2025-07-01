@@ -64,11 +64,53 @@ export class StockfishApiEngine {
     try {
       console.log('Analyzing PGN:', pgn.substring(0, 200) + '...');
       
-      // Use chess.js built-in PGN parsing which handles headers correctly
-      chess.loadPgn(pgn);
-      const moves = chess.history();
+      // Extract moves manually instead of relying on chess.js PGN parsing
+      // This avoids the PGN format issues with headers and moves separation
+      let gameMoves: string[] = [];
       
-      console.log('Successfully parsed moves:', moves.length);
+      try {
+        // Try to parse with chess.js first
+        chess.loadPgn(pgn);
+        gameMoves = chess.history();
+        chess.reset();
+        console.log('Successfully parsed PGN with chess.js');
+      } catch (error) {
+        console.log('PGN parsing failed, extracting moves manually...');
+        
+        // Manual move extraction as fallback
+        const lines = pgn.split('\n');
+        const moveLines = [];
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          // Skip header lines and empty lines
+          if (!trimmedLine.startsWith('[') && trimmedLine && !trimmedLine.includes('*') && !trimmedLine.includes('1-0') && !trimmedLine.includes('0-1') && !trimmedLine.includes('1/2-1/2')) {
+            moveLines.push(trimmedLine);
+          }
+        }
+        
+        // Extract individual moves from the move lines
+        const movesText = moveLines.join(' ');
+        const movePattern = /(?:\d+\.\.?\s*)?([a-h][1-8](?:[a-h][1-8])?[NBRQK]?(?:[+#])?|O-O(?:-O)?|[NBRQK][a-h1-8]?x?[a-h][1-8](?:=[NBRQK])?[+#]?)/g;
+        const extractedMoves = movesText.match(movePattern) || [];
+        
+        // Play moves to validate them
+        chess.reset();
+        for (const move of extractedMoves) {
+          try {
+            chess.move(move);
+            gameMoves.push(move);
+          } catch (moveError) {
+            console.log(`Invalid move skipped: ${move}`);
+            break;
+          }
+        }
+        
+        chess.reset();
+        console.log('Successfully extracted moves manually');
+      }
+      
+      console.log('Total moves to analyze:', gameMoves.length);
       
       // Reset to starting position
       chess.reset();
@@ -80,11 +122,11 @@ export class StockfishApiEngine {
       rawOutputLines.push(`📂 Game: ${gameName}`);
 
       // Limit analysis to first 30 moves to avoid excessive API calls
-      const maxMoves = Math.min(moves.length, 30);
+      const maxMoves = Math.min(gameMoves.length, 30);
       
       // Analyze each position after each move
       for (let i = 0; i < maxMoves; i++) {
-        const move = moves[i];
+        const move = gameMoves[i];
         
         // Make the move
         chess.move(move);
