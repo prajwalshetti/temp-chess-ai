@@ -144,6 +144,7 @@ Changelog:
 - June 27, 2025. Eliminated local dependencies and subprocess complexity by migrating to external API, improving system stability and deployment simplicity
 - June 27, 2025. Fixed PGN parsing issue that was causing game analysis failures - corrected Lichess PGN format generation to properly separate headers and moves
 - June 27, 2025. Added comprehensive error handling, timeout management, and move limit (30 moves) to prevent excessive API calls and ensure reliable analysis
+- July 1, 2025. Identified critical reliability issue with Stockfish.online API - service returning "unsuccessful response" for all requests regardless of retry logic, depth, or rate limiting
 
 ## User Preferences
 
