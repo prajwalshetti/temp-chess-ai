@@ -141,6 +141,8 @@ Changelog:
 - December 27, 2025. Implemented improved Python chess analyzer with enhanced error handling, proper evaluation perspective corrections, and cleaner output formatting
 - December 27, 2025. Updated API parsing logic to correctly handle new analyzer output format with structured move evaluations and authentic Stockfish data
 - December 27, 2025. Verified complete system integration - game analysis now returns properly structured moveEvaluations array for instant frontend navigation
+- December 27, 2025. Upgraded to continuous analysis approach replacing 5-second per move with configurable think-time for optimal engine performance
+- December 27, 2025. Implemented live depth feedback during analysis with real-time engine progress updates for better user experience
 
 ## User Preferences
 

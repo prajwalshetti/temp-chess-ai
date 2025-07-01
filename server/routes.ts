@@ -616,7 +616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use proper subprocess with timeout handling
       const pythonScript = path.join(__dirname, 'chess_analyzer.py');
       
-      const child = spawn('python3', [pythonScript, '--mode', mode], {
+      const child = spawn('python3', [pythonScript, '--think-time', '3.0'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
