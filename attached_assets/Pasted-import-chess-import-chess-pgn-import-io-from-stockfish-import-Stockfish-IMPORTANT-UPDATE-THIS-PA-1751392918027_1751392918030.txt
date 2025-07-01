@@ -1,0 +1,147 @@
+import chess
+import chess.pgn
+import io
+from stockfish import Stockfish
+
+# IMPORTANT: UPDATE THIS PATH TO YOUR STOCKFISH EXECUTABLE
+# For Windows, it might be: "C:\\Users\\YourUser\\Downloads\\stockfish\\stockfish.exe"
+# For macOS or Linux, it might be: "/usr/local/bin/stockfish" or "./stockfish"
+STOCKFISH_PATH = "/path/to/your/stockfish" 
+
+def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
+    """
+    Analyzes a chess game from a PGN string, providing Stockfish evaluation for each move.
+
+    Args:
+        pgn_string: The PGN of the game as a string.
+        stockfish_depth: The depth for Stockfish analysis (higher is stronger but slower).
+    
+    Returns:
+        A list of dictionaries, where each dictionary contains move info and evaluation.
+    """
+    try:
+        # The stockfish library requires a valid path to the executable
+        stockfish = Stockfish(path=STOCKFISH_PATH, depth=stockfish_depth, parameters={
+            "Threads": 2, # Use 2 threads for analysis
+            "Minimum Thinking Time": 30
+        })
+    except FileNotFoundError:
+        print(f"ERROR: Stockfish executable not found at '{STOCKFISH_PATH}'")
+        print("Please download Stockfish and update the STOCKFISH_PATH variable in the script.")
+        return None
+
+    # Use StringIO to treat the PGN string like a file
+    pgn_io = io.StringIO(pgn_string)
+    game = chess.pgn.read_game(pgn_io)
+
+    if game is None:
+        print("ERROR: Invalid PGN string.")
+        return None
+
+    board = game.board()
+    analysis_results = []
+    
+    print("Analyzing game...")
+    print("-" * 30)
+    
+    move_number = 1
+    is_white_move = True
+
+    # Iterate through all moves in the game's mainline
+    for move in game.mainline_moves():
+        # Get the move in Standard Algebraic Notation (e.g., "e4", "Nf3")
+        san_move = board.san(move)
+        
+        # Apply the move to the board
+        board.push(move)
+        
+        # Set Stockfish to the position AFTER the move
+        stockfish.set_fen_position(board.fen())
+        
+        # Get the evaluation from Stockfish
+        # The evaluation is from the perspective of the current player
+        evaluation = stockfish.get_evaluation()
+        
+        # Format the output nicely
+        if is_white_move:
+            print(f"{move_number}. {san_move}", end=" ")
+        else:
+            print(f"... {san_move}")
+
+        # Store and print the evaluation
+        move_eval = {"move_number": move_number, "move": san_move, "evaluation": evaluation}
+        analysis_results.append(move_eval)
+        print(f"   Eval: {format_evaluation(evaluation)}")
+
+        # Update turn and move number
+        if not is_white_move:
+            move_number += 1
+        is_white_move = not is_white_move
+
+    print("-" * 30)
+    print("Analysis complete.")
+    return analysis_results
+
+def format_evaluation(evaluation: dict) -> str:
+    """Formats the Stockfish evaluation dictionary into a readable string."""
+    if evaluation['type'] == 'cp':
+        # Centipawn score. A positive value favors White, negative favors Black.
+        # We convert it to pawns for easier reading (e.g., +0.5 instead of +50 cp).
+        pawn_value = evaluation['value'] / 100.0
+        return f"{pawn_value:+.2f}"
+    elif evaluation['type'] == 'mate':
+        # Mate in X moves. Positive for the current player, negative for the opponent.
+        return f"Mate in {abs(evaluation['value'])}"
+    return "N/A"
+
+# --- Main execution block ---
+if __name__ == "__main__":
+    # Example PGN: The "Game of the Century" - Byrne vs. Fischer (1956)
+    sample_pgn = """
+    [Event "Third Rosenwald Trophy"]
+    [Site "New York, NY USA"]
+    [Date "1956.10.17"]
+    [EventDate "1956.10.07"]
+    [Round "8"]
+    [Result "0-1"]
+    [White "Donald Byrne"]
+    [Black "Robert James Fischer"]
+    [ECO "D92"]
+    [WhiteElo "?"]
+    [BlackElo "?"]
+    [PlyCount "82"]
+
+    1. Nf3 Nf6 2. c4 g6 3. Nc3 Bg7 4. d4 O-O 5. Bf4 d5 6. Qb3 dxc4 7. Qxc4 c6 8. e4 Nbd7 9. Rd1 Nb6 10. Qc5 Bg4 11. Bg5 Na4 12. Qa3 Nxc3 13. bxc3 Nxe4 14. Bxe7 Qb6 15. Bc4 Nxc3 16. Bc5 Rfe8+ 17. Kf1 Be6 18. Bxb6 Bxc4+ 19. Kg1 Ne2+ 20. Kf1 Nxd4+ 21. Kg1 Ne2+ 22. Kf1 Nc3+ 23. Kg1 axb6 24. Qb4 Ra4 25. Qxb6 Nxd1 26. h3 Rxa2 27. Kh2 Nxf2 28. Re1 Rxe1 29. Qd8+ Bf8 30. Nxe1 Bd5 31. Nf3 Ne4 32. Qb8 b5 33. h4 h5 34. Ne5 Kg7 35. Kg1 Bc5+ 36. Kf1 Ng3+ 37. Ke1 Bb4+ 38. Kd1 Bb3+ 39. Kc1 Ne2+ 40. Kb1 Nc3+ 41. Kc1 Rc2# 0-1
+    """
+
+    # Analyze the game
+    results = analyze_pgn(sample_pgn, stockfish_depth=12)
+
+    # You can now do further processing with the results if needed
+    # For example, find the biggest blunder for White
+    if results:
+        print("\n--- Example: Finding the biggest blunder ---")
+        # A blunder is a large negative change in evaluation
+        # Let's find White's biggest drop in evaluation
+        last_eval = 0.0 # Start with an even position
+        white_blunder = {"move": None, "drop": 0}
+
+        for i, res in enumerate(results):
+            # Check only White's moves (even indices: 0, 2, 4...)
+            if i % 2 == 0:
+                current_eval = res['evaluation'].get('value', 0) if res['evaluation']['type'] == 'cp' else 9999
+                
+                # Evaluation is always from the current player's perspective.
+                # After White moves, the eval is for Black. So we flip the sign.
+                eval_from_whites_pov = -current_eval 
+                
+                drop = last_eval - eval_from_whites_pov
+                
+                if drop > white_blunder['drop']:
+                    white_blunder['drop'] = drop
+                    white_blunder['move'] = f"{res['move_number']}. {res['move']}"
+
+                last_eval = eval_from_whites_pov
+        
+        print(f"White's biggest blunder was around move: {white_blunder['move']}")
+        print(f"Which caused a drop of ~{white_blunder['drop']/100:.2f} pawns.")

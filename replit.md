@@ -140,6 +140,8 @@ Changelog:
 - June 26, 2025. Removed duplicate "Game Moves:" sections from UI, cleaning up the interface for better user experience
 - June 26, 2025. Fixed game analysis failures by removing duplicate /api/analyze/game endpoints that were causing conflicts
 - June 26, 2025. Verified complete game analysis system working correctly with authentic Stockfish evaluations and proper error handling
+- June 26, 2025. Integrated improved Python Stockfish analyzer with better error handling, JSON output, and enhanced evaluation accuracy
+- June 26, 2025. Added stockfish Python package for direct Stockfish engine integration with configurable depth and threading
 
 ## User Preferences
 

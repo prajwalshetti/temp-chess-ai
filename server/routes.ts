@@ -409,10 +409,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Analyzing complete game: ${gameId}`);
 
-      // Use Python chess analyzer for authentic Stockfish evaluation
-      const pythonScript = path.join(__dirname, 'chess_analyzer.py');
+      // Use improved Python Stockfish analyzer
+      const pythonScript = path.join(__dirname, 'stockfish_analyzer_improved.py');
       
-      const child = spawn('python3', [pythonScript, '--mode', 'accurate'], {
+      const child = spawn('python3', [pythonScript, '--depth', '15', '--format', 'json'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
@@ -441,33 +441,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ message: `Analysis failed: ${errorOutput}` });
         }
         
-        // Parse the output to extract move-by-move evaluations
-        const moveEvaluations = [];
-        const lines = output.split('\n');
-        
-        for (const line of lines) {
-          const moveMatch = line.match(/Move (\d+):\s*(.+?)\s*Eval:\s*([-+]?\d*\.?\d+)/);
-          if (moveMatch) {
-            const moveNumber = parseInt(moveMatch[1]);
-            const move = moveMatch[2].trim();
-            const evaluation = parseFloat(moveMatch[3]);
-            
-            moveEvaluations.push({
-              moveNumber,
-              move,
-              evaluation: Math.round(evaluation * 100), // Convert to centipawns
-              evaluationFloat: evaluation
-            });
+        try {
+          // Parse JSON output from improved analyzer
+          const analysisResult = JSON.parse(output.trim());
+          
+          if (!analysisResult.success) {
+            return res.status(500).json({ message: "Analysis failed - invalid result" });
           }
+          
+          res.json({
+            gameId,
+            pgn,
+            moveEvaluations: analysisResult.moveEvaluations,
+            totalMoves: analysisResult.totalMoves,
+            rawOutput: errorOutput.trim() // Analysis log goes to stderr
+          });
+        } catch (parseError) {
+          console.error("Failed to parse analysis result:", parseError);
+          console.error("Raw output:", output);
+          res.status(500).json({ message: "Failed to parse analysis result" });
         }
-        
-        res.json({
-          gameId,
-          pgn,
-          moveEvaluations,
-          rawOutput: output.trim(),
-          totalMoves: moveEvaluations.length
-        });
       });
       
       child.on('error', (error: Error) => {
