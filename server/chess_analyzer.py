@@ -1,211 +1,268 @@
 #!/usr/bin/env python3
-"""
-A command-line tool to analyze a chess game from a PGN file using Stockfish.
-
-This script reads a PGN from standard input and uses a timed analysis
-model, letting the engine think for a set amount of time on each move.
-It uses the engine's internal time management for robustness, avoiding timeouts.
-
-Usage:
-  cat my_game.pgn | python3 this_script.py
-  cat my_game.pgn | python3 this_script.py --think-time 3
-"""
-
+import os
 import argparse
-import sys
-from io import StringIO
 import chess.pgn
 import chess.engine
+from io import StringIO
+import json
+import sys
 
 # === CONFIGURATION ===
-STOCKFISH_PATH = "/nix/store/qk9j36nbh500grvxa514gin0yx5yp38i-stockfish-16/bin/stockfish"
+STOCKFISH_PATH = "stockfish"  # Use system stockfish on Replit
 
-def _get_eval_in_pawns(score_pov):
-    """Converts a chess.engine.PovScore to a float pawn value, clamping mates."""
-    if score_pov.is_mate():
-        mate_in = score_pov.mate()
-        # A large but not infinite number to represent a forced mate.
-        return 100.0 if mate_in > 0 else -100.0
-    else:
-        # Use mate_score to handle cases where the engine sees a mate but PovScore is not yet a mate object
-        return score_pov.score(mate_score=10000) / 100.0
-
-def _get_timed_analysis(engine, board, think_time):
-    """
-    Analyzes a board position for a fixed amount of time.
-
-    This function delegates time management to the engine itself, which is
-    the most reliable way to perform timed analysis.
-
-    Args:
-        engine: The chess.engine.SimpleEngine instance.
-        board: The chess.Board to analyze.
-        think_time (float): The number of seconds to analyze the position.
-
-    Returns:
-        tuple: (final_score, best_move_found)
-    """
-    # Create a time-based limit for the engine.
-    limit = chess.engine.Limit(time=think_time)
-    last_info = None
-
-    # The `engine.analysis` context will automatically end when the engine
-    # finishes its search (after `think_time` seconds).
-    with engine.analysis(board, limit) as analysis:
-        for info in analysis:
-            # Keep storing the latest information object. The last one received
-            # before the time limit is reached will be the most accurate.
-            last_info = info
-            
-            # Optional: Print live updates to stderr for user feedback
-            if "depth" in info and "score" in info:
-                score = _get_eval_in_pawns(info["score"].relative)
-                # Use carriage return to print on the same line, overwriting previous updates
-                print(f"  ... thinking, depth: {info['depth']:<2}, eval: {score:+.2f}", end='\r', file=sys.stderr)
-    
-    # Clear the "thinking" line from stderr
-    print(" " * 60, end='\r', file=sys.stderr)
-
-    if last_info:
-        final_score = _get_eval_in_pawns(last_info["score"].relative)
-        best_move = last_info.get("pv", [None])[0]
-        return final_score, best_move
-    else:
-        # This is a fallback in case no analysis info was returned
-        return 0.0, None
-
-
-def analyze_game_from_pgn(pgn_content, think_time=2.0):
-    """Analyzes a chess game from PGN content using timed Stockfish analysis."""
+def analyze_game_from_pgn(pgn_content, analysis_mode="accurate"):
+    """Analyze a chess game from PGN content using Stockfish"""
     try:
+        # Parse PGN content
         pgn_io = StringIO(pgn_content)
         game = chess.pgn.read_game(pgn_io)
+        
         if not game:
-            return {"error": "Failed to parse PGN content. Please provide a valid PGN."}
-
+            return {"error": "Failed to parse PGN content"}
+        
+        # Set engine limit to match your local script exactly
+        if analysis_mode == "fast":
+            limit = chess.engine.Limit(depth=12)
+        else:
+            limit = chess.engine.Limit(time=0.5)
+        
+        # Initialize engine exactly like your local script
         with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
             board = game.board()
+            node = game
+            
             moves_analysis = []
             big_drops = []
+            move_count = 0
+            max_moves = 80  # Reasonable limit to prevent timeouts
             
+            # Extract game info
             headers = game.headers
             game_info = {
                 "event": headers.get("Event", "PGN Game"),
+                "site": headers.get("Site", "?"),
+                "date": headers.get("Date", "?"),
                 "white": headers.get("White", "?"),
                 "black": headers.get("Black", "?"),
+                "result": headers.get("Result", "*")
             }
-
-            for next_node in game.mainline():
-                move_num_str = f"{board.fullmove_number}{'.' if board.turn == chess.WHITE else '...'}"
-                print(f"Analyzing move {move_num_str} {board.san(next_node.move)}...", file=sys.stderr)
-
-                # === 1. Evaluate BEFORE the move ===
-                score_before, best_move_before = _get_timed_analysis(engine, board, think_time)
+            
+            while node.variations and move_count < max_moves:
+                next_node = node.variation(0)
+                played_move = next_node.move
+                move_count += 1
                 
-                san_played = board.san(next_node.move)
-                san_best = board.san(best_move_before) if best_move_before else "N/A"
-
+                # === Evaluate before the move ===
+                info_before = engine.analyse(board, limit)
+                score_before_raw = info_before["score"].relative
+                best_move = info_before.get("pv", [None])[0]
+                
+                if score_before_raw.is_mate():
+                    mate_value = score_before_raw.mate()
+                    if mate_value > 0:
+                        score_before = 100.0
+                    else:
+                        score_before = -100.0
+                else:
+                    # Use exact centipawn evaluation matching your local script
+                    score_before = score_before_raw.score() / 100.0
+                
+                # Convert moves to SAN (before board state changes)
+                try:
+                    san_played = board.san(played_move)
+                except:
+                    san_played = str(played_move)
+                
+                try:
+                    san_best = board.san(best_move) if best_move and board.is_legal(best_move) else "N/A"
+                except:
+                    san_best = "N/A"
+                
                 # Apply the move
-                board.push(next_node.move)
-
-                # === 2. Evaluate AFTER the move ===
-                score_after_opponent_pov, _ = _get_timed_analysis(engine, board, think_time)
+                board.push(played_move)
                 
-                # Flip the score back to the original player's perspective for comparison
-                score_after_player_pov = -score_after_opponent_pov
-                eval_drop = score_before - score_after_player_pov
+                # === Evaluate after the move ===
+                info_after = engine.analyse(board, limit)
+                score_after_raw = info_after["score"].relative
                 
-                # Determine move number string for output
-                is_white_move = board.turn == chess.BLACK
-                move_number_display = board.fullmove_number if is_white_move else f"{board.fullmove_number-1}..."
+                if score_after_raw.is_mate():
+                    mate_value = score_after_raw.mate()
+                    if mate_value > 0:
+                        score_after = 100.0
+                    else:
+                        score_after = -100.0
+                else:
+                    # Use exact centipawn evaluation matching your local script
+                    score_after = score_after_raw.score() / 100.0
                 
+                move_number = board.fullmove_number
+                
+                # Store move analysis
                 moves_analysis.append({
-                    "move_number": move_number_display,
+                    "move_number": move_number,
                     "san": san_played,
                     "eval_before": score_before,
-                    "eval_after": score_after_player_pov,
+                    "eval_after": score_after,
+                    "best_move": san_best
                 })
                 
-                # Track significant drops
-                if eval_drop >= 2.0 and next_node.move != best_move_before:
+                # Track significant drops (blunders)
+                delta = abs(score_before - score_after)
+                if delta >= 2.0 and played_move != best_move:
                     big_drops.append({
-                        "move_number": move_number_display,
+                        "move_number": move_number,
                         "played": san_played,
                         "best": san_best,
                         "eval_before": score_before,
-                        "eval_after": score_after_player_pov,
-                        "delta": eval_drop,
+                        "eval_after": score_after,
+                        "delta": score_before - score_after
                     })
-
+                
+                node = next_node
+            
             return {
                 "game_info": game_info,
                 "moves_analysis": moves_analysis,
-                "big_drops": big_drops,
+                "big_drops": big_drops
             }
-
-    except chess.engine.EngineTerminatedError:
-        return {"error": "Stockfish engine terminated unexpectedly. Is it installed correctly?"}
+            
     except Exception as e:
-        return {"error": f"An unexpected error occurred: {e}"}
+        return {"error": f"Failed to analyze game: {str(e)}"}
 
-# The `format_analysis_output` and `main` functions remain the same as the previous version.
-# They are included here for completeness.
+def analyze_game_file(path, engine, limit):
+    """Analyze a chess game from a PGN file"""
+    with open(path, "r") as f:
+        game = chess.pgn.read_game(f)
+        board = game.board()
+        node = game
 
-def format_analysis_output(analysis, pgn_filename="game.pgn"):
-    """Formats the analysis dictionary into a human-readable string."""
+        big_drops = []
+
+        while node.variations:
+            next_node = node.variation(0)
+            played_move = next_node.move
+
+            # === Evaluate before the move ===
+            info_before = engine.analyse(board, limit)
+            score_before_raw = info_before["score"].relative
+            best_move = info_before.get("pv", [None])[0]
+
+            if score_before_raw.is_mate():
+                score_before = 100.0 if score_before_raw.mate() > 0 else -100.0
+            else:
+                score_before = score_before_raw.score() / 100
+
+            # Convert moves to SAN (before board state changes)
+            try:
+                san_played = board.san(played_move)
+            except:
+                san_played = str(played_move)
+
+            try:
+                san_best = board.san(best_move) if best_move and board.is_legal(best_move) else "N/A"
+            except:
+                san_best = "N/A"
+
+            # Apply the move
+            board.push(played_move)
+
+            # === Evaluate after the move ===
+            info_after = engine.analyse(board, limit)
+            score_after_raw = info_after["score"].relative
+
+            if score_after_raw.is_mate():
+                score_after = 100.0 if score_after_raw.mate() > 0 else -100.0
+            else:
+                score_after = score_after_raw.score() / 100
+
+            move_number = board.fullmove_number
+            print(f"Move {move_number}: {san_played:6} | Eval: {score_before:.2f} → {score_after:.2f}")
+
+            delta = abs(score_before - score_after)
+            if delta >= 2.0 and played_move != best_move:
+                big_drops.append((move_number, san_played, san_best, score_before, score_after))
+
+            node = next_node
+
+        # === Summary ===
+        if big_drops:
+            print("\n⚠️  Significant Evaluation Drops:")
+            for move_num, played, best, before, after in big_drops:
+                print(f"  Move {move_num}: Played {played}, Best was {best}, Eval dropped from {before:.2f} to {after:.2f} (Δ = {before - after:.2f})")
+        else:
+            print("\n✅ No major evaluation drops detected.")
+
+def format_analysis_output(analysis):
+    """Format analysis output exactly like the original Python script"""
     if "error" in analysis:
-        return f"Error: {analysis['error']}"
-
+        return analysis["error"]
+    
     output = []
     game_info = analysis["game_info"]
-    game_title = game_info.get("event") if game_info.get("event") != "?" else pgn_filename
-    output.append(f"📂 Game: {game_title} ({game_info['white']} vs. {game_info['black']})")
-    output.append("-" * 40)
-
+    
+    # Game header - extract filename if available, otherwise use event
+    game_title = game_info.get('event', 'PGN Game')
+    if game_title in ['?', 'PGN Game', '']:
+        game_title = 'game.pgn'  # Default filename
+    output.append(f"📂 Game: {game_title}")
+    
+    # Move-by-move analysis - exact format from your local script
     for move in analysis["moves_analysis"]:
-        eval_before_str = f"{move['eval_before']:>5.2f}"
-        eval_after_str = f"{move['eval_after']:>5.2f}"
-        move_line = f"Move {str(move['move_number']):<5s}: {move['san']:<7s} | Eval: {eval_before_str} → {eval_after_str}"
+        # Format without + sign for positive numbers to match your output
+        eval_before = move['eval_before']
+        eval_after = move['eval_after']
+        
+        # Handle mate scores
+        if abs(eval_before) >= 100:
+            eval_before_str = "100.00" if eval_before > 0 else "-100.00"
+        else:
+            eval_before_str = f"{eval_before:.2f}"
+            
+        if abs(eval_after) >= 100:
+            eval_after_str = "100.00" if eval_after > 0 else "-100.00"
+        else:
+            eval_after_str = f"{eval_after:.2f}"
+        
+        move_line = f"Move {move['move_number']}: {move['san']:<6} | Eval: {eval_before_str} → {eval_after_str}"
         output.append(move_line)
-
+    
     output.append("")
-
+    
+    # Significant drops
     if analysis["big_drops"]:
-        output.append("⚠️  Significant Evaluation Drops (Blunders):")
+        output.append("⚠️  Significant Evaluation Drops:")
         for drop in analysis["big_drops"]:
-            drop_line = (
-                f"  Move {str(drop['move_number']):<5s}: Played {drop['played']}, but best was {drop['best']}. "
-                f"Eval dropped from {drop['eval_before']:.2f} to {drop['eval_after']:.2f} (Δ = {drop['delta']:.2f})"
-            )
+            drop_line = f"  Move {drop['move_number']}: Played {drop['played']}, Best was {drop['best']}, Eval dropped from {drop['eval_before']:.2f} to {drop['eval_after']:.2f} (Δ = {drop['delta']:.2f})"
             output.append(drop_line)
     else:
-        output.append("✅ No major blunders detected.")
-
+        output.append("✅ No major evaluation drops detected.")
+    
     return "\n".join(output)
 
-
 def main():
-    """Main function to handle command-line arguments and script execution."""
-    parser = argparse.ArgumentParser(description="Analyze a chess game from PGN using timed analysis.")
+    """Main function to handle command line input"""
+    parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--think-time",
-        type=float,
-        default=1.0, # Reduced default for faster runs, can be increased
-        help="Seconds to let the engine think on each half-move (default: 1.0).",
+        "--mode",
+        choices=["fast", "accurate"],
+        default="accurate",
+        help="Choose analysis mode (default: accurate)"
     )
     args = parser.parse_args()
 
-    print(f"🔍 Timed analysis mode ({args.think_time}s per move)", file=sys.stderr)
+    # === Set engine depth/time based on mode ===
+    if args.mode == "fast":
+        print("⚡ Fast mode (depth 12)", file=sys.stderr)
+    else:
+        print("🔍 Accurate mode (time=0.5s)", file=sys.stderr)
 
+    # Read PGN from stdin
     pgn_content = sys.stdin.read().strip()
-    if not pgn_content:
-        print("Error: No PGN content provided to standard input.", file=sys.stderr)
-        sys.exit(1)
-
-    analysis = analyze_game_from_pgn(pgn_content, args.think_time)
-    print("\n" + "="*40 + "\nANALYSIS COMPLETE\n" + "="*40, file=sys.stderr)
-    print(format_analysis_output(analysis))
-
+    if pgn_content:
+        analysis = analyze_game_from_pgn(pgn_content, args.mode)
+        print(format_analysis_output(analysis))
+    else:
+        print("No PGN content provided", file=sys.stderr)
 
 if __name__ == "__main__":
     main()

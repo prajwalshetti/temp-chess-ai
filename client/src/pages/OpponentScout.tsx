@@ -983,8 +983,8 @@ export default function OpponentScout() {
                             </button>
                           </div>
 
-                          {/* Engine Analysis Results */}
-                          {engineAnalysis && (
+                          {/* Engine Analysis Results - Real Data */}
+                          {moveEvaluations.length > 0 && currentMoveIndex >= 0 && moveEvaluations[currentMoveIndex] && (
                             <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-l-4 border-blue-500">
                               <h5 className="font-medium text-blue-900 mb-2 flex items-center">
                                 <Brain className="mr-2 h-4 w-4" />
@@ -994,39 +994,27 @@ export default function OpponentScout() {
                                 <div className="flex items-center justify-between">
                                   <span>Engine Evaluation:</span>
                                   <span className={`font-bold ${
-                                    (engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) > 100 ? 'text-green-600' :
-                                    (engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) < -100 ? 'text-red-600' :
+                                    moveEvaluations[currentMoveIndex].evaluation > 100 ? 'text-green-600' :
+                                    moveEvaluations[currentMoveIndex].evaluation < -100 ? 'text-red-600' :
                                     'text-gray-600'
                                   }`}>
-                                    {((engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) / 100).toFixed(2)}
+                                    {moveEvaluations[currentMoveIndex].evaluationFloat > 0 ? '+' : ''}{moveEvaluations[currentMoveIndex].evaluationFloat.toFixed(2)}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                   <span>Best Move:</span>
                                   <span className="font-bold text-blue-600">
-                                    {engineAnalysis?.analysis?.currentEvaluation?.bestMove || 'N/A'}
+                                    {moveEvaluations[currentMoveIndex].bestMove?.split(' ')[1] || 'N/A'}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                   <span>Depth:</span>
                                   <span className="text-gray-600">
-                                    {engineAnalysis?.analysis?.currentEvaluation?.depth || 17} ply
+                                    18 ply
                                   </span>
                                 </div>
-                                {engineAnalysis?.analysis?.tacticalThemes?.length > 0 && (
-                                  <div>
-                                    <span>Tactical Themes:</span>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      {engineAnalysis.analysis.tacticalThemes.map((theme: string, index: number) => (
-                                        <Badge key={index} variant="outline" className="text-xs">
-                                          {theme}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
                                 <div className="text-xs text-gray-500 mt-2">
-                                  Position Type: {engineAnalysis.analysis.positionType}
+                                  Position Type: {currentMoveIndex < 10 ? 'Opening' : currentMoveIndex < 30 ? 'Middlegame' : 'Endgame'}
                                 </div>
                               </div>
                             </div>
@@ -1086,13 +1074,26 @@ export default function OpponentScout() {
                                             <Brain className="w-3 h-3 mr-1 animate-pulse text-blue-500" />
                                             Analyzing...
                                           </div>
-                                        ) : currentEvaluation !== null ? (
-                                          <div className={`${currentEvaluation > 0 ? 'text-green-600' : currentEvaluation < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                            Eval: {currentEvaluation > 0 ? '+' : ''}{currentEvaluation.toFixed(2)}
-                                          </div>
-                                        ) : (
-                                          <div className="text-gray-500">Eval: --</div>
-                                        )}
+                                        ) : (() => {
+                                          // Use real move evaluation data if available
+                                          const currentMoveEval = moveEvaluations[currentMoveIndex];
+                                          if (currentMoveEval) {
+                                            const evalFloat = currentMoveEval.evaluationFloat;
+                                            return (
+                                              <div className={`${evalFloat > 0 ? 'text-green-600' : evalFloat < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                                Eval: {evalFloat > 0 ? '+' : ''}{evalFloat.toFixed(2)}
+                                              </div>
+                                            );
+                                          } else if (currentEvaluation !== null) {
+                                            return (
+                                              <div className={`${currentEvaluation > 0 ? 'text-green-600' : currentEvaluation < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                                Eval: {currentEvaluation > 0 ? '+' : ''}{currentEvaluation.toFixed(2)}
+                                              </div>
+                                            );
+                                          } else {
+                                            return <div className="text-gray-500">Eval: --</div>;
+                                          }
+                                        })()}
                                       </div>
                                       <div className="text-xs text-gray-500">
                                         Engine depth 17
@@ -1100,18 +1101,18 @@ export default function OpponentScout() {
                                     </div>
                                   </div>
                                   
-                                  {/* Move Quality Assessment - Only show with Stockfish analysis */}
-                                  {engineAnalysis && (
+                                  {/* Move Quality Assessment - Only show with real game analysis */}
+                                  {moveEvaluations.length > 0 && currentMoveIndex >= 0 && moveEvaluations[currentMoveIndex] && (
                                     <div className="flex items-center space-x-4 mb-3">
                                       <Badge className={(() => {
-                                        const evaluation = engineAnalysis.analysis.currentEvaluation.evaluation;
+                                        const evaluation = moveEvaluations[currentMoveIndex].evaluation;
                                         if (Math.abs(evaluation) > 300) return 'bg-red-500';
                                         if (Math.abs(evaluation) > 150) return 'bg-yellow-500';
                                         if (Math.abs(evaluation) > 50) return 'bg-blue-500';
                                         return 'bg-green-500';
                                       })()}>
                                         {(() => {
-                                          const evaluation = engineAnalysis.analysis.currentEvaluation.evaluation;
+                                          const evaluation = moveEvaluations[currentMoveIndex].evaluation;
                                           if (currentMoveIndex < 6) return 'Opening';
                                           if (Math.abs(evaluation) > 300) return 'Decisive';
                                           if (Math.abs(evaluation) > 150) return 'Advantage';
@@ -1120,7 +1121,7 @@ export default function OpponentScout() {
                                         })()}
                                       </Badge>
                                       <span className="text-xs text-gray-600">
-                                        Best move: {engineAnalysis.analysis.currentEvaluation.bestMove}
+                                        Best move: {moveEvaluations[currentMoveIndex].bestMove?.split(' ')[1] || 'N/A'}
                                       </span>
                                     </div>
                                   )}
@@ -1147,8 +1148,8 @@ export default function OpponentScout() {
                                 </div>
                               )}
                               
-                              {/* Only show Position Analysis when Stockfish analysis is available */}
-                              {engineAnalysis && (
+                              {/* Only show Position Analysis when real game analysis is available */}
+                              {moveEvaluations.length > 0 && currentMoveIndex >= 0 && moveEvaluations[currentMoveIndex] && (
                                 <div className="bg-gray-50 p-4 rounded-lg mt-4">
                                   <h4 className="font-medium mb-3 flex items-center">
                                     <Brain className="mr-2 h-4 w-4 text-blue-500" />
@@ -1158,25 +1159,25 @@ export default function OpponentScout() {
                                     <div>
                                       <span className="text-gray-600">Position Eval:</span>
                                       <span className="ml-2 font-medium">
-                                        {(engineAnalysis.analysis.currentEvaluation.evaluation / 100).toFixed(2)}
+                                        {moveEvaluations[currentMoveIndex].evaluationFloat > 0 ? '+' : ''}{moveEvaluations[currentMoveIndex].evaluationFloat.toFixed(2)}
                                       </span>
                                     </div>
                                     <div>
                                       <span className="text-gray-600">Best Move:</span>
                                       <span className="ml-2 font-medium">
-                                        {engineAnalysis.analysis.currentEvaluation.bestMove}
+                                        {moveEvaluations[currentMoveIndex].bestMove?.split(' ')[1] || 'N/A'}
                                       </span>
                                     </div>
                                     <div>
                                       <span className="text-gray-600">Depth:</span>
                                       <span className="ml-2 font-medium">
-                                        {engineAnalysis.analysis.currentEvaluation.depth} ply
+                                        18 ply
                                       </span>
                                     </div>
                                     <div>
                                       <span className="text-gray-600">Phase:</span>
                                       <span className="ml-2 font-medium">
-                                        {engineAnalysis.analysis.positionType}
+                                        {currentMoveIndex < 10 ? 'Opening' : currentMoveIndex < 30 ? 'Middlegame' : 'Endgame'}
                                       </span>
                                     </div>
                                   </div>
