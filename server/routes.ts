@@ -473,77 +473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Game analysis using Python-based chess analyzer (matching your Python code)
-  app.post("/api/analyze/game", async (req, res) => {
-    try {
-      const { pgn, mode = "accurate" } = req.body;
-      
-      if (!pgn) {
-        return res.status(400).json({ message: "PGN is required" });
-      }
 
-      console.log("Received PGN:", JSON.stringify(pgn));
-
-      // Use proper subprocess with timeout handling
-      const pythonScript = path.join(__dirname, 'chess_analyzer.py');
-      
-      const child = spawn('python3', [pythonScript, '--mode', mode], {
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-      
-      let output = '';
-      let errorOutput = '';
-      let isResponseSent = false;
-      
-      // Send PGN to Python script via stdin
-      child.stdin.write(pgn);
-      child.stdin.end();
-      
-      child.stdout.on('data', (data: Buffer) => {
-        output += data.toString();
-      });
-      
-      child.stderr.on('data', (data: Buffer) => {
-        errorOutput += data.toString();
-      });
-      
-      child.on('close', (code: number) => {
-        if (isResponseSent) return;
-        isResponseSent = true;
-        
-        if (code !== 0) {
-          console.error("Python script error:", errorOutput);
-          return res.status(500).json({ message: `Analysis failed: ${errorOutput}` });
-        }
-        
-        // Return formatted output like your Python script
-        res.type('text/plain').send(output.trim());
-      });
-      
-      child.on('error', (error: Error) => {
-        if (isResponseSent) return;
-        isResponseSent = true;
-        console.error("Python process error:", error);
-        res.status(500).json({ message: `Process error: ${error.message}` });
-      });
-      
-      // Set timeout for analysis (2 minutes for complex games)
-      const timeout = setTimeout(() => {
-        if (isResponseSent) return;
-        isResponseSent = true;
-        child.kill('SIGTERM');
-        res.status(408).json({ message: "Analysis timeout - game too complex for current time limit" });
-      }, 120000); // 2 minute timeout
-      
-      // Clear timeout when response is sent
-      child.on('close', () => clearTimeout(timeout));
-      
-    } catch (error) {
-      console.error("Error analyzing game:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to analyze game";
-      res.status(500).json({ message: errorMessage });
-    }
-  });
 
   // Additional endpoint for detailed summary
   app.post("/api/analyze/game/summary", async (req, res) => {
