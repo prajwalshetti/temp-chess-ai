@@ -91,21 +91,31 @@ export class StockfishApiEngine {
             // This is a header line - check if there's move content after the closing bracket
             const closingBracket = trimmedLine.lastIndexOf(']');
             if (closingBracket !== -1 && closingBracket < trimmedLine.length - 1) {
-              const afterHeader = trimmedLine.substring(closingBracket + 1).trim();
+              let afterHeader = trimmedLine.substring(closingBracket + 1).trim();
               console.log('Found content after header:', afterHeader);
-              if (afterHeader && !afterHeader.includes('*') && !afterHeader.includes('1-0') && !afterHeader.includes('0-1') && !afterHeader.includes('1/2-1/2')) {
+              
+              // Remove game result from the end while preserving moves
+              console.log('Before removing result:', afterHeader);
+              afterHeader = afterHeader.replace(/\s+(1-0|0-1|1\/2-1\/2|\*)$/, '');
+              console.log('After removing result:', afterHeader);
+              
+              if (afterHeader) {
                 moveLines.push(afterHeader);
                 console.log('Added to moveLines:', afterHeader);
               }
             }
-          } else if (trimmedLine && !trimmedLine.includes('*') && !trimmedLine.includes('1-0') && !trimmedLine.includes('0-1') && !trimmedLine.includes('1/2-1/2')) {
-            // Regular move line
-            moveLines.push(trimmedLine);
-            console.log('Added regular line to moveLines:', trimmedLine);
+          } else if (trimmedLine) {
+            // Regular move line - clean up result markers
+            let cleanedLine = trimmedLine.replace(/\s+(1-0|0-1|1\/2-1\/2|\*)$/, '');
+            if (cleanedLine) {
+              moveLines.push(cleanedLine);
+              console.log('Added regular line to moveLines:', cleanedLine);
+            }
           }
         }
         
         // Extract individual moves from the move lines
+        console.log('Final moveLines array:', moveLines);
         const movesText = moveLines.join(' ');
         console.log('Moves text to extract from:', movesText);
         
