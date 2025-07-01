@@ -30,11 +30,10 @@ EduChessClub is a comprehensive chess analysis platform designed for tournament 
 ## Key Components
 
 ### Chess Engine Integration
-- **Primary Engine**: Stockfish.online API for reliable cloud-based analysis
-- **API Endpoint**: https://stockfish.online/api/s/v2.php for position evaluation
-- **Analysis Features**: Position evaluation, best move suggestions, mate detection
-- **Performance**: 15-ply depth analysis with 500ms rate limiting for API compliance
-- **Advantages**: No local dependencies, consistent performance, authentic Stockfish results
+- **Primary Engine**: Stockfish integration for position analysis
+- **Fallback Analysis**: Custom evaluation algorithms when Stockfish unavailable
+- **Analysis Features**: Position evaluation, best move suggestions, tactical pattern recognition
+- **Performance**: Configurable depth analysis (default 15 ply)
 
 ### External API Integrations
 - **Lichess API**: Game import, player statistics, tournament data retrieval
@@ -139,12 +138,6 @@ Changelog:
 - June 26, 2025. Fixed 0.00 evaluation issue by implementing complete game analysis instead of position-by-position analysis, now shows authentic Stockfish evaluations like +0.30, -0.44, +0.38
 - June 26, 2025. Updated both OpponentScout and GamesDatabase navigation systems to use stored move evaluations for instant display when navigating through moves
 - June 26, 2025. Removed duplicate "Game Moves:" sections from UI, cleaning up the interface for better user experience
-- June 27, 2025. Replaced Python-based Stockfish analysis with Stockfish.online API for better reliability and performance
-- June 27, 2025. Implemented cloud-based chess analysis using https://stockfish.online/api/s/v2.php with 15-ply depth and proper rate limiting
-- June 27, 2025. Eliminated local dependencies and subprocess complexity by migrating to external API, improving system stability and deployment simplicity
-- June 27, 2025. Fixed PGN parsing issue that was causing game analysis failures - corrected Lichess PGN format generation to properly separate headers and moves
-- June 27, 2025. Added comprehensive error handling, timeout management, and move limit (30 moves) to prevent excessive API calls and ensure reliable analysis
-- July 1, 2025. Identified critical reliability issue with Stockfish.online API - service returning "unsuccessful response" for all requests regardless of retry logic, depth, or rate limiting
 
 ## User Preferences
 

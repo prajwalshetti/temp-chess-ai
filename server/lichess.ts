@@ -272,7 +272,7 @@ export class LichessService {
     const result = game.winner === 'white' ? '1-0' : 
                   game.winner === 'black' ? '0-1' : '1/2-1/2';
     
-    return headers.join('\n') + '\n' + formattedMoves.join(' ') + ' ' + result;
+    return headers.join('\n') + formattedMoves.join(' ') + ' ' + result;
   }
 }
 
