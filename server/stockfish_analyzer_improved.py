@@ -73,6 +73,11 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
         elif evaluation and evaluation['type'] == 'mate':
             eval_float = 10.0 if evaluation['value'] > 0 else -10.0
         
+        # Convert evaluation to White's perspective (like Lichess)
+        # If it's Black's turn, negate the evaluation to show from White's perspective
+        if not board.turn:  # board.turn is False when it's Black's turn
+            eval_float = -eval_float
+        
         # Format the output for our system
         move_str = f"{san_move:6} |"
         print(f"Move {move_number}: {move_str} Eval: {eval_float:+.2f}", file=sys.stderr)

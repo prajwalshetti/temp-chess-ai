@@ -146,6 +146,7 @@ Changelog:
 - June 26, 2025. Increased API timeout to 10 minutes to accommodate deep analysis with 3-second thinking time per position
 - June 26, 2025. Optimized Stockfish settings to depth 20 with 1.5-second thinking time and 4 threads to prevent timeouts while maintaining strong analysis quality
 - July 1, 2025. Fixed evaluation display inconsistency between OpponentScout and GamesDatabase pages - both now show consistent decimal format (e.g., -2.52 instead of mixed centipawn/decimal values)
+- July 1, 2025. Fixed evaluation perspective to match Lichess standard - all evaluations now displayed from White's perspective for consistency with industry standards
 
 ## User Preferences
 
