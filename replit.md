@@ -143,6 +143,8 @@ Changelog:
 - December 27, 2025. Verified complete system integration - game analysis now returns properly structured moveEvaluations array for instant frontend navigation
 - December 27, 2025. Upgraded to continuous analysis approach replacing 5-second per move with configurable think-time for optimal engine performance
 - December 27, 2025. Implemented live depth feedback during analysis with real-time engine progress updates for better user experience
+- December 27, 2025. Resolved timeout issues by implementing engine-managed time limits - analysis now completes in 6-10 seconds instead of timing out
+- December 27, 2025. Optimized think-time parameters (1.5s for games, 1.0s for positions) for balance between accuracy and performance
 
 ## User Preferences
 
