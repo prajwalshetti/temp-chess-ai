@@ -470,13 +470,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ message: `Process error: ${error.message}` });
       });
       
-      // Set longer timeout for deep analysis (5 minutes for depth 30 with 5-second thinking time)
+      // Set extended timeout for deep analysis (10 minutes for depth 20 with 3-second thinking time)
       const timeout = setTimeout(() => {
         if (isResponseSent) return;
         isResponseSent = true;
         child.kill('SIGTERM');
         res.status(408).json({ message: "Game analysis timeout" });
-      }, 300000);
+      }, 600000);
       
       child.on('close', () => clearTimeout(timeout));
       
