@@ -73,19 +73,35 @@ export class StockfishApiEngine {
         chess.loadPgn(pgn);
         gameMoves = chess.history();
         chess.reset();
-        console.log('Successfully parsed PGN with chess.js');
+        console.log('Successfully parsed PGN with chess.js, found moves:', gameMoves.length);
+        console.log('Moves found:', gameMoves);
       } catch (error) {
         console.log('PGN parsing failed, extracting moves manually...');
         
         // Manual move extraction as fallback
         const lines = pgn.split('\n');
         const moveLines = [];
+        console.log('Processing lines:', lines);
         
         for (const line of lines) {
           const trimmedLine = line.trim();
-          // Skip header lines and empty lines
-          if (!trimmedLine.startsWith('[') && trimmedLine && !trimmedLine.includes('*') && !trimmedLine.includes('1-0') && !trimmedLine.includes('0-1') && !trimmedLine.includes('1/2-1/2')) {
+          console.log('Processing line:', trimmedLine);
+          
+          if (trimmedLine.startsWith('[')) {
+            // This is a header line - check if there's move content after the closing bracket
+            const closingBracket = trimmedLine.lastIndexOf(']');
+            if (closingBracket !== -1 && closingBracket < trimmedLine.length - 1) {
+              const afterHeader = trimmedLine.substring(closingBracket + 1).trim();
+              console.log('Found content after header:', afterHeader);
+              if (afterHeader && !afterHeader.includes('*') && !afterHeader.includes('1-0') && !afterHeader.includes('0-1') && !afterHeader.includes('1/2-1/2')) {
+                moveLines.push(afterHeader);
+                console.log('Added to moveLines:', afterHeader);
+              }
+            }
+          } else if (trimmedLine && !trimmedLine.includes('*') && !trimmedLine.includes('1-0') && !trimmedLine.includes('0-1') && !trimmedLine.includes('1/2-1/2')) {
+            // Regular move line
             moveLines.push(trimmedLine);
+            console.log('Added regular line to moveLines:', trimmedLine);
           }
         }
         
