@@ -30,13 +30,25 @@ export class StockfishApiEngine {
   async analyzePosition(fen: string): Promise<StockfishApiAnalysis> {
     try {
       const encodedFen = encodeURIComponent(fen);
-      const response = await fetch(`${this.baseUrl}?fen=${encodedFen}&depth=${this.depth}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(`${this.baseUrl}?fen=${encodedFen}&depth=${this.depth}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`API request failed: ${response.status}`);
       }
 
       const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error('API returned unsuccessful response');
+      }
+      
       return data;
     } catch (error) {
       console.error('Stockfish API error:', error);
@@ -50,8 +62,35 @@ export class StockfishApiEngine {
     const rawOutputLines: string[] = [];
 
     try {
-      // Load the PGN
-      chess.loadPgn(pgn);
+      // Parse PGN to extract just the moves
+      const pgnLines = pgn.split('\n');
+      let movesSection = '';
+      let inMoves = false;
+      
+      for (const line of pgnLines) {
+        const trimmedLine = line.trim();
+        // Skip header lines that start with [
+        if (trimmedLine.startsWith('[')) {
+          continue;
+        }
+        // Skip empty lines
+        if (trimmedLine === '') {
+          inMoves = true;
+          continue;
+        }
+        // Collect move lines
+        if (inMoves && trimmedLine) {
+          movesSection += trimmedLine + ' ';
+        }
+      }
+      
+      // Clean up the moves section
+      movesSection = movesSection.trim();
+      
+      // Load just the moves part
+      if (movesSection) {
+        chess.loadPgn(movesSection);
+      }
       const moves = chess.history();
       
       // Reset to starting position
@@ -63,8 +102,11 @@ export class StockfishApiEngine {
       
       rawOutputLines.push(`📂 Game: ${gameName}`);
 
+      // Limit analysis to first 30 moves to avoid excessive API calls
+      const maxMoves = Math.min(moves.length, 30);
+      
       // Analyze each position after each move
-      for (let i = 0; i < moves.length; i++) {
+      for (let i = 0; i < maxMoves; i++) {
         const move = moves[i];
         
         // Make the move
@@ -72,9 +114,9 @@ export class StockfishApiEngine {
         const currentFen = chess.fen();
         
         try {
-          // Add delay to respect API rate limits
+          // Add delay to respect API rate limits (reduced for better performance)
           if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+            await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
           }
 
           const analysis = await this.analyzePosition(currentFen);
