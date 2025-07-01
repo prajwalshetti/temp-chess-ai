@@ -25,7 +25,7 @@ export interface GameAnalysisResult {
 
 export class StockfishApiEngine {
   private baseUrl = 'https://stockfish.online/api/s/v2.php';
-  private depth = 15;
+  private depth = 22;
 
   async analyzePosition(fen: string): Promise<StockfishApiAnalysis> {
     try {
@@ -160,6 +160,11 @@ export class StockfishApiEngine {
         // Make the move
         chess.move(move);
         const currentFen = chess.fen();
+        
+        // Log position info for debugging (especially around move 29)
+        if (i >= 27 && i <= 30) {
+          console.log(`Move ${i + 1}: ${move} -> FEN: ${currentFen}`);
+        }
         
         try {
           // Add delay to respect API rate limits (reduced for better performance)

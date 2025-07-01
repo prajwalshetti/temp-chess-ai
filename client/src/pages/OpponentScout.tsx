@@ -1010,7 +1010,7 @@ export default function OpponentScout() {
                                 <div className="flex items-center justify-between">
                                   <span>Depth:</span>
                                   <span className="text-gray-600">
-                                    15 ply
+                                    22 ply
                                   </span>
                                 </div>
                                 <div className="text-xs text-gray-500 mt-2">
@@ -1171,7 +1171,7 @@ export default function OpponentScout() {
                                     <div>
                                       <span className="text-gray-600">Depth:</span>
                                       <span className="ml-2 font-medium">
-                                        15 ply
+                                        22 ply
                                       </span>
                                     </div>
                                     <div>
