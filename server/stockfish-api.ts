@@ -25,13 +25,16 @@ export interface GameAnalysisResult {
 
 export class StockfishApiEngine {
   private baseUrl = 'https://stockfish.online/api/s/v2.php';
-  private depth = 22;
+  private depth = 18;
 
-  async analyzePosition(fen: string): Promise<StockfishApiAnalysis> {
+  async analyzePosition(fen: string, retryCount = 0): Promise<StockfishApiAnalysis> {
+    const maxRetries = 2;
+    const baseDelay = 600;
+    
     try {
       const encodedFen = encodeURIComponent(fen);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
       const response = await fetch(`${this.baseUrl}?fen=${encodedFen}&depth=${this.depth}`, {
         signal: controller.signal
@@ -40,18 +43,36 @@ export class StockfishApiEngine {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
+        if (retryCount < maxRetries) {
+          const delay = baseDelay + (retryCount * 200);
+          console.log(`API request failed (${response.status}), retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return this.analyzePosition(fen, retryCount + 1);
+        }
         throw new Error(`API request failed: ${response.status}`);
       }
 
       const data = await response.json();
       
       if (!data.success) {
+        if (retryCount < maxRetries) {
+          const delay = baseDelay + (retryCount * 200);
+          console.log(`API returned unsuccessful, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return this.analyzePosition(fen, retryCount + 1);
+        }
         throw new Error('API returned unsuccessful response');
       }
       
       return data;
     } catch (error) {
-      console.error('Stockfish API error:', error);
+      if (retryCount < maxRetries && !error.message.includes('API request failed:') && !error.message.includes('unsuccessful response')) {
+        const delay = baseDelay + (retryCount * 200);
+        console.log(`Request failed, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries}):`, error.message);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.analyzePosition(fen, retryCount + 1);
+      }
+      console.error('Stockfish API error after retries:', error);
       throw new Error('Failed to analyze position with Stockfish API');
     }
   }
@@ -167,9 +188,9 @@ export class StockfishApiEngine {
         }
         
         try {
-          // Add delay to respect API rate limits (reduced for better performance)
+          // Add delay to respect API rate limits (increased for better reliability)
           if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
+            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
           }
 
           const analysis = await this.analyzePosition(currentFen);
