@@ -29,8 +29,8 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
             "Minimum Thinking Time": 30
         })
     except FileNotFoundError:
-        print(f"ERROR: Stockfish executable not found at '{STOCKFISH_PATH}'")
-        print("Please download Stockfish and update the STOCKFISH_PATH variable in the script.")
+        print(f"ERROR: Stockfish executable not found at '{STOCKFISH_PATH}'", file=sys.stderr)
+        print("Please download Stockfish and update the STOCKFISH_PATH variable in the script.", file=sys.stderr)
         return None
 
     # Use StringIO to treat the PGN string like a file
@@ -38,14 +38,14 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
     game = chess.pgn.read_game(pgn_io)
 
     if game is None:
-        print("ERROR: Invalid PGN string.")
+        print("ERROR: Invalid PGN string.", file=sys.stderr)
         return None
 
     board = game.board()
     analysis_results = []
     
-    print("📂 Analyzing game with improved Stockfish integration...")
-    print("-" * 50)
+    print("📂 Analyzing game with improved Stockfish integration...", file=sys.stderr)
+    print("-" * 50, file=sys.stderr)
     
     move_number = 1
     is_white_move = True
@@ -75,7 +75,7 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
         
         # Format the output for our system
         move_str = f"{san_move:6} |"
-        print(f"Move {move_number}: {move_str} Eval: {eval_float:+.2f}")
+        print(f"Move {move_number}: {move_str} Eval: {eval_float:+.2f}", file=sys.stderr)
         
         # Store move evaluation in our expected format
         move_evaluations.append({
@@ -99,8 +99,8 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
             move_number += 1
         is_white_move = not is_white_move
 
-    print("-" * 50)
-    print("✅ Analysis complete with improved Stockfish engine.")
+    print("-" * 50, file=sys.stderr)
+    print("✅ Analysis complete with improved Stockfish engine.", file=sys.stderr)
     
     # Return in the format expected by our API
     return {
@@ -160,14 +160,14 @@ def main():
     pgn_content = sys.stdin.read().strip()
     
     if not pgn_content:
-        print("ERROR: No PGN content provided")
+        print("ERROR: No PGN content provided", file=sys.stderr)
         sys.exit(1)
 
     # Analyze the game
     results = analyze_pgn(pgn_content, stockfish_depth=args.depth)
     
     if results is None:
-        print("ERROR: Analysis failed")
+        print("ERROR: Analysis failed", file=sys.stderr)
         sys.exit(1)
 
     if args.format == 'json':
@@ -180,15 +180,15 @@ def main():
         print(json.dumps(output))
     else:
         # Output text format for debugging
-        print("\n--- Analysis Summary ---")
+        print("\n--- Analysis Summary ---", file=sys.stderr)
         blunders = find_blunders(results["analysisResults"])
         
         if blunders:
-            print("Major blunders found:")
+            print("Major blunders found:", file=sys.stderr)
             for blunder in blunders[:3]:  # Show top 3 blunders
-                print(f"  {blunder['player']}: {blunder['move']} (dropped {blunder['drop']:.2f} pawns)")
+                print(f"  {blunder['player']}: {blunder['move']} (dropped {blunder['drop']:.2f} pawns)", file=sys.stderr)
         else:
-            print("No major blunders detected.")
+            print("No major blunders detected.", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
