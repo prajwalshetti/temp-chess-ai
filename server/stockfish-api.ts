@@ -91,8 +91,23 @@ export class StockfishApiEngine {
         
         // Extract individual moves from the move lines
         const movesText = moveLines.join(' ');
-        const movePattern = /(?:\d+\.\.?\s*)?([a-h][1-8](?:[a-h][1-8])?[NBRQK]?(?:[+#])?|O-O(?:-O)?|[NBRQK][a-h1-8]?x?[a-h][1-8](?:=[NBRQK])?[+#]?)/g;
-        const extractedMoves = movesText.match(movePattern) || [];
+        console.log('Moves text to extract from:', movesText);
+        
+        // More comprehensive move pattern to catch standard chess notation
+        const movePattern = /\b(?:(?:[NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:=[NBRQK])?[+#]?)|(?:O-O(?:-O)?)|(?:[a-h][1-8](?:=[NBRQK])?[+#]?))\b/g;
+        const moveMatches = movesText.match(movePattern);
+        let extractedMoves = moveMatches ? [...moveMatches] : [];
+        console.log('Raw extracted moves:', extractedMoves);
+        
+        // Filter out move numbers and results
+        extractedMoves = extractedMoves.filter(move => 
+          !move.match(/^\d+\.?$/) && 
+          !move.includes('1-0') && 
+          !move.includes('0-1') && 
+          !move.includes('1/2-1/2') && 
+          !move.includes('*')
+        );
+        console.log('Filtered moves:', extractedMoves);
         
         // Play moves to validate them
         chess.reset();
@@ -190,7 +205,7 @@ export class StockfishApiEngine {
         pgn,
         moveEvaluations,
         rawOutput: rawOutputLines.join('\n'),
-        totalMoves: moves.length
+        totalMoves: gameMoves.length
       };
 
     } catch (error) {
