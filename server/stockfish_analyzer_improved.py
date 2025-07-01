@@ -25,8 +25,8 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
     try:
         # The stockfish library requires a valid path to the executable
         stockfish = Stockfish(path=STOCKFISH_PATH, depth=stockfish_depth, parameters={
-            "Threads": 2,  # Use 2 threads for analysis
-            "Minimum Thinking Time": 3000  # 3 seconds per position for higher accuracy
+            "Threads": 4,  # Use 4 threads for faster analysis
+            "Minimum Thinking Time": 1500  # 1.5 seconds per position for balanced accuracy/speed
         })
     except FileNotFoundError:
         print(f"ERROR: Stockfish executable not found at '{STOCKFISH_PATH}'", file=sys.stderr)

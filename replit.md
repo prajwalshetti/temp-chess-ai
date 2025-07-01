@@ -144,6 +144,7 @@ Changelog:
 - June 26, 2025. Added stockfish Python package for direct Stockfish engine integration with configurable depth and threading
 - June 26, 2025. Enhanced Stockfish analysis settings to depth 20 with 3-second minimum thinking time per position for maximum evaluation accuracy
 - June 26, 2025. Increased API timeout to 10 minutes to accommodate deep analysis with 3-second thinking time per position
+- June 26, 2025. Optimized Stockfish settings to depth 20 with 1.5-second thinking time and 4 threads to prevent timeouts while maintaining strong analysis quality
 
 ## User Preferences
 
