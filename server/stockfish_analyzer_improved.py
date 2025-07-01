@@ -56,14 +56,10 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
         # Get the move in Standard Algebraic Notation (e.g., "e4", "Nf3")
         san_move = board.san(move)
         
-        # Apply the move to the board
-        board.push(move)
-        
-        # Set Stockfish to the position AFTER the move
+        # Set Stockfish to the position BEFORE the move (like Lichess does)
         stockfish.set_fen_position(board.fen())
         
-        # Get the evaluation from Stockfish
-        # The evaluation is from the perspective of the current player
+        # Get the evaluation from Stockfish for the position before the move
         evaluation = stockfish.get_evaluation()
         
         # Convert evaluation to float for our system
@@ -74,9 +70,12 @@ def analyze_pgn(pgn_string: str, stockfish_depth: int = 15):
             eval_float = 10.0 if evaluation['value'] > 0 else -10.0
         
         # Convert evaluation to White's perspective (like Lichess)
-        # If it's Black's turn, negate the evaluation to show from White's perspective
+        # If it's Black's turn to move, negate the evaluation to show from White's perspective
         if not board.turn:  # board.turn is False when it's Black's turn
             eval_float = -eval_float
+        
+        # Apply the move to the board for next iteration
+        board.push(move)
         
         # Format the output for our system
         move_str = f"{san_move:6} |"

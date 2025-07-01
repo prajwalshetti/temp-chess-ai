@@ -147,6 +147,7 @@ Changelog:
 - June 26, 2025. Optimized Stockfish settings to depth 20 with 1.5-second thinking time and 4 threads to prevent timeouts while maintaining strong analysis quality
 - July 1, 2025. Fixed evaluation display inconsistency between OpponentScout and GamesDatabase pages - both now show consistent decimal format (e.g., -2.52 instead of mixed centipawn/decimal values)
 - July 1, 2025. Fixed evaluation perspective to match Lichess standard - all evaluations now displayed from White's perspective for consistency with industry standards
+- July 1, 2025. Fixed evaluation timing to match Lichess methodology - evaluations now calculated for position before move is played, not after, ensuring accurate comparison with Lichess analysis
 
 ## User Preferences
 
