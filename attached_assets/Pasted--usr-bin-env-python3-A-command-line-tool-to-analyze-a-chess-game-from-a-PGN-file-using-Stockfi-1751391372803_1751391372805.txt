@@ -18,7 +18,7 @@ import chess.pgn
 import chess.engine
 
 # === CONFIGURATION ===
-STOCKFISH_PATH = "/nix/store/qk9j36nbh500grvxa514gin0yx5yp38i-stockfish-16/bin/stockfish"
+STOCKFISH_PATH = "stockfish"
 
 def _get_eval_in_pawns(score_pov):
     """Converts a chess.engine.PovScore to a float pawn value, clamping mates."""

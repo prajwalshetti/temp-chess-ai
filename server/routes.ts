@@ -412,7 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use Python chess analyzer for authentic Stockfish evaluation
       const pythonScript = path.join(__dirname, 'chess_analyzer.py');
       
-      const child = spawn('python3', [pythonScript, '--think-time', '3.0'], {
+      const child = spawn('python3', [pythonScript, '--think-time', '1.5'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
@@ -522,7 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use Python chess analyzer for authentic Stockfish evaluation
       const pythonScript = path.join(__dirname, 'chess_analyzer.py');
       
-      const child = spawn('python3', [pythonScript, '--think-time', '2.0'], {
+      const child = spawn('python3', [pythonScript, '--think-time', '1.0'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
@@ -616,7 +616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use proper subprocess with timeout handling
       const pythonScript = path.join(__dirname, 'chess_analyzer.py');
       
-      const child = spawn('python3', [pythonScript, '--think-time', '3.0'], {
+      const child = spawn('python3', [pythonScript, '--think-time', '1.5'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
