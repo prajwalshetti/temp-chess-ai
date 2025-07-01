@@ -62,36 +62,13 @@ export class StockfishApiEngine {
     const rawOutputLines: string[] = [];
 
     try {
-      // Parse PGN to extract just the moves
-      const pgnLines = pgn.split('\n');
-      let movesSection = '';
-      let inMoves = false;
+      console.log('Analyzing PGN:', pgn.substring(0, 200) + '...');
       
-      for (const line of pgnLines) {
-        const trimmedLine = line.trim();
-        // Skip header lines that start with [
-        if (trimmedLine.startsWith('[')) {
-          continue;
-        }
-        // Skip empty lines
-        if (trimmedLine === '') {
-          inMoves = true;
-          continue;
-        }
-        // Collect move lines
-        if (inMoves && trimmedLine) {
-          movesSection += trimmedLine + ' ';
-        }
-      }
-      
-      // Clean up the moves section
-      movesSection = movesSection.trim();
-      
-      // Load just the moves part
-      if (movesSection) {
-        chess.loadPgn(movesSection);
-      }
+      // Use chess.js built-in PGN parsing which handles headers correctly
+      chess.loadPgn(pgn);
       const moves = chess.history();
+      
+      console.log('Successfully parsed moves:', moves.length);
       
       // Reset to starting position
       chess.reset();

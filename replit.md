@@ -142,6 +142,8 @@ Changelog:
 - June 27, 2025. Replaced Python-based Stockfish analysis with Stockfish.online API for better reliability and performance
 - June 27, 2025. Implemented cloud-based chess analysis using https://stockfish.online/api/s/v2.php with 15-ply depth and proper rate limiting
 - June 27, 2025. Eliminated local dependencies and subprocess complexity by migrating to external API, improving system stability and deployment simplicity
+- June 27, 2025. Fixed PGN parsing issue that was causing game analysis failures - corrected Lichess PGN format generation to properly separate headers and moves
+- June 27, 2025. Added comprehensive error handling, timeout management, and move limit (30 moves) to prevent excessive API calls and ensure reliable analysis
 
 ## User Preferences
 
