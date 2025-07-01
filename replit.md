@@ -142,6 +142,8 @@ Changelog:
 - June 26, 2025. Verified complete game analysis system working correctly with authentic Stockfish evaluations and proper error handling
 - June 26, 2025. Integrated improved Python Stockfish analyzer with better error handling, JSON output, and enhanced evaluation accuracy
 - June 26, 2025. Added stockfish Python package for direct Stockfish engine integration with configurable depth and threading
+- June 26, 2025. Enhanced Stockfish analysis settings to depth 20 with 1-second minimum thinking time per position for stronger evaluations
+- June 26, 2025. Increased API timeout to 5 minutes to accommodate deeper analysis and improved evaluation accuracy
 
 ## User Preferences
 

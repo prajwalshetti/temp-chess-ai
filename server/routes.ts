@@ -412,7 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use improved Python Stockfish analyzer
       const pythonScript = path.join(__dirname, 'stockfish_analyzer_improved.py');
       
-      const child = spawn('python3', [pythonScript, '--depth', '30', '--format', 'json'], {
+      const child = spawn('python3', [pythonScript, '--depth', '20', '--format', 'json'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
