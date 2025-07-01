@@ -67,7 +67,9 @@ export default function OpponentScout() {
       // Set current evaluation based on current move
       if (analysisData.moveEvaluations && analysisData.moveEvaluations.length > 0) {
         const currentMoveEval = analysisData.moveEvaluations[currentMoveIndex] || analysisData.moveEvaluations[0];
-        setCurrentEvaluation(currentMoveEval.evaluationFloat || 0);
+        const evaluation = currentMoveEval.evaluationFloat || currentMoveEval.evaluation || 0;
+        const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
+        setCurrentEvaluation(displayEval);
       }
       
       toast({
@@ -251,7 +253,9 @@ export default function OpponentScout() {
         setCurrentPosition(newPosition);
         // Show evaluation for starting position if available
         if (moveEvaluations.length > 0) {
-          setCurrentEvaluation(moveEvaluations[0]?.evaluationFloat || 0);
+          const evaluation = moveEvaluations[0]?.evaluationFloat || moveEvaluations[0]?.evaluation || 0;
+          const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
+          setCurrentEvaluation(displayEval);
         } else {
           setCurrentEvaluation(0);
         }
@@ -279,7 +283,10 @@ export default function OpponentScout() {
       // Display stored evaluation for this move
       if (moveEvaluations.length > moveIndex + 1) {
         const moveEval = moveEvaluations[moveIndex + 1];
-        setCurrentEvaluation(moveEval?.evaluationFloat || 0);
+        // Convert centipawns to decimal if needed
+        const evaluation = moveEval?.evaluationFloat || moveEval?.evaluation || 0;
+        const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
+        setCurrentEvaluation(displayEval);
       } else {
         setCurrentEvaluation(null);
       }
