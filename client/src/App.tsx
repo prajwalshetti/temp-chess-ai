@@ -10,7 +10,6 @@ import PlayerProfile from "@/pages/PlayerProfile";
 import LearnChess from "@/pages/LearnChess";
 import Account from "@/pages/Account";
 import OpponentScout from "@/pages/OpponentScout";
-import GameAnalysis from "@/pages/GameAnalysis";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,7 +20,6 @@ function Router() {
       <Route path="/profile" component={PlayerProfile} />
       <Route path="/scout" component={OpponentScout} />
       <Route path="/opponent-scout" component={OpponentScout} />
-      <Route path="/analysis" component={GameAnalysis} />
       <Route path="/learn" component={LearnChess} />
       <Route path="/account" component={Account} />
       <Route component={NotFound} />
