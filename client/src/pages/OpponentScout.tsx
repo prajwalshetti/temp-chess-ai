@@ -32,8 +32,103 @@ import {
 import type { User, PlayerStats, Opening, Game } from "@shared/schema";
 import { ChessBoard } from "@/components/ChessBoard";
 import { Chess } from "chess.js";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function OpponentScout() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Complete game analysis function
+  const analyzeGameWithStockfish = async (game: any) => {
+    setIsAnalyzing(true);
+    setSelectedGameForAnalysis(game);
+    
+    try {
+      const response = await fetch('/api/analyze/game', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pgn: game.pgn,
+          gameId: game.id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Analysis failed');
+      }
+
+      const analysisData = await response.json();
+      setGameAnalysis(analysisData);
+      setMoveEvaluations(analysisData.moveEvaluations || []);
+      
+      // Set current evaluation based on current move
+      if (analysisData.moveEvaluations && analysisData.moveEvaluations.length > 0) {
+        const currentMoveEval = analysisData.moveEvaluations[currentMoveIndex] || analysisData.moveEvaluations[0];
+        const evaluation = currentMoveEval.evaluationFloat || currentMoveEval.evaluation || 0;
+        const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
+        setCurrentEvaluation(displayEval);
+      }
+      
+      toast({
+        title: "Game Analysis Complete!",
+        description: `Analyzed ${analysisData.totalMoves || 0} moves with Stockfish engine.`,
+      });
+    } catch (error) {
+      console.error('Error analyzing game:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Failed to analyze the game. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Analyze current position function with real-time evaluation
+  const analyzeCurrentPosition = async () => {
+    setIsAnalyzing(true);
+    
+    try {
+      const response = await fetch('/api/analyze/position', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fen: currentPosition,
+          gameId: selectedOpeningGame?.id,
+          moveNumber: currentMoveIndex + 1
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Position analysis failed');
+      }
+
+      const analysisData = await response.json();
+      setEngineAnalysis(analysisData);
+      
+      toast({
+        title: "Position Analyzed!",
+        description: `Engine evaluation: ${(analysisData.analysis.currentEvaluation.evaluation / 100).toFixed(2)}`,
+      });
+    } catch (error) {
+      console.error('Error analyzing position:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Failed to analyze position. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOpponent, setSelectedOpponent] = useState<User | null>(null);
   const [searchType, setSearchType] = useState<'fide' | 'aicf' | 'lichess'>('lichess');
@@ -46,6 +141,14 @@ export default function OpponentScout() {
   const [selectedOpeningGame, setSelectedOpeningGame] = useState<any>(null);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [currentPosition, setCurrentPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  const [engineAnalysis, setEngineAnalysis] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedGameForAnalysis, setSelectedGameForAnalysis] = useState<any>(null);
+  const [currentEvaluation, setCurrentEvaluation] = useState<number | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluationCache, setEvaluationCache] = useState<Map<string, number>>(new Map());
+  const [gameAnalysis, setGameAnalysis] = useState<any>(null);
+  const [moveEvaluations, setMoveEvaluations] = useState<any[]>([]);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -134,7 +237,7 @@ export default function OpponentScout() {
     setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   };
 
-  // Navigate through moves and calculate positions
+  // Navigate through moves and display stored evaluations
   const navigateToMove = (moveIndex: number) => {
     if (!selectedOpeningGame || !selectedOpeningGame.moves) return;
     
@@ -143,10 +246,19 @@ export default function OpponentScout() {
     // Calculate the position after the specified move
     try {
       const chess = new Chess();
+      let newPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
       
       // If moveIndex is -1, show starting position
       if (moveIndex < 0) {
-        setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        setCurrentPosition(newPosition);
+        // Show evaluation for starting position if available
+        if (moveEvaluations.length > 0) {
+          const evaluation = moveEvaluations[0]?.evaluationFloat || moveEvaluations[0]?.evaluation || 0;
+          const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
+          setCurrentEvaluation(displayEval);
+        } else {
+          setCurrentEvaluation(0);
+        }
         return;
       }
       
@@ -164,12 +276,73 @@ export default function OpponentScout() {
           }
         }
       }
-      const newPosition = chess.fen();
+      newPosition = chess.fen();
       console.log(`Setting new position: ${newPosition}`);
       setCurrentPosition(newPosition);
+      
+      // Display stored evaluation for this move
+      if (moveEvaluations.length > moveIndex + 1) {
+        const moveEval = moveEvaluations[moveIndex + 1];
+        // Convert centipawns to decimal if needed
+        const evaluation = moveEval?.evaluationFloat || moveEval?.evaluation || 0;
+        const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
+        setCurrentEvaluation(displayEval);
+      } else {
+        setCurrentEvaluation(null);
+      }
     } catch (error) {
       console.log("Error calculating position:", error);
-      setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      const startPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+      setCurrentPosition(startPos);
+      setCurrentEvaluation(0);
+    }
+  };
+
+  // Automatic position analysis when navigating
+  const analyzePositionAutomatically = async (fen: string, moveNumber: number) => {
+    if (!selectedOpeningGame) return;
+    
+    // Check cache first
+    if (evaluationCache.has(fen)) {
+      setCurrentEvaluation(evaluationCache.get(fen)!);
+      setIsEvaluating(false);
+      return;
+    }
+
+    setIsEvaluating(true);
+    
+    try {
+      const response = await fetch('/api/analyze/position', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fen: fen,
+          gameId: selectedOpeningGame.id,
+          moveNumber: moveNumber
+        }),
+      });
+
+      if (response.ok) {
+        const analysisData = await response.json();
+        console.log('Analysis data received:', analysisData);
+        
+        const evaluation = analysisData.evaluation || 0;
+        
+        // Cache the evaluation and update state
+        setEvaluationCache(prev => new Map(prev.set(fen, evaluation)));
+        setCurrentEvaluation(evaluation);
+        setEngineAnalysis(analysisData);
+      } else {
+        console.error('Analysis request failed:', response.status);
+        setCurrentEvaluation(null);
+      }
+    } catch (error) {
+      console.error('Auto-analysis error:', error);
+      setCurrentEvaluation(null);
+    } finally {
+      setIsEvaluating(false);
     }
   };
 
@@ -796,6 +969,76 @@ export default function OpponentScout() {
                             />
                           </div>
 
+                          {/* Stockfish Analysis Button */}
+                          <div className="flex justify-center mb-4">
+                            <button
+                              onClick={() => analyzeGameWithStockfish(selectedOpeningGame)}
+                              disabled={isAnalyzing || !selectedOpeningGame}
+                              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg"
+                            >
+                              {isAnalyzing ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                  <span>Analyzing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>🔥</span>
+                                  <span>Analyze Game</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Engine Analysis Results */}
+                          {engineAnalysis && (
+                            <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-l-4 border-blue-500">
+                              <h5 className="font-medium text-blue-900 mb-2 flex items-center">
+                                <Brain className="mr-2 h-4 w-4" />
+                                Stockfish Analysis - Move {currentMoveIndex + 1}
+                              </h5>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex items-center justify-between">
+                                  <span>Engine Evaluation:</span>
+                                  <span className={`font-bold ${
+                                    (engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) > 100 ? 'text-green-600' :
+                                    (engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) < -100 ? 'text-red-600' :
+                                    'text-gray-600'
+                                  }`}>
+                                    {((engineAnalysis?.analysis?.currentEvaluation?.evaluation || 0) / 100).toFixed(2)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span>Best Move:</span>
+                                  <span className="font-bold text-blue-600">
+                                    {engineAnalysis?.analysis?.currentEvaluation?.bestMove || 'N/A'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span>Depth:</span>
+                                  <span className="text-gray-600">
+                                    {engineAnalysis?.analysis?.currentEvaluation?.depth || 17} ply
+                                  </span>
+                                </div>
+                                {engineAnalysis?.analysis?.tacticalThemes?.length > 0 && (
+                                  <div>
+                                    <span>Tactical Themes:</span>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {engineAnalysis.analysis.tacticalThemes.map((theme: string, index: number) => (
+                                        <Badge key={index} variant="outline" className="text-xs">
+                                          {theme}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="text-xs text-gray-500 mt-2">
+                                  Position Type: {engineAnalysis.analysis.positionType}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Move Navigation */}
                           {selectedOpeningGame.moves && (
                             <div className="bg-gray-50 p-4 rounded-lg">
@@ -845,61 +1088,49 @@ export default function OpponentScout() {
                                     </div>
                                     <div className="text-right">
                                       <div className="text-sm font-semibold">
-                                        Eval: {(() => {
-                                          const baseEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                          const gamePhase = currentMoveIndex / selectedOpeningGame.moves.length;
-                                          const adjustment = (Math.random() - 0.5) * 0.4;
-                                          const finalEval = baseEval + (gamePhase * 0.5) + adjustment;
-                                          return finalEval >= 0 ? `+${finalEval.toFixed(2)}` : finalEval.toFixed(2);
-                                        })()}
+                                        {isEvaluating ? (
+                                          <div className="flex items-center">
+                                            <Brain className="w-3 h-3 mr-1 animate-pulse text-blue-500" />
+                                            Analyzing...
+                                          </div>
+                                        ) : currentEvaluation !== null ? (
+                                          <div className={`${currentEvaluation > 0 ? 'text-green-600' : currentEvaluation < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                            Eval: {currentEvaluation > 0 ? '+' : ''}{currentEvaluation.toFixed(2)}
+                                          </div>
+                                        ) : (
+                                          <div className="text-gray-500">Eval: --</div>
+                                        )}
                                       </div>
-                                      <div className="text-xs text-gray-500">Engine depth {Math.min(20, currentMoveIndex + 15)}</div>
+                                      <div className="text-xs text-gray-500">
+                                        Engine depth 17
+                                      </div>
                                     </div>
                                   </div>
                                   
-                                  {/* Move Quality Assessment */}
-                                  <div className="flex items-center space-x-4 mb-3">
-                                    <Badge className={(() => {
-                                      const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                      const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                      const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                      const evalChange = currentEval - prevEval;
-                                      
-                                      if (currentMoveIndex < 6) return 'bg-green-500';
-                                      if (evalChange > 0.2) return 'bg-green-500';
-                                      if (evalChange > -0.1) return 'bg-blue-500';
-                                      if (evalChange > -0.3) return 'bg-yellow-500';
-                                      return 'bg-red-500';
-                                    })()}>
-                                      {(() => {
-                                        const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (currentMoveIndex < 6) return 'Book Move';
-                                        if (evalChange > 0.2) return 'Excellent!';
-                                        if (evalChange > -0.1) return 'Good';
-                                        if (evalChange > -0.3) return 'Inaccuracy';
-                                        return 'Mistake';
-                                      })()}
-                                    </Badge>
-                                    <span className="text-xs text-gray-600">
-                                      {(() => {
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (evalChange > 0.2) {
-                                          return `+${evalChange.toFixed(2)} gain!`;
-                                        } else if (evalChange < -0.2) {
-                                          return `${evalChange.toFixed(2)} loss`;
-                                        } else {
-                                          return 'Maintaining balance';
-                                        }
-                                      })()}
-                                    </span>
-                                  </div>
+                                  {/* Move Quality Assessment - Only show with Stockfish analysis */}
+                                  {engineAnalysis && (
+                                    <div className="flex items-center space-x-4 mb-3">
+                                      <Badge className={(() => {
+                                        const evaluation = engineAnalysis.analysis.currentEvaluation.evaluation;
+                                        if (Math.abs(evaluation) > 300) return 'bg-red-500';
+                                        if (Math.abs(evaluation) > 150) return 'bg-yellow-500';
+                                        if (Math.abs(evaluation) > 50) return 'bg-blue-500';
+                                        return 'bg-green-500';
+                                      })()}>
+                                        {(() => {
+                                          const evaluation = engineAnalysis.analysis.currentEvaluation.evaluation;
+                                          if (currentMoveIndex < 6) return 'Opening';
+                                          if (Math.abs(evaluation) > 300) return 'Decisive';
+                                          if (Math.abs(evaluation) > 150) return 'Advantage';
+                                          if (Math.abs(evaluation) > 50) return 'Slight Edge';
+                                          return 'Balanced';
+                                        })()}
+                                      </Badge>
+                                      <span className="text-xs text-gray-600">
+                                        Best move: {engineAnalysis.analysis.currentEvaluation.bestMove}
+                                      </span>
+                                    </div>
+                                  )}
 
                                   {/* All Moves Display */}
                                   <div className="mt-4">
@@ -923,231 +1154,41 @@ export default function OpponentScout() {
                                 </div>
                               )}
                               
-                              {/* Engine Analysis for Current Position */}
-                              <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                                <h4 className="font-medium mb-3 flex items-center">
-                                  <Brain className="mr-2 h-4 w-4 text-blue-500" />
-                                  Position Analysis
-                                </h4>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                  <div>
-                                    <span className="text-gray-600">Position Eval:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        const baseEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const gamePhase = currentMoveIndex / selectedOpeningGame.moves.length;
-                                        const finalEval = baseEval + (gamePhase * 0.3);
-                                        return finalEval >= 0 ? `+${finalEval.toFixed(2)}` : finalEval.toFixed(2);
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Best Move:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        // Generate contextual best moves based on position and game state
-                                        const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (currentMoveIndex < 8) {
-                                          // Opening moves
-                                          const openingMoves = ['Nf3', 'Bc4', 'd3', 'Nc3', 'Be2', 'O-O', 'h3', 'a3'];
-                                          return openingMoves[currentMoveIndex % openingMoves.length];
-                                        } else if (currentMoveIndex < 20) {
-                                          // Middlegame - tactical moves
-                                          const middlegameMoves = ['Qd2', 'Rd1', 'Bg5', 'Bxf6', 'Nd5', 'f4', 'Qh4', 'Rfe1'];
-                                          return middlegameMoves[currentMoveIndex % middlegameMoves.length];
-                                        } else {
-                                          // Endgame - precise moves
-                                          const endgameMoves = ['Kf2', 'Rd7', 'a4', 'g4', 'Ke3', 'Rb1', 'f3', 'Kh3'];
-                                          return endgameMoves[currentMoveIndex % endgameMoves.length];
-                                        }
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Accuracy:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        const baseAccuracy = 85;
-                                        const variation = Math.sin(currentMoveIndex * 0.4) * 10;
-                                        return Math.round(baseAccuracy + variation);
-                                      })()}%
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Phase:</span>
-                                    <span className="ml-2 font-medium">
-                                      {currentMoveIndex < 8 ? 'Opening' : currentMoveIndex < 25 ? 'Middlegame' : 'Endgame'}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* DecodeChess-style Tactical Analysis */}
-                                <div className="mt-4">
-                                  <h5 className="font-medium mb-3 flex items-center">
-                                    <Brain className="mr-2 h-4 w-4 text-purple-500" />
-                                    AI Insights & Analysis
-                                  </h5>
-                                  
-                                  {/* Main Insight */}
-                                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg mb-3 border-l-4 border-blue-500">
-                                    <div className="font-medium text-blue-900 mb-1">
-                                      {(() => {
-                                        const move = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        const isWhite = currentMoveIndex % 2 === 0;
-                                        
-                                        if (evalChange < -0.2) {
-                                          return `⚠️ Missed Opportunity: ${move} loses ${Math.abs(evalChange).toFixed(2)} points`;
-                                        } else if (evalChange < -0.1) {
-                                          return `❌ Inaccuracy: ${move} gives opponent better chances`;
-                                        } else if (evalChange > 0.2) {
-                                          return `✅ Excellent Find: ${move} seizes the advantage`;
-                                        } else if (currentMoveIndex < 6) {
-                                          return `📚 Opening Theory: ${move} follows known principles`;
-                                        } else {
-                                          return `⚖️ Reasonable Choice: ${move} maintains the position`;
-                                        }
-                                      })()}
+                              {/* Only show Position Analysis when Stockfish analysis is available */}
+                              {engineAnalysis && (
+                                <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                                  <h4 className="font-medium mb-3 flex items-center">
+                                    <Brain className="mr-2 h-4 w-4 text-blue-500" />
+                                    Position Analysis (Stockfish)
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                      <span className="text-gray-600">Position Eval:</span>
+                                      <span className="ml-2 font-medium">
+                                        {(engineAnalysis.analysis.currentEvaluation.evaluation / 100).toFixed(2)}
+                                      </span>
                                     </div>
-                                    <div className="text-sm text-blue-700">
-                                      {(() => {
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (evalChange < -0.2) {
-                                          return "Player missed a stronger continuation that would maintain/increase advantage";
-                                        } else if (evalChange < -0.1) {
-                                          return "A more accurate move was available to keep the pressure";
-                                        } else if (evalChange > 0.2) {
-                                          return "Player found the critical move that transforms the position";
-                                        } else {
-                                          return "Position remains balanced - no major tactical opportunities missed";
-                                        }
-                                      })()}
+                                    <div>
+                                      <span className="text-gray-600">Best Move:</span>
+                                      <span className="ml-2 font-medium">
+                                        {engineAnalysis.analysis.currentEvaluation.bestMove}
+                                      </span>
                                     </div>
-                                  </div>
-
-                                  {/* Tactical Themes */}
-                                  <div className="grid grid-cols-2 gap-2 mb-3">
-                                    <div className="bg-white border rounded p-2">
-                                      <div className="text-xs font-medium text-red-600 mb-1">
-                                        ❌ Missed Tactics
-                                      </div>
-                                      <div className="text-xs text-gray-600">
-                                        {(() => {
-                                          const evalChange = currentMoveIndex > 0 ? 
-                                            Math.sin(currentMoveIndex * 0.3) * 0.8 - Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                          
-                                          if (evalChange < -0.15) {
-                                            const missedTactics = [
-                                              "Fork opportunity", "Pin available", "Discovered attack", 
-                                              "Double attack", "Skewer possible", "Deflection tactic"
-                                            ];
-                                            return missedTactics[currentMoveIndex % missedTactics.length];
-                                          } else {
-                                            return "No major tactics missed";
-                                          }
-                                        })()}
-                                      </div>
+                                    <div>
+                                      <span className="text-gray-600">Depth:</span>
+                                      <span className="ml-2 font-medium">
+                                        {engineAnalysis.analysis.currentEvaluation.depth} ply
+                                      </span>
                                     </div>
-                                    <div className="bg-white border rounded p-2">
-                                      <div className="text-xs font-medium text-orange-600 mb-1">
-                                        💡 Should Consider
-                                      </div>
-                                      <div className="text-xs text-gray-600">
-                                        {(() => {
-                                          const improvements = [
-                                            "Better piece placement",
-                                            "Pawn structure improvement",
-                                            "King safety priority", 
-                                            "Central dominance",
-                                            "Weak square control",
-                                            "Endgame preparation"
-                                          ];
-                                          return improvements[currentMoveIndex % improvements.length];
-                                        })()}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Engine Best Move Analysis */}
-                                  <div className="bg-gray-50 p-3 rounded">
-                                    <div className="text-xs font-medium text-gray-700 mb-2 flex items-center">
-                                      <Target className="mr-1 h-3 w-3" />
-                                      Engine Recommendation:
-                                    </div>
-                                    <div className="text-xs text-gray-600 mb-2">
-                                      {(() => {
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (evalChange < -0.2) {
-                                          return `🚨 Major blunder! Player lost ${Math.abs(evalChange).toFixed(2)} points - opponent now has clear advantage.`;
-                                        } else if (evalChange < -0.1) {
-                                          return `⚠️ Inaccuracy detected - better alternatives were available to maintain pressure.`;
-                                        } else if (evalChange > 0.2) {
-                                          return `🎯 Excellent calculation! Player found the strongest continuation.`;
-                                        } else {
-                                          return `⚖️ Reasonable move - maintains balance but missed potential improvements.`;
-                                        }
-                                      })()}
-                                    </div>
-                                    <div className="text-xs text-blue-600 font-medium mb-2">
-                                      {(() => {
-                                        const move = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        // Specific move analysis
-                                        if (move === 'Bc4') {
-                                          return "Why Bc4 is inaccurate: This bishop placement allows ...d6-d5! which kicks the bishop and gives Black central space. Better was Nf3 developing with tempo.";
-                                        } else if (move === 'Qd2') {
-                                          return "Why Qd2 is questionable: The queen blocks the bishop's natural development. Better was 0-0 securing king safety first.";
-                                        } else if (evalChange < -0.2) {
-                                          return "Critical error: This move allows opponent to seize the initiative with a forcing continuation that improves their position significantly.";
-                                        } else if (evalChange < -0.1) {
-                                          return "Inaccuracy explanation: A more principled move was available that maintains better piece coordination and central control.";
-                                        } else if (evalChange > 0.2) {
-                                          return "Excellent choice: This move creates concrete threats while improving piece activity - exactly what the position demanded.";
-                                        } else {
-                                          return "Reasonable but not best: Engine suggests a more forcing line that would maintain better winning chances.";
-                                        }
-                                      })()}
-                                    </div>
-                                    
-                                    {/* Detailed Better Move Explanation */}
-                                    <div className="bg-blue-50 p-2 rounded text-xs">
-                                      <div className="font-medium text-blue-800 mb-1">🎯 Better Move Analysis:</div>
-                                      <div className="text-blue-700">
-                                        {(() => {
-                                          const move = selectedOpeningGame.moves[currentMoveIndex];
-                                          const bestMoves = ['Nf3', 'Qd2', 'd3', 'Nc3', 'Be2', 'O-O', 'h3', 'a3'];
-                                          const bestMove = bestMoves[currentMoveIndex % bestMoves.length];
-                                          
-                                          if (move === 'Bc4') {
-                                            return `Instead of Bc4, play Nf3! This develops the knight with tempo (attacking e5), maintains central control, and prepares kingside castling. After Nf3, Black cannot easily challenge with ...d5.`;
-                                          } else if (currentMoveIndex < 6) {
-                                            return `${bestMove} would follow opening principles better - developing pieces toward the center while maintaining king safety as priority.`;
-                                          } else if (currentMoveIndex < 15) {
-                                            return `${bestMove} creates more active piece play and puts pressure on opponent's position, forcing them to find precise defensive moves.`;
-                                          } else {
-                                            return `${bestMove} leads to a more favorable endgame where piece activity and pawn structure give better winning chances.`;
-                                          }
-                                        })()}
-                                      </div>
+                                    <div>
+                                      <span className="text-gray-600">Phase:</span>
+                                      <span className="ml-2 font-medium">
+                                        {engineAnalysis.analysis.positionType}
+                                      </span>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1441,22 +1482,39 @@ export default function OpponentScout() {
                                      game.result === '0-1' ? (playerColor === 'black' ? 'W' : 'L') : 'D';
                         
                         return (
-                          <div key={index} className="flex items-center justify-between p-2 border rounded">
-                            <div className="flex items-center space-x-3">
-                              <Badge className={
-                                result === 'W' ? 'bg-green-500' : 
-                                result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
-                              }>
-                                {result}
-                              </Badge>
-                              <div>
-                                <div className="font-medium text-sm">{opponent}</div>
-                                <div className="text-xs text-gray-500">
-                                  {new Date(game.createdAt).toLocaleDateString()}
+                          <div key={index} className="p-3 border rounded-lg hover:bg-gray-50">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-3">
+                                <Badge className={
+                                  result === 'W' ? 'bg-green-500' : 
+                                  result === 'L' ? 'bg-red-500' : 'bg-yellow-500'
+                                }>
+                                  {result}
+                                </Badge>
+                                <div>
+                                  <div className="font-medium text-sm">{opponent}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(game.createdAt).toLocaleDateString()} • {game.opening}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="text-sm font-medium">{opponentRating}</div>
                             </div>
-                            <div className="text-sm font-medium">{opponentRating}</div>
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs text-gray-600">
+                                {game.moves.length} moves • {game.timeControl}
+                              </div>
+                              <button
+                                onClick={() => analyzeGameWithStockfish(game)}
+                                disabled={isAnalyzing}
+                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                              >
+                                {isAnalyzing && selectedGameForAnalysis?.id === game.id 
+                                  ? '⚡ Analyzing...' 
+                                  : '🔍 Analyze'
+                                }
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
