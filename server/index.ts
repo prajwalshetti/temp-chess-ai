@@ -6,6 +6,28 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add CORS headers for local development
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  if (req.path.startsWith('/api')) {
+    console.log(`[API Request] ${req.method} ${req.path}`, req.query);
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -37,19 +59,38 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // CRITICAL: Register API routes FIRST
   const server = await registerRoutes(app);
+
+  // Add a final fallback for unmatched API routes
+  app.use('/api/*', (req, res) => {
+    console.log(`[API] Unmatched route: ${req.method} ${req.path}`);
+    res.status(404).json({ 
+      message: `API endpoint not found: ${req.method} ${req.path}`,
+      availableEndpoints: [
+        'GET /api/health',
+        'GET /api/user/:id',
+        'GET /api/lichess/user/:username/games',
+        'GET /api/lichess/user/:username/profile'
+      ]
+    });
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
+    // Ensure API errors return JSON
+    if (_req.path.startsWith('/api/')) {
+      res.setHeader('Content-Type', 'application/json');
+      res.status(status).json({ message });
+    } else {
+      res.status(status).json({ message });
+    }
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Setup Vite AFTER all API routes are registered
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {

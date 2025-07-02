@@ -17,6 +17,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
   const chessAnalyzer = new ChessAnalyzer();
 
+  // Critical: Add middleware to ensure all API routes are handled before Vite catch-all
+  app.use('/api', (req, res, next) => {
+    console.log(`[API Middleware] Handling ${req.method} ${req.path}`);
+    // Set JSON content type for all API routes
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
+
+  // Test endpoint to verify API routing
+  app.get("/api/health", (req, res) => {
+    console.log('[API] Health check endpoint called');
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'unknown',
+      lichessToken: process.env.LICHESS_API_TOKEN ? 'configured' : 'missing'
+    });
+  });
+
   // Helper function to analyze openings
   function analyzeOpenings(games: any[], username: string) {
     const openings = games.reduce((acc, game) => {
@@ -63,10 +82,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Lichess integration routes
   app.get("/api/lichess/user/:username/games", async (req, res) => {
     try {
+      console.log(`[API] Processing Lichess games request for: ${req.params.username}`);
+      
+      // Set proper headers for JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
       const { username } = req.params;
       const maxGames = parseInt(req.query.max as string) || 50;
       
-      console.log(`Fetching games for Lichess user: ${username}`);
+      console.log(`Fetching games for Lichess user: ${username} (max: ${maxGames})`);
+      
+      // Check if Lichess API token is available
+      if (!process.env.LICHESS_API_TOKEN) {
+        console.warn('LICHESS_API_TOKEN not set, using mock data');
+        return res.json({
+          username,
+          totalGames: 0,
+          games: [],
+          message: "Lichess API token not configured. Please set LICHESS_API_TOKEN environment variable."
+        });
+      }
+      
       const games = await lichessService.getUserGames(username, maxGames);
       
       // Analyze each game for the target player
@@ -90,6 +126,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
+      console.log(`Successfully processed ${analyzedGames.length} games for ${username}`);
+      
       res.json({
         username,
         totalGames: analyzedGames.length,
@@ -97,9 +135,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error fetching Lichess games:', error);
+      
+      // Ensure JSON response even for errors
+      res.setHeader('Content-Type', 'application/json');
       res.status(500).json({ 
         message: "Failed to fetch Lichess games",
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        username: req.params.username
       });
     }
   });

@@ -148,6 +148,9 @@ Changelog:
 - July 1, 2025. Fixed evaluation display inconsistency between OpponentScout and GamesDatabase pages - both now show consistent decimal format (e.g., -2.52 instead of mixed centipawn/decimal values)
 - July 1, 2025. Fixed evaluation perspective to match Lichess standard - all evaluations now displayed from White's perspective for consistency with industry standards
 - July 1, 2025. Fixed evaluation timing to match Lichess methodology - evaluations now calculated for position before move is played, not after, ensuring accurate comparison with Lichess analysis
+- July 2, 2025. Fixed critical local development issue - API routes now properly prioritized over Vite catch-all route, resolving "Unexpected token '<'" JSON parsing errors when running locally
+- July 2, 2025. Enhanced error handling and debugging for local development with comprehensive logging and proper CORS headers for API endpoints
+- July 2, 2025. Created comprehensive troubleshooting documentation for common local development issues including database setup, port conflicts, and API routing problems
 
 ## User Preferences
 
