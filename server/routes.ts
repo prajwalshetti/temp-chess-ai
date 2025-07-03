@@ -583,6 +583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             pgn,
             mode,
             moveEvaluations: analysisResult.moveEvaluations,
+            analysisResults: analysisResult.analysisResults, // Include full analysis with best moves
             totalMoves: analysisResult.totalMoves,
             analysisLog: errorOutput.trim() // Debug output goes to stderr
           });

@@ -12,6 +12,14 @@ interface AnalysisResult {
   pgn: string;
   mode: string;
   moveEvaluations: Record<string, number>;
+  analysisResults?: Array<{
+    moveNumber: number;
+    turn: string;
+    san: string;
+    evaluation: string;
+    evalFloat: number;
+    bestMove: string;
+  }>;
   totalMoves: number;
   analysisLog: string;
 }
@@ -20,8 +28,10 @@ interface MoveResult {
   moveNumber: number;
   whiteSan: string;
   whiteEval: number;
+  whiteBestMove?: string;
   blackSan?: string;
   blackEval?: number;
+  blackBestMove?: string;
   comment?: string;
   category?: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
 }
@@ -102,42 +112,80 @@ export default function GameAnalysis() {
     return evaluation >= 0 ? `+${evaluation.toFixed(1)}` : evaluation.toFixed(1);
   };
 
-  // Parse analysis log into structured move data
+  // Parse analysis data into structured move data with best moves
   const parseMoveData = (): MoveResult[] => {
     if (!analysisResult) return [];
     
     const moves: MoveResult[] = [];
-    const lines = analysisResult.analysisLog.split('\n');
-    let whiteMove: { san: string; eval: number } | null = null;
     
-    for (const line of lines) {
-      const moveMatch = line.match(/(White|Black) Move (\d+): (\S+)\s+\|\s+Eval after move: ([\+\-\#]?[\d\.]+)/);
-      if (moveMatch) {
-        const [, color, num, san, evalStr] = moveMatch;
-        const evaluation = parseFloat(evalStr.replace('#', ''));
-        
-        if (color === 'White') {
-          whiteMove = { san, eval: evaluation };
-        } else if (color === 'Black' && whiteMove) {
+    // Use new analysisResults if available, otherwise fall back to parsing log
+    if (analysisResult.analysisResults && analysisResult.analysisResults.length > 0) {
+      let whiteMove: { san: string; eval: number; bestMove: string } | null = null;
+      
+      for (const analysis of analysisResult.analysisResults) {
+        if (analysis.turn === 'White') {
+          whiteMove = { 
+            san: analysis.san, 
+            eval: analysis.evalFloat,
+            bestMove: analysis.bestMove
+          };
+        } else if (analysis.turn === 'Black' && whiteMove) {
           moves.push({
-            moveNumber: parseInt(num),
+            moveNumber: analysis.moveNumber,
             whiteSan: whiteMove.san,
             whiteEval: whiteMove.eval,
-            blackSan: san,
-            blackEval: evaluation
+            whiteBestMove: whiteMove.bestMove,
+            blackSan: analysis.san,
+            blackEval: analysis.evalFloat,
+            blackBestMove: analysis.bestMove
           });
           whiteMove = null;
         }
       }
-    }
-    
-    // Add final white move if exists
-    if (whiteMove) {
-      moves.push({
-        moveNumber: moves.length + 1,
-        whiteSan: whiteMove.san,
-        whiteEval: whiteMove.eval
-      });
+      
+      // Add final white move if exists
+      if (whiteMove) {
+        moves.push({
+          moveNumber: moves.length + 1,
+          whiteSan: whiteMove.san,
+          whiteEval: whiteMove.eval,
+          whiteBestMove: whiteMove.bestMove
+        });
+      }
+    } else {
+      // Fallback to parsing log (without best moves)
+      const lines = analysisResult.analysisLog.split('\n');
+      let whiteMove: { san: string; eval: number } | null = null;
+      
+      for (const line of lines) {
+        const moveMatch = line.match(/(White|Black) Move (\d+): (\S+)\s+\|\s+Eval after move: ([\+\-\#]?[\d\.]+)/);
+        if (moveMatch) {
+          const [, color, num, san, evalStr] = moveMatch;
+          const evaluation = parseFloat(evalStr.replace('#', ''));
+          
+          if (color === 'White') {
+            whiteMove = { san, eval: evaluation };
+          } else if (color === 'Black' && whiteMove) {
+            moves.push({
+              moveNumber: parseInt(num),
+              whiteSan: whiteMove.san,
+              whiteEval: whiteMove.eval,
+              blackSan: san,
+              blackEval: evaluation
+            });
+            whiteMove = null;
+          }
+        }
+      }
+      
+      // Add final white move if exists
+      if (whiteMove) {
+        moves.push({
+          moveNumber: moves.length + 1,
+          whiteSan: whiteMove.san,
+          whiteEval: whiteMove.eval
+        });
+      }
     }
     
     return moves;
@@ -287,6 +335,17 @@ export default function GameAnalysis() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="max-h-96 overflow-y-auto">
+                  {/* Column headers */}
+                  <div className="grid grid-cols-12 gap-1 items-center py-2 px-4 border-b-2 border-gray-200 bg-gray-50 text-xs font-semibold text-gray-700">
+                    <div className="col-span-1">#</div>
+                    <div className="col-span-2">White</div>
+                    <div className="col-span-1 text-right">Eval</div>
+                    <div className="col-span-2 text-center">Best</div>
+                    <div className="col-span-2">Black</div>
+                    <div className="col-span-1 text-right">Eval</div>
+                    <div className="col-span-3 text-center">Best</div>
+                  </div>
+                  
                   {parseMoveData().map((move, index) => (
                     <div 
                       key={index} 
@@ -301,17 +360,20 @@ export default function GameAnalysis() {
                       <div className="col-span-2 font-mono text-sm font-medium">
                         {move.whiteSan}
                       </div>
-                      <div className="col-span-2 text-xs text-right font-mono text-gray-600">
+                      <div className="col-span-1 text-xs text-right font-mono text-gray-600">
                         {formatEvaluation(move.whiteEval)}
+                      </div>
+                      <div className="col-span-2 text-xs text-center font-mono text-blue-600">
+                        {move.whiteBestMove || '--'}
                       </div>
                       <div className="col-span-2 font-mono text-sm font-medium text-gray-800">
                         {move.blackSan || '...'}
                       </div>
-                      <div className="col-span-2 text-xs text-right font-mono text-gray-600">
+                      <div className="col-span-1 text-xs text-right font-mono text-gray-600">
                         {move.blackEval ? formatEvaluation(move.blackEval) : ''}
                       </div>
-                      <div className="col-span-3 text-xs text-gray-400 truncate">
-                        {move.comment || ''}
+                      <div className="col-span-3 text-xs text-center font-mono text-blue-600">
+                        {move.blackBestMove || '--'}
                       </div>
                     </div>
                   ))}
