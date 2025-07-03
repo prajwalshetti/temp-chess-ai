@@ -29,7 +29,7 @@ def analyze_game(pgn_content, engine, limit):
 
         # Get best move for initial position
         initial_info = engine.analyse(board, limit)
-        if initial_info["pv"]:
+        if "pv" in initial_info and initial_info["pv"]:
             initial_best = board.san(initial_info["pv"][0])
             best_moves.append(initial_best)
         else:
@@ -65,7 +65,7 @@ def analyze_game(pgn_content, engine, limit):
             evals.append(eval_float)
             
             # Get best move for current position (after the move was played)
-            if info["pv"]:
+            if "pv" in info and info["pv"]:
                 try:
                     current_best = board.san(info["pv"][0])
                     best_moves.append(current_best)
