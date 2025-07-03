@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Search, 
   Target, 
@@ -39,20 +40,20 @@ export default function OpponentScout() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Complete game analysis function
+  // Complete game analysis function using simple analyzer
   const analyzeGameWithStockfish = async (game: any) => {
     setIsAnalyzing(true);
     setSelectedGameForAnalysis(game);
     
     try {
-      const response = await fetch('/api/analyze/game', {
+      const response = await fetch('/api/analyze/simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           pgn: game.pgn,
-          gameId: game.id
+          mode: 'fast' // Use fast mode for opponent analysis
         }),
       });
 
@@ -61,16 +62,15 @@ export default function OpponentScout() {
       }
 
       const analysisData = await response.json();
-      setGameAnalysis(analysisData);
-      setMoveEvaluations(analysisData.moveEvaluations || []);
+      setAnalysisResult(analysisData);
       
-      // Set current evaluation based on current move
-      if (analysisData.moveEvaluations && analysisData.moveEvaluations.length > 0) {
-        const currentMoveEval = analysisData.moveEvaluations[currentMoveIndex] || analysisData.moveEvaluations[0];
-        const evaluation = currentMoveEval.evaluationFloat || currentMoveEval.evaluation || 0;
-        const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
-        setCurrentEvaluation(displayEval);
-      }
+      // Initialize chess board for analysis
+      const chess = new Chess();
+      setAnalysisChess(chess);
+      setAnalysisCurrentMoveIndex(-1);
+      
+      // Show modal with analysis
+      setShowAnalysisModal(true);
       
       toast({
         title: "Game Analysis Complete!",
@@ -149,6 +149,10 @@ export default function OpponentScout() {
   const [evaluationCache, setEvaluationCache] = useState<Map<string, number>>(new Map());
   const [gameAnalysis, setGameAnalysis] = useState<any>(null);
   const [moveEvaluations, setMoveEvaluations] = useState<any[]>([]);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisChess, setAnalysisChess] = useState(new Chess());
+  const [analysisCurrentMoveIndex, setAnalysisCurrentMoveIndex] = useState(-1);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -563,6 +567,99 @@ export default function OpponentScout() {
     if (count >= 20) return { color: "text-red-600", level: "Critical" };
     if (count >= 10) return { color: "text-orange-500", level: "Moderate" };
     return { color: "text-yellow-600", level: "Minor" };
+  };
+
+  // Analysis helper functions
+  const formatEvaluation = (eval_value: number | null): string => {
+    if (eval_value === null) return "0.00";
+    
+    if (Math.abs(eval_value) >= 50) {
+      return eval_value > 0 ? `+M${Math.ceil(eval_value / 100)}` : `-M${Math.ceil(Math.abs(eval_value) / 100)}`;
+    }
+    
+    const sign = eval_value >= 0 ? "+" : "";
+    return `${sign}${eval_value.toFixed(2)}`;
+  };
+
+  const parseMoveData = () => {
+    if (!analysisResult || !analysisResult.analysis) return [];
+    
+    const lines = analysisResult.analysis.split('\n').filter((line: string) => line.trim());
+    const moves: any[] = [];
+    let currentMove: any = {};
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.match(/^\d+\./)) {
+        if (currentMove.moveNumber) {
+          moves.push(currentMove);
+        }
+        const [moveNum, ...rest] = trimmed.split(/\s+/);
+        currentMove = { 
+          moveNumber: moveNum,
+          whiteSan: rest[0] || '',
+          whiteEval: parseFloat(rest[1]) || 0,
+          blackSan: rest[2] || '',
+          blackEval: rest[3] ? parseFloat(rest[3]) : null,
+          comment: ''
+        };
+      }
+    }
+    
+    if (currentMove.moveNumber) {
+      moves.push(currentMove);
+    }
+    
+    return moves;
+  };
+
+  const navigateToAnalysisMove = (moveIndex: number) => {
+    const chess = new Chess();
+    setAnalysisChess(chess);
+    setAnalysisCurrentMoveIndex(moveIndex);
+    
+    if (moveIndex === -1) {
+      return;
+    }
+    
+    const moves = parseMoveData();
+    for (let i = 0; i <= Math.floor(moveIndex / 2); i++) {
+      const move = moves[i];
+      if (move) {
+        if (move.whiteSan && move.whiteSan !== '...') {
+          try {
+            chess.move(move.whiteSan);
+          } catch (e) {
+            console.log(`Failed to play white move: ${move.whiteSan}`);
+          }
+        }
+        
+        if (moveIndex >= i * 2 + 1 && move.blackSan && move.blackSan !== '...') {
+          try {
+            chess.move(move.blackSan);
+          } catch (e) {
+            console.log(`Failed to play black move: ${move.blackSan}`);
+          }
+        }
+      }
+    }
+    
+    setAnalysisChess(new Chess(chess.fen()));
+  };
+
+  const getCurrentAnalysisEvaluation = () => {
+    if (!analysisResult || analysisCurrentMoveIndex === -1) return null;
+    
+    const moves = parseMoveData();
+    const moveNum = Math.floor(analysisCurrentMoveIndex / 2);
+    const isWhite = analysisCurrentMoveIndex % 2 === 0;
+    
+    if (moveNum < moves.length) {
+      const move = moves[moveNum];
+      return isWhite ? move.whiteEval : move.blackEval;
+    }
+    
+    return null;
   };
 
   return (
@@ -1962,6 +2059,132 @@ export default function OpponentScout() {
           </div>
         </div>
       )}
+
+      {/* Analysis Modal */}
+      <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
+        <DialogContent className="max-w-7xl h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              Game Analysis: {selectedGameForAnalysis?.whitePlayer} vs {selectedGameForAnalysis?.blackPlayer}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {analysisResult && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+              {/* Chess Board - Left side */}
+              <div className="lg:col-span-7">
+                <Card className="h-full">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Badge variant="secondary" className="text-xs font-mono">
+                          SF 16 • Fast (Depth 12)
+                        </Badge>
+                        {getCurrentAnalysisEvaluation() !== null && (
+                          <div className="text-xl font-bold">
+                            {formatEvaluation(getCurrentAnalysisEvaluation()!)}
+                          </div>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {analysisCurrentMoveIndex === -1 ? "Starting Position" : `Move ${Math.floor(analysisCurrentMoveIndex / 2) + 1}${analysisCurrentMoveIndex % 2 === 0 ? "" : "..."}`}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <ChessBoard 
+                      fen={analysisChess.fen()}
+                      size={350}
+                      interactive={false}
+                    />
+                    
+                    {/* Navigation Controls */}
+                    <div className="flex justify-center space-x-1 mt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => navigateToAnalysisMove(-1)}
+                        disabled={analysisCurrentMoveIndex === -1}
+                        size="sm"
+                        className="px-3"
+                      >
+                        ⏪
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigateToAnalysisMove(Math.max(-1, analysisCurrentMoveIndex - 1))}
+                        disabled={analysisCurrentMoveIndex === -1}
+                        size="sm"
+                        className="px-3"
+                      >
+                        ⏮
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigateToAnalysisMove(Math.min(analysisResult.totalMoves - 1, analysisCurrentMoveIndex + 1))}
+                        disabled={analysisCurrentMoveIndex >= analysisResult.totalMoves - 1}
+                        size="sm"
+                        className="px-3"
+                      >
+                        ⏭
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigateToAnalysisMove(analysisResult.totalMoves - 1)}
+                        disabled={analysisCurrentMoveIndex >= analysisResult.totalMoves - 1}
+                        size="sm"
+                        className="px-3"
+                      >
+                        ⏩
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Move Analysis - Right side */}
+              <div className="lg:col-span-5">
+                <Card className="h-full">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Move Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="max-h-96 overflow-y-auto">
+                      {parseMoveData().map((move, index) => (
+                        <div 
+                          key={index} 
+                          className={`grid grid-cols-12 gap-1 items-center py-2 px-4 cursor-pointer transition-colors border-b border-gray-100 hover:bg-blue-50 text-sm ${
+                            analysisCurrentMoveIndex === index * 2 || analysisCurrentMoveIndex === index * 2 + 1 ? 'bg-blue-100' : ''
+                          }`}
+                          onClick={() => navigateToAnalysisMove(index * 2)}
+                        >
+                          <div className="col-span-1 text-xs text-gray-500 font-medium">
+                            {move.moveNumber}
+                          </div>
+                          <div className="col-span-2 font-mono text-sm font-medium">
+                            {move.whiteSan}
+                          </div>
+                          <div className="col-span-2 text-xs text-right font-mono text-gray-600">
+                            {formatEvaluation(move.whiteEval)}
+                          </div>
+                          <div className="col-span-2 font-mono text-sm font-medium text-gray-800">
+                            {move.blackSan || '...'}
+                          </div>
+                          <div className="col-span-2 text-xs text-right font-mono text-gray-600">
+                            {move.blackEval ? formatEvaluation(move.blackEval) : ''}
+                          </div>
+                          <div className="col-span-3 text-xs text-gray-400 truncate">
+                            {move.comment || ''}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
