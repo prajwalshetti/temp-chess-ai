@@ -1,0 +1,125 @@
+import os
+import argparse
+import chess.pgn
+import chess.engine
+import json
+import sys
+from io import StringIO
+
+# === CONFIGURATION ===
+STOCKFISH_PATH = "stockfish"  # Using system stockfish
+
+def analyze_game(pgn_content, engine, limit):
+    """Analyze a chess game from PGN content"""
+    try:
+        pgn_io = StringIO(pgn_content)
+        game = chess.pgn.read_game(pgn_io)
+        
+        if not game:
+            return None
+        
+        board = game.board()
+        node = game
+        moves_analysis = []
+
+        while node.variations:
+            next_node = node.variation(0)
+            move = next_node.move
+
+            # Get SAN before pushing the move
+            try:
+                san = board.san(move)
+            except:
+                san = str(move)
+
+            board.push(move)
+
+            info = engine.analyse(board, limit)
+            score_raw = info["score"].white()  # Always from White's POV
+
+            if score_raw.is_mate():
+                score = f"#{score_raw.mate()}"
+                eval_float = 999 if score_raw.mate() > 0 else -999
+            else:
+                score = f"{score_raw.score() / 100:.2f}"
+                eval_float = score_raw.score() / 100
+
+            move_number = board.fullmove_number
+            turn = "White" if board.turn == chess.BLACK else "Black"
+            
+            # Store analysis for this move
+            move_data = {
+                "moveNumber": move_number,
+                "turn": turn,
+                "san": san,
+                "evaluation": score,
+                "evalFloat": eval_float
+            }
+            moves_analysis.append(move_data)
+            
+            # Print for debugging (goes to stderr)
+            print(f"{turn} Move {move_number}: {san:6} | Eval after move: {score}", file=sys.stderr)
+
+            node = next_node
+        
+        return moves_analysis
+    except Exception as e:
+        print(f"Error in analyze_game: {str(e)}", file=sys.stderr)
+        return None
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--mode",
+        choices=["fast", "accurate"],
+        default="accurate",
+        help="Choose analysis mode (default: accurate)"
+    )
+    args = parser.parse_args()
+
+    # === Set engine depth/time based on mode ===
+    if args.mode == "fast":
+        limit = chess.engine.Limit(depth=12)
+        print("⚡ Fast mode (depth 12)", file=sys.stderr)
+    else:
+        limit = chess.engine.Limit(time=0.5)
+        print("🔍 Accurate mode (time=0.5s)", file=sys.stderr)
+
+    # Read PGN from stdin
+    pgn_content = sys.stdin.read().strip()
+    
+    if not pgn_content:
+        print("ERROR: No PGN content provided", file=sys.stderr)
+        sys.exit(1)
+
+    # === Run analysis ===
+    try:
+        with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
+            print("📂 Analyzing game...", file=sys.stderr)
+            moves_analysis = analyze_game(pgn_content, engine, limit)
+            
+            if moves_analysis is None:
+                print("ERROR: Failed to analyze game", file=sys.stderr)
+                sys.exit(1)
+            
+            # Convert to the format expected by the API
+            move_evaluations = {}
+            analysis_list = list(moves_analysis)  # Ensure it's a list
+            for i, analysis in enumerate(analysis_list):
+                move_evaluations[str(i)] = analysis.get("evalFloat", 0.0)
+            
+            # Output JSON result
+            result = {
+                "moveEvaluations": move_evaluations,
+                "totalMoves": len(analysis_list),
+                "success": True
+            }
+            
+            print(json.dumps(result))
+            
+    except Exception as e:
+        print(f"ERROR: Analysis failed - {str(e)}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

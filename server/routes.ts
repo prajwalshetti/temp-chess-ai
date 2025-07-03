@@ -528,6 +528,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple game analysis using cleaner analyzer (like user's local script)
+  app.post("/api/analyze/simple", async (req, res) => {
+    try {
+      const { pgn, mode = "accurate" } = req.body;
+      
+      if (!pgn) {
+        return res.status(400).json({ message: "PGN is required" });
+      }
+
+      console.log(`Analyzing game with simple analyzer in ${mode} mode`);
+
+      // Use the simple Python chess analyzer
+      const pythonScript = path.join(__dirname, 'simple_chess_analyzer.py');
+      
+      const child = spawn('python3', [pythonScript, '--mode', mode], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      let isResponseSent = false;
+      
+      // Send PGN to Python script
+      child.stdin.write(pgn);
+      child.stdin.end();
+      
+      child.stdout.on('data', (data: Buffer) => {
+        output += data.toString();
+      });
+      
+      child.stderr.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+      
+      child.on('close', (code: number) => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        
+        if (code !== 0) {
+          console.error("Simple game analysis error:", errorOutput);
+          return res.status(500).json({ message: `Analysis failed: ${errorOutput}` });
+        }
+        
+        try {
+          // Parse JSON output from simple analyzer
+          const analysisResult = JSON.parse(output.trim());
+          
+          if (!analysisResult.success) {
+            return res.status(500).json({ message: "Analysis failed - invalid result" });
+          }
+          
+          res.json({
+            pgn,
+            mode,
+            moveEvaluations: analysisResult.moveEvaluations,
+            totalMoves: analysisResult.totalMoves,
+            analysisLog: errorOutput.trim() // Debug output goes to stderr
+          });
+          
+        } catch (parseError) {
+          console.error("Failed to parse simple analysis result:", parseError);
+          console.error("Raw output:", output);
+          res.status(500).json({ message: "Failed to parse analysis result" });
+        }
+      });
+      
+      child.on('error', (error: Error) => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        console.error("Simple game analysis process error:", error);
+        res.status(500).json({ message: `Process error: ${error.message}` });
+      });
+      
+      // Set timeout for simple analysis (2 minutes for fast mode, 5 minutes for accurate mode)
+      const timeoutMs = mode === "fast" ? 120000 : 300000;
+      const timeout = setTimeout(() => {
+        if (isResponseSent) return;
+        isResponseSent = true;
+        child.kill('SIGTERM');
+        res.status(408).json({ message: "Simple game analysis timeout" });
+      }, timeoutMs);
+      
+      child.on('close', () => clearTimeout(timeout));
+      
+    } catch (error) {
+      console.error("Simple game analysis endpoint error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Position analysis using Python chess analyzer for real-time evaluations
   app.post("/api/analyze/position", async (req, res) => {
     try {

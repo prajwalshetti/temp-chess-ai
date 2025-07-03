@@ -82,6 +82,19 @@ export function useChess(initialFen?: string) {
     setCurrentMoveIndex(moveIndex);
   }, [chess, moveHistory]);
 
+  const loadFromPgn = useCallback((pgn: string) => {
+    try {
+      chess.loadPgn(pgn);
+      setFen(chess.fen());
+      setMoveHistory(chess.history());
+      setCurrentMoveIndex(chess.history().length - 1);
+      return true;
+    } catch (e) {
+      console.warn("Invalid PGN:", pgn);
+      return false;
+    }
+  }, [chess]);
+
   const isGameOver = chess.isGameOver();
   const isCheck = chess.inCheck();
   const isCheckmate = chess.isCheckmate();
@@ -97,6 +110,7 @@ export function useChess(initialFen?: string) {
     undoMove,
     reset,
     loadPosition,
+    loadFromPgn,
     goToMove,
     isGameOver,
     isCheck,

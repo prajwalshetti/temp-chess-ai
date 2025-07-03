@@ -11,6 +11,7 @@ import LearnChess from "@/pages/LearnChess";
 import Account from "@/pages/Account";
 import OpponentScout from "@/pages/OpponentScout";
 import GameAnalysis from "@/pages/GameAnalysis";
+import SimpleAnalysis from "@/pages/SimpleAnalysis";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/scout" component={OpponentScout} />
       <Route path="/opponent-scout" component={OpponentScout} />
       <Route path="/analysis" component={GameAnalysis} />
+      <Route path="/simple-analysis" component={SimpleAnalysis} />
       <Route path="/learn" component={LearnChess} />
       <Route path="/account" component={Account} />
       <Route component={NotFound} />
