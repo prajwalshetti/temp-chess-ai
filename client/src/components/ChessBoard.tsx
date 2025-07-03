@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Chess, Square } from "chess.js";
 import { cn } from "@/lib/utils";
 
@@ -17,18 +17,27 @@ export function ChessBoard({
   size = 400,
   interactive = true
 }: ChessBoardProps) {
-  const [chess] = useState(() => {
-    const game = new Chess();
+  const [chess] = useState(() => new Chess());
+  
+  // Update the chess position when fen prop changes
+  useEffect(() => {
     try {
-      game.load(fen);
+      chess.load(fen);
+      console.log("ChessBoard updated to FEN:", fen);
     } catch (e) {
-      // If invalid FEN, use starting position
+      console.warn("Invalid FEN provided to ChessBoard:", fen, e);
+      chess.reset(); // Fallback to starting position
     }
-    return game;
-  });
+  }, [chess, fen]);
   
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
+  const [, forceUpdate] = useState({});
+
+  // Force component re-render when FEN changes
+  useEffect(() => {
+    forceUpdate({});
+  }, [fen]);
 
   const board = chess.board();
   const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
