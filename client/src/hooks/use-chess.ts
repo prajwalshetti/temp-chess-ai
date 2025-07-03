@@ -64,37 +64,53 @@ export function useChess(initialFen?: string) {
   }, [chess]);
 
   const goToMove = useCallback((moveIndex: number) => {
-    if (moveIndex < -1 || moveIndex >= moveHistory.length) return;
+    console.log(`Navigate to move ${moveIndex}, history length: ${moveHistory.length}`);
     
-    // Reset to starting position
-    const startFen = chess.history().length > 0 ? 
-      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" : 
-      chess.fen();
-    
-    chess.load(startFen);
-    
-    // Play moves up to the target index
-    for (let i = 0; i <= moveIndex; i++) {
-      chess.move(moveHistory[i]);
+    if (moveIndex < -1 || moveIndex >= moveHistory.length) {
+      console.log("Invalid move index");
+      return;
     }
     
-    setFen(chess.fen());
+    // Always reset to starting position first
+    chess.reset();
+    
+    // If moveIndex is -1, stay at starting position
+    if (moveIndex >= 0) {
+      // Play moves up to the target index
+      for (let i = 0; i <= moveIndex; i++) {
+        try {
+          const move = chess.move(moveHistory[i]);
+          console.log(`Played move ${i}: ${moveHistory[i]} -> ${move?.san || 'invalid'}`);
+        } catch (e) {
+          console.error(`Failed to play move ${i}: ${moveHistory[i]}`, e);
+          break;
+        }
+      }
+    }
+    
+    const newFen = chess.fen();
+    console.log(`New position FEN: ${newFen}`);
+    setFen(newFen);
     setCurrentMoveIndex(moveIndex);
   }, [chess, moveHistory]);
 
   const loadFromPgn = useCallback((pgn: string) => {
     try {
+      console.log("Loading PGN:", pgn.substring(0, 100) + "...");
       chess.loadPgn(pgn);
       const history = chess.history();
+      console.log("Move history loaded:", history);
       setMoveHistory(history);
       setCurrentMoveIndex(-1); // Start at beginning
       
       // Reset to starting position for navigation
       chess.reset();
-      setFen(chess.fen());
+      const startFen = chess.fen();
+      console.log("Reset to starting FEN:", startFen);
+      setFen(startFen);
       return true;
     } catch (e) {
-      console.warn("Invalid PGN:", pgn);
+      console.warn("Invalid PGN:", pgn, e);
       return false;
     }
   }, [chess]);

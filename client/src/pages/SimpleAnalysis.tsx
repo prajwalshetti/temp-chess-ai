@@ -76,8 +76,12 @@ export default function SimpleAnalysis() {
   };
 
   const navigateToMove = (moveIndex: number) => {
-    if (!analysisResult) return;
+    if (!analysisResult) {
+      console.log("No analysis result available");
+      return;
+    }
     
+    console.log(`Navigating to move ${moveIndex}`);
     setCurrentMoveIndex(moveIndex);
     chess.goToMove(moveIndex);
   };
