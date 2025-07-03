@@ -85,9 +85,13 @@ export function useChess(initialFen?: string) {
   const loadFromPgn = useCallback((pgn: string) => {
     try {
       chess.loadPgn(pgn);
+      const history = chess.history();
+      setMoveHistory(history);
+      setCurrentMoveIndex(-1); // Start at beginning
+      
+      // Reset to starting position for navigation
+      chess.reset();
       setFen(chess.fen());
-      setMoveHistory(chess.history());
-      setCurrentMoveIndex(chess.history().length - 1);
       return true;
     } catch (e) {
       console.warn("Invalid PGN:", pgn);

@@ -47,7 +47,7 @@ export default function SimpleAnalysis() {
       setAnalysisResult(data);
       // Load the game into the chess board
       chess.loadFromPgn(data.pgn);
-      setCurrentMoveIndex(0);
+      setCurrentMoveIndex(-1); // Start at beginning (before first move)
       toast({
         title: "Analysis Complete",
         description: `Game analyzed with ${data.totalMoves} moves in ${data.mode} mode`
@@ -84,6 +84,7 @@ export default function SimpleAnalysis() {
 
   const getCurrentEvaluation = () => {
     if (!analysisResult || currentMoveIndex < 0) return null;
+    // The evaluation is for the position after the move, so we use currentMoveIndex
     return analysisResult.moveEvaluations[currentMoveIndex.toString()];
   };
 
@@ -165,7 +166,7 @@ export default function SimpleAnalysis() {
               Game Position
               {analysisResult && (
                 <Badge variant="outline">
-                  Move {currentMoveIndex + 1} of {analysisResult.totalMoves}
+                  {currentMoveIndex === -1 ? "Starting Position" : `After Move ${currentMoveIndex + 1}`}
                 </Badge>
               )}
             </CardTitle>
@@ -203,16 +204,16 @@ export default function SimpleAnalysis() {
               <div className="flex space-x-2 mb-4">
                 <Button
                   variant="outline"
-                  onClick={() => navigateToMove(0)}
-                  disabled={currentMoveIndex === 0}
+                  onClick={() => navigateToMove(-1)}
+                  disabled={currentMoveIndex === -1}
                   size="sm"
                 >
                   ⏪ Start
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => navigateToMove(Math.max(0, currentMoveIndex - 1))}
-                  disabled={currentMoveIndex === 0}
+                  onClick={() => navigateToMove(Math.max(-1, currentMoveIndex - 1))}
+                  disabled={currentMoveIndex === -1}
                   size="sm"
                 >
                   ⏮ Previous
