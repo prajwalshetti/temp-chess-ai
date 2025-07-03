@@ -452,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Analyzing complete game: ${gameId}`);
 
       // Use improved Python Stockfish analyzer
-      const pythonScript = path.join(__dirname, 'stockfish_analyzer_improved.py');
+      const pythonScript = path.join(process.cwd(), 'server', 'stockfish_analyzer_improved.py');
       
       const child = spawn('python3', [pythonScript, '--depth', '20', '--format', 'json'], {
         stdio: ['pipe', 'pipe', 'pipe']
@@ -540,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Analyzing game with simple analyzer in ${mode} mode`);
 
       // Use the simple Python chess analyzer
-      const pythonScript = path.join(__dirname, 'simple_chess_analyzer.py');
+      const pythonScript = path.join(process.cwd(), 'server', 'simple_chess_analyzer.py');
       
       const child = spawn('python3', [pythonScript, '--mode', mode], {
         stdio: ['pipe', 'pipe', 'pipe']
