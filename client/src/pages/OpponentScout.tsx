@@ -584,9 +584,50 @@ export default function OpponentScout() {
   const parseMoveData = () => {
     if (!analysisResult) return [];
     
-    // Handle simple analyzer JSON output format
-    if (analysisResult.moveEvaluations && selectedGameForAnalysis) {
-      const moves: any[] = [];
+    const moves: any[] = [];
+    
+    // Use new analysisResults with best moves if available
+    if (analysisResult.analysisResults && analysisResult.analysisResults.length > 0) {
+      let whiteMove: { san: string; eval: number; bestMove: string } | null = null;
+      
+      for (const analysis of analysisResult.analysisResults) {
+        if (analysis.turn === 'White') {
+          whiteMove = { 
+            san: analysis.san, 
+            eval: analysis.evalFloat,
+            bestMove: analysis.bestMove
+          };
+        } else if (analysis.turn === 'Black' && whiteMove) {
+          moves.push({
+            moveNumber: analysis.moveNumber + '.',
+            whiteSan: whiteMove.san,
+            whiteEval: whiteMove.eval,
+            whiteBestMove: whiteMove.bestMove,
+            blackSan: analysis.san,
+            blackEval: analysis.evalFloat,
+            blackBestMove: analysis.bestMove,
+            comment: ''
+          });
+          whiteMove = null;
+        }
+      }
+      
+      // Add final white move if exists
+      if (whiteMove) {
+        moves.push({
+          moveNumber: (moves.length + 1) + '.',
+          whiteSan: whiteMove.san,
+          whiteEval: whiteMove.eval,
+          whiteBestMove: whiteMove.bestMove,
+          blackSan: '',
+          blackEval: null,
+          blackBestMove: '',
+          comment: ''
+        });
+      }
+    }
+    // Handle simple analyzer JSON output format (fallback without best moves)
+    else if (analysisResult.moveEvaluations && selectedGameForAnalysis) {
       const gameMoves = selectedGameForAnalysis.moves || [];
       const evaluations = analysisResult.moveEvaluations;
       
@@ -601,19 +642,17 @@ export default function OpponentScout() {
           moveNumber: moveNumber + '.',
           whiteSan: whiteMove || '',
           whiteEval: whiteEval,
+          whiteBestMove: '--',
           blackSan: blackMove || '',
           blackEval: blackEval,
+          blackBestMove: '--',
           comment: ''
         });
       }
-      
-      return moves;
     }
-    
-    // Fallback for text-based analysis format
-    if (analysisResult.analysis) {
+    // Fallback for text-based analysis format (without best moves)
+    else if (analysisResult.analysis) {
       const lines = analysisResult.analysis.split('\n').filter((line: string) => line.trim() && line.match(/^\d+\./));
-      const moves: any[] = [];
       
       for (const line of lines) {
         const trimmed = line.trim();
@@ -625,17 +664,17 @@ export default function OpponentScout() {
             moveNumber: moveNumber + '.',
             whiteSan: whiteSan,
             whiteEval: parseFloat(whiteEval),
+            whiteBestMove: '--',
             blackSan: blackSan || '',
             blackEval: blackEval ? parseFloat(blackEval) : null,
+            blackBestMove: '--',
             comment: ''
           });
         }
       }
-      
-      return moves;
     }
     
-    return [];
+    return moves;
   };
 
   const navigateToAnalysisMove = (moveIndex: number) => {
@@ -2172,6 +2211,17 @@ export default function OpponentScout() {
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="max-h-96 overflow-y-auto">
+                      {/* Column headers */}
+                      <div className="grid grid-cols-12 gap-1 items-center py-2 px-4 border-b-2 border-gray-200 bg-gray-50 text-xs font-semibold text-gray-700">
+                        <div className="col-span-1">#</div>
+                        <div className="col-span-2">White</div>
+                        <div className="col-span-1 text-right">Eval</div>
+                        <div className="col-span-2 text-center">Best</div>
+                        <div className="col-span-2">Black</div>
+                        <div className="col-span-1 text-right">Eval</div>
+                        <div className="col-span-3 text-center">Best</div>
+                      </div>
+                      
                       {parseMoveData().map((move, index) => (
                         <div 
                           key={index} 
@@ -2186,17 +2236,20 @@ export default function OpponentScout() {
                           <div className="col-span-2 font-mono text-sm font-medium">
                             {move.whiteSan}
                           </div>
-                          <div className="col-span-2 text-xs text-right font-mono text-gray-600">
+                          <div className="col-span-1 text-xs text-right font-mono text-gray-600">
                             {formatEvaluation(move.whiteEval)}
+                          </div>
+                          <div className="col-span-2 text-xs text-center font-mono text-blue-600">
+                            {move.whiteBestMove || '--'}
                           </div>
                           <div className="col-span-2 font-mono text-sm font-medium text-gray-800">
                             {move.blackSan || '...'}
                           </div>
-                          <div className="col-span-2 text-xs text-right font-mono text-gray-600">
+                          <div className="col-span-1 text-xs text-right font-mono text-gray-600">
                             {move.blackEval ? formatEvaluation(move.blackEval) : ''}
                           </div>
-                          <div className="col-span-3 text-xs text-gray-400 truncate">
-                            {move.comment || ''}
+                          <div className="col-span-3 text-xs text-center font-mono text-blue-600">
+                            {move.blackBestMove || '--'}
                           </div>
                         </div>
                       ))}

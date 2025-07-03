@@ -155,6 +155,9 @@ Changelog:
 - July 3, 2025. Fixed chess board navigation issue - pieces now move correctly when navigating through analyzed games with proper FEN updates and position display
 - July 3, 2025. Replaced Game Analysis page with Simple Analysis functionality, restructured analysis log with Lichess-style move display format
 - July 3, 2025. Removed duplicate analysis pages and cleaned up navigation - unified to single Game Analysis page using simple Stockfish approach
+- July 3, 2025. Implemented array indexing logic for chess move analysis with best move tracking using moves[i], evals[i], best_moves[i+1] pattern
+- July 3, 2025. Enhanced both Game Analysis and Opponent Scout pages to display moves, evaluations, and best moves with proper column headers
+- July 3, 2025. Updated simple_chess_analyzer.py to include complete analysis results with best move recommendations for each position
 
 ## User Preferences
 
