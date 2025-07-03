@@ -152,9 +152,9 @@ export default function GameAnalysis() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Input Section */}
-        <Card>
+      {!analysisResult ? (
+        /* Input Section - Full width when no analysis */
+        <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>Game Input</CardTitle>
           </CardHeader>
@@ -165,7 +165,7 @@ export default function GameAnalysis() {
                 value={pgnInput}
                 onChange={(e) => setPgnInput(e.target.value)}
                 placeholder="Paste your PGN here..."
-                rows={8}
+                rows={12}
                 className="font-mono text-sm"
               />
             </div>
@@ -206,100 +206,96 @@ export default function GameAnalysis() {
             </Button>
           </CardContent>
         </Card>
-
-        {/* Chess Board */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Game Position
-              {analysisResult && (
-                <Badge variant="outline">
-                  {currentMoveIndex === -1 ? "Starting Position" : `After Move ${currentMoveIndex + 1}`}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChessBoard 
-              fen={chess.fen}
-              size={400}
-              interactive={false}
-            />
-            
-            {getCurrentEvaluation() !== null && (
-              <div className="mt-4 text-center">
-                <div className="text-lg font-bold">
-                  Evaluation: {formatEvaluation(getCurrentEvaluation()!)}
-                </div>
-                <div className="text-sm text-gray-600">
-                  (White's perspective, after move)
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Analysis Results */}
-      {analysisResult && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Analysis Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Move Navigation */}
-              <div className="flex space-x-2 mb-4">
-                <Button
-                  variant="outline"
-                  onClick={() => navigateToMove(-1)}
-                  disabled={currentMoveIndex === -1}
-                  size="sm"
-                >
-                  ⏪ Start
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigateToMove(Math.max(-1, currentMoveIndex - 1))}
-                  disabled={currentMoveIndex === -1}
-                  size="sm"
-                >
-                  ⏮ Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigateToMove(Math.min(analysisResult.totalMoves - 1, currentMoveIndex + 1))}
-                  disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
-                  size="sm"
-                >
-                  ⏭ Next
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigateToMove(analysisResult.totalMoves - 1)}
-                  disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
-                  size="sm"
-                >
-                  ⏩ End
-                </Button>
-              </div>
-
-              {/* Structured Move Analysis - Lichess Style */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold mb-3 flex items-center space-x-2">
-                  <span>Move Analysis</span>
-                  <Badge variant="secondary" className="text-xs">
-                    SF 16 • Depth 12
+      ) : (
+        /* Analysis View - Lichess-style layout */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Chess Board - Left side */}
+          <div className="lg:col-span-7">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Badge variant="secondary" className="text-xs font-mono">
+                      SF 16 • {analysisMode === "fast" ? "Depth 12" : "0.5s/move"}
+                    </Badge>
+                    {getCurrentEvaluation() !== null && (
+                      <div className="text-xl font-bold">
+                        {formatEvaluation(getCurrentEvaluation()!)}
+                      </div>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {currentMoveIndex === -1 ? "Starting Position" : `Move ${Math.floor(currentMoveIndex / 2) + 1}${currentMoveIndex % 2 === 0 ? "" : "..."}`}
                   </Badge>
-                </h3>
-                <div className="space-y-1 max-h-96 overflow-y-auto">
+                </div>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <ChessBoard 
+                  fen={chess.fen}
+                  size={450}
+                  interactive={false}
+                />
+                
+                {/* Navigation Controls */}
+                <div className="flex justify-center space-x-1 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigateToMove(-1)}
+                    disabled={currentMoveIndex === -1}
+                    size="sm"
+                    className="px-3"
+                  >
+                    ⏪
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigateToMove(Math.max(-1, currentMoveIndex - 1))}
+                    disabled={currentMoveIndex === -1}
+                    size="sm"
+                    className="px-3"
+                  >
+                    ⏮
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigateToMove(Math.min(analysisResult.totalMoves - 1, currentMoveIndex + 1))}
+                    disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
+                    size="sm"
+                    className="px-3"
+                  >
+                    ⏭
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigateToMove(analysisResult.totalMoves - 1)}
+                    disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
+                    size="sm"
+                    className="px-3"
+                  >
+                    ⏩
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Move Analysis - Right side */}
+          <div className="lg:col-span-5">
+            <Card className="h-full">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Move Analysis</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-h-96 overflow-y-auto">
                   {parseMoveData().map((move, index) => (
                     <div 
                       key={index} 
-                      className="grid grid-cols-12 gap-2 items-center py-2 hover:bg-white rounded px-3 cursor-pointer transition-colors"
+                      className={`grid grid-cols-12 gap-1 items-center py-2 px-4 cursor-pointer transition-colors border-b border-gray-100 hover:bg-blue-50 text-sm ${
+                        currentMoveIndex === index * 2 || currentMoveIndex === index * 2 + 1 ? 'bg-blue-100' : ''
+                      }`}
                       onClick={() => navigateToMove(index * 2)}
                     >
-                      <div className="col-span-1 text-sm text-gray-500 font-medium">
+                      <div className="col-span-1 text-xs text-gray-500 font-medium">
                         {move.moveNumber}
                       </div>
                       <div className="col-span-2 font-mono text-sm font-medium">
@@ -308,22 +304,40 @@ export default function GameAnalysis() {
                       <div className="col-span-2 text-xs text-right font-mono text-gray-600">
                         {formatEvaluation(move.whiteEval)}
                       </div>
-                      <div className="col-span-2 font-mono text-sm font-medium">
+                      <div className="col-span-2 font-mono text-sm font-medium text-gray-800">
                         {move.blackSan || '...'}
                       </div>
                       <div className="col-span-2 text-xs text-right font-mono text-gray-600">
                         {move.blackEval ? formatEvaluation(move.blackEval) : ''}
                       </div>
-                      <div className="col-span-3 text-xs text-gray-400">
+                      <div className="col-span-3 text-xs text-gray-400 truncate">
                         {move.comment || ''}
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      
+      {/* New Analysis Button */}
+      {analysisResult && (
+        <div className="mt-6 text-center">
+          <Button 
+            onClick={() => {
+              setAnalysisResult(null);
+              setPgnInput("");
+              setCurrentMoveIndex(-1);
+            }}
+            variant="outline"
+            className="px-6"
+          >
+            ← New Analysis
+          </Button>
+        </div>
       )}
     </div>
   );
