@@ -1,154 +1,327 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, TrendingDown, TrendingUp, Target, Clock } from "lucide-react";
+import { ChessBoard } from "@/components/ChessBoard";
+import { useChess } from "@/hooks/use-chess";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
-// Simple text output interface matching Python code
+interface AnalysisResult {
+  pgn: string;
+  mode: string;
+  moveEvaluations: Record<string, number>;
+  totalMoves: number;
+  analysisLog: string;
+}
+
+interface MoveResult {
+  moveNumber: number;
+  whiteSan: string;
+  whiteEval: number;
+  blackSan?: string;
+  blackEval?: number;
+  comment?: string;
+  category?: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
+}
 
 export default function GameAnalysis() {
-  const [pgn, setPgn] = useState("");
-  const [analysisOutput, setAnalysisOutput] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [pgnInput, setPgnInput] = useState("");
+  const [analysisMode, setAnalysisMode] = useState<"fast" | "accurate">("accurate");
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
+  const { toast } = useToast();
+  
+  const chess = useChess();
 
   const analyzeGameMutation = useMutation({
-    mutationFn: async (gameData: { pgn: string }): Promise<string> => {
-      const response = await fetch("/api/analyze/game", {
+    mutationFn: async ({ pgn, mode }: { pgn: string; mode: string }): Promise<AnalysisResult> => {
+      const response = await fetch(`/api/analyze/simple`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify(gameData),
+        body: JSON.stringify({ pgn, mode })
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to analyze game");
+        const error = await response.json();
+        throw new Error(error.message || "Analysis failed");
       }
       
-      return response.text();
+      return response.json();
     },
-    onSuccess: (data) => {
-      setAnalysisOutput(data);
-      setError(null);
+    onSuccess: (data: AnalysisResult) => {
+      setAnalysisResult(data);
+      chess.loadFromPgn(data.pgn);
+      setCurrentMoveIndex(-1);
+      toast({
+        title: "Analysis Complete",
+        description: `Game analyzed with ${data.totalMoves} moves in ${data.mode} mode`
+      });
     },
-    onError: (error) => {
-      setError(error.message);
-      setAnalysisOutput(null);
-    },
+    onError: (error: any) => {
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Failed to analyze game",
+        variant: "destructive"
+      });
+    }
   });
 
   const handleAnalyze = () => {
-    if (pgn.trim()) {
-      analyzeGameMutation.mutate({ pgn: pgn.trim() });
+    if (!pgnInput.trim()) {
+      toast({
+        title: "PGN Required",
+        description: "Please enter a PGN to analyze",
+        variant: "destructive"
+      });
+      return;
     }
+    
+    analyzeGameMutation.mutate({ pgn: pgnInput, mode: analysisMode });
   };
 
-  const formatEvaluation = (evalValue: number) => {
-    return evalValue > 0 ? `+${evalValue.toFixed(1)}` : `${evalValue.toFixed(1)}`;
+  const navigateToMove = (moveIndex: number) => {
+    if (!analysisResult) return;
+    
+    setCurrentMoveIndex(moveIndex);
+    chess.goToMove(moveIndex);
   };
 
-  const getEvaluationColor = (evalValue: number) => {
-    if (evalValue > 2) return "text-green-600 dark:text-green-400";
-    if (evalValue < -2) return "text-red-600 dark:text-red-400";
-    return "text-yellow-600 dark:text-yellow-400";
+  const getCurrentEvaluation = () => {
+    if (!analysisResult || currentMoveIndex < 0) return null;
+    return analysisResult.moveEvaluations[currentMoveIndex.toString()];
   };
 
-  const getLabelColor = (label: string) => {
-    switch (label) {
-      case "Excellent Find": return "text-green-600 bg-green-50 dark:bg-green-900/20";
-      case "Missed Tactic": return "text-red-600 bg-red-50 dark:bg-red-900/20";
-      default: return "text-gray-600 bg-gray-50 dark:bg-gray-900/20";
+  const formatEvaluation = (evaluation: number) => {
+    if (Math.abs(evaluation) > 100) {
+      return evaluation > 0 ? `#${Math.ceil((evaluation - 100) / 10)}` : `#-${Math.ceil((100 - evaluation) / 10)}`;
     }
+    return evaluation >= 0 ? `+${evaluation.toFixed(1)}` : evaluation.toFixed(1);
+  };
+
+  // Parse analysis log into structured move data
+  const parseMoveData = (): MoveResult[] => {
+    if (!analysisResult) return [];
+    
+    const moves: MoveResult[] = [];
+    const lines = analysisResult.analysisLog.split('\n');
+    let whiteMove: { san: string; eval: number } | null = null;
+    
+    for (const line of lines) {
+      const moveMatch = line.match(/(White|Black) Move (\d+): (\S+)\s+\|\s+Eval after move: ([\+\-\#]?[\d\.]+)/);
+      if (moveMatch) {
+        const [, color, num, san, evalStr] = moveMatch;
+        const evaluation = parseFloat(evalStr.replace('#', ''));
+        
+        if (color === 'White') {
+          whiteMove = { san, eval: evaluation };
+        } else if (color === 'Black' && whiteMove) {
+          moves.push({
+            moveNumber: parseInt(num),
+            whiteSan: whiteMove.san,
+            whiteEval: whiteMove.eval,
+            blackSan: san,
+            blackEval: evaluation
+          });
+          whiteMove = null;
+        }
+      }
+    }
+    
+    // Add final white move if exists
+    if (whiteMove) {
+      moves.push({
+        moveNumber: moves.length + 1,
+        whiteSan: whiteMove.san,
+        whiteEval: whiteMove.eval
+      });
+    }
+    
+    return moves;
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Stockfish Game Analysis</h1>
-        <p className="text-muted-foreground">
-          Deep analysis of your chess games using authentic Stockfish evaluation
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Game Analysis</h1>
+        <p className="text-gray-600 mt-2">
+          Clean Stockfish analysis showing evaluation after each move from White's perspective
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Game Input
-          </CardTitle>
-          <CardDescription>
-            Paste your game in PGN format for detailed move-by-move analysis
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            placeholder="Enter your game moves like: 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6"
-            value={pgn}
-            onChange={(e) => setPgn(e.target.value)}
-            rows={6}
-            className="font-mono text-sm"
-          />
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            <p className="mb-2">Sample input formats supported:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Standard notation: "1. e4 e5 2. Nf3 Nc6"</li>
-              <li>Simple moves: "e4 e5 Nf3 Nc6"</li>
-              <li>Full PGN with headers is also supported</li>
-            </ul>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleAnalyze} 
-              disabled={!pgn.trim() || analyzeGameMutation.isPending}
-              className="flex-1"
-            >
-              {analyzeGameMutation.isPending ? "Analyzing..." : "Analyze Game"}
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setPgn("1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7")}
-              disabled={analyzeGameMutation.isPending}
-            >
-              Load Sample
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {error && (
-        <Card className="border-red-200 dark:border-red-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
-              <AlertTriangle className="w-5 h-5" />
-              Analysis Error
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-600 dark:text-red-400">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {analysisOutput && (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Input Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Game Analysis Output
+            <CardTitle>Game Input</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">PGN:</label>
+              <Textarea
+                value={pgnInput}
+                onChange={(e) => setPgnInput(e.target.value)}
+                placeholder="Paste your PGN here..."
+                rows={8}
+                className="font-mono text-sm"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Analysis Mode:</label>
+              <div className="flex space-x-2">
+                <Button
+                  variant={analysisMode === "fast" ? "default" : "outline"}
+                  onClick={() => setAnalysisMode("fast")}
+                  size="sm"
+                >
+                  ⚡ Fast (depth 12)
+                </Button>
+                <Button
+                  variant={analysisMode === "accurate" ? "default" : "outline"}
+                  onClick={() => setAnalysisMode("accurate")}
+                  size="sm"
+                >
+                  🔍 Accurate (0.5s per move)
+                </Button>
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleAnalyze}
+              disabled={analyzeGameMutation.isPending || !pgnInput.trim()}
+              className="w-full"
+            >
+              {analyzeGameMutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                  Analyzing...
+                </>
+              ) : (
+                "Analyze Game"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Chess Board */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              Game Position
+              {analysisResult && (
+                <Badge variant="outline">
+                  {currentMoveIndex === -1 ? "Starting Position" : `After Move ${currentMoveIndex + 1}`}
+                </Badge>
+              )}
             </CardTitle>
-            <CardDescription>
-              Move-by-move analysis matching Python Stockfish format
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto">
-              {analysisOutput}
-            </pre>
+            <ChessBoard 
+              fen={chess.fen}
+              size={400}
+              interactive={false}
+            />
+            
+            {getCurrentEvaluation() !== null && (
+              <div className="mt-4 text-center">
+                <div className="text-lg font-bold">
+                  Evaluation: {formatEvaluation(getCurrentEvaluation()!)}
+                </div>
+                <div className="text-sm text-gray-600">
+                  (White's perspective, after move)
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analysis Results */}
+      {analysisResult && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Analysis Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Move Navigation */}
+              <div className="flex space-x-2 mb-4">
+                <Button
+                  variant="outline"
+                  onClick={() => navigateToMove(-1)}
+                  disabled={currentMoveIndex === -1}
+                  size="sm"
+                >
+                  ⏪ Start
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigateToMove(Math.max(-1, currentMoveIndex - 1))}
+                  disabled={currentMoveIndex === -1}
+                  size="sm"
+                >
+                  ⏮ Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigateToMove(Math.min(analysisResult.totalMoves - 1, currentMoveIndex + 1))}
+                  disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
+                  size="sm"
+                >
+                  ⏭ Next
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigateToMove(analysisResult.totalMoves - 1)}
+                  disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
+                  size="sm"
+                >
+                  ⏩ End
+                </Button>
+              </div>
+
+              {/* Structured Move Analysis - Lichess Style */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold mb-3 flex items-center space-x-2">
+                  <span>Move Analysis</span>
+                  <Badge variant="secondary" className="text-xs">
+                    SF 16 • Depth 12
+                  </Badge>
+                </h3>
+                <div className="space-y-1 max-h-96 overflow-y-auto">
+                  {parseMoveData().map((move, index) => (
+                    <div 
+                      key={index} 
+                      className="grid grid-cols-12 gap-2 items-center py-2 hover:bg-white rounded px-3 cursor-pointer transition-colors"
+                      onClick={() => navigateToMove(index * 2)}
+                    >
+                      <div className="col-span-1 text-sm text-gray-500 font-medium">
+                        {move.moveNumber}
+                      </div>
+                      <div className="col-span-2 font-mono text-sm font-medium">
+                        {move.whiteSan}
+                      </div>
+                      <div className="col-span-2 text-xs text-right font-mono text-gray-600">
+                        {formatEvaluation(move.whiteEval)}
+                      </div>
+                      <div className="col-span-2 font-mono text-sm font-medium">
+                        {move.blackSan || '...'}
+                      </div>
+                      <div className="col-span-2 text-xs text-right font-mono text-gray-600">
+                        {move.blackEval ? formatEvaluation(move.blackEval) : ''}
+                      </div>
+                      <div className="col-span-3 text-xs text-gray-400">
+                        {move.comment || ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
