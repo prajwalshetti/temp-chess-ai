@@ -582,35 +582,60 @@ export default function OpponentScout() {
   };
 
   const parseMoveData = () => {
-    if (!analysisResult || !analysisResult.analysis) return [];
+    if (!analysisResult) return [];
     
-    const lines = analysisResult.analysis.split('\n').filter((line: string) => line.trim());
-    const moves: any[] = [];
-    let currentMove: any = {};
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.match(/^\d+\./)) {
-        if (currentMove.moveNumber) {
-          moves.push(currentMove);
-        }
-        const [moveNum, ...rest] = trimmed.split(/\s+/);
-        currentMove = { 
-          moveNumber: moveNum,
-          whiteSan: rest[0] || '',
-          whiteEval: parseFloat(rest[1]) || 0,
-          blackSan: rest[2] || '',
-          blackEval: rest[3] ? parseFloat(rest[3]) : null,
+    // Handle simple analyzer JSON output format
+    if (analysisResult.moveEvaluations && selectedGameForAnalysis) {
+      const moves: any[] = [];
+      const gameMoves = selectedGameForAnalysis.moves || [];
+      const evaluations = analysisResult.moveEvaluations;
+      
+      for (let i = 0; i < gameMoves.length; i += 2) {
+        const moveNumber = Math.floor(i / 2) + 1;
+        const whiteMove = gameMoves[i];
+        const blackMove = gameMoves[i + 1];
+        const whiteEval = evaluations[i.toString()] || 0;
+        const blackEval = evaluations[(i + 1).toString()] || null;
+        
+        moves.push({
+          moveNumber: moveNumber + '.',
+          whiteSan: whiteMove || '',
+          whiteEval: whiteEval,
+          blackSan: blackMove || '',
+          blackEval: blackEval,
           comment: ''
-        };
+        });
       }
+      
+      return moves;
     }
     
-    if (currentMove.moveNumber) {
-      moves.push(currentMove);
+    // Fallback for text-based analysis format
+    if (analysisResult.analysis) {
+      const lines = analysisResult.analysis.split('\n').filter((line: string) => line.trim() && line.match(/^\d+\./));
+      const moves: any[] = [];
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        const match = trimmed.match(/^(\d+)\.\s+(\S+)\s+([\+\-]?\d+\.\d+)(?:\s+(\S+)\s+([\+\-]?\d+\.\d+))?/);
+        
+        if (match) {
+          const [, moveNumber, whiteSan, whiteEval, blackSan, blackEval] = match;
+          moves.push({
+            moveNumber: moveNumber + '.',
+            whiteSan: whiteSan,
+            whiteEval: parseFloat(whiteEval),
+            blackSan: blackSan || '',
+            blackEval: blackEval ? parseFloat(blackEval) : null,
+            comment: ''
+          });
+        }
+      }
+      
+      return moves;
     }
     
-    return moves;
+    return [];
   };
 
   const navigateToAnalysisMove = (moveIndex: number) => {
@@ -622,24 +647,16 @@ export default function OpponentScout() {
       return;
     }
     
-    const moves = parseMoveData();
-    for (let i = 0; i <= Math.floor(moveIndex / 2); i++) {
-      const move = moves[i];
-      if (move) {
-        if (move.whiteSan && move.whiteSan !== '...') {
-          try {
-            chess.move(move.whiteSan);
-          } catch (e) {
-            console.log(`Failed to play white move: ${move.whiteSan}`);
-          }
-        }
-        
-        if (moveIndex >= i * 2 + 1 && move.blackSan && move.blackSan !== '...') {
-          try {
-            chess.move(move.blackSan);
-          } catch (e) {
-            console.log(`Failed to play black move: ${move.blackSan}`);
-          }
+    // Get moves from the selected game
+    const gameMoves = selectedGameForAnalysis?.moves || [];
+    
+    // Play moves up to the current position
+    for (let i = 0; i <= moveIndex; i++) {
+      if (i < gameMoves.length) {
+        try {
+          chess.move(gameMoves[i]);
+        } catch (e) {
+          console.log(`Failed to play move ${i}: ${gameMoves[i]}`);
         }
       }
     }
@@ -650,6 +667,12 @@ export default function OpponentScout() {
   const getCurrentAnalysisEvaluation = () => {
     if (!analysisResult || analysisCurrentMoveIndex === -1) return null;
     
+    // Handle simple analyzer format
+    if (analysisResult.moveEvaluations) {
+      return analysisResult.moveEvaluations[analysisCurrentMoveIndex.toString()] || null;
+    }
+    
+    // Handle text-based format
     const moves = parseMoveData();
     const moveNum = Math.floor(analysisCurrentMoveIndex / 2);
     const isWhite = analysisCurrentMoveIndex % 2 === 0;
