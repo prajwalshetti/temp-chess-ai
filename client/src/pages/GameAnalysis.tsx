@@ -47,6 +47,36 @@ interface MoveResult {
   category?: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
 }
 
+// EvaluationBar component (inline)
+function EvaluationBar({ evaluation }: { evaluation: number | null }) {
+  // Clamp eval to [-10, 10] for bar display
+  const minEval = -10, maxEval = 10;
+  let percent = 50;
+  if (typeof evaluation === 'number') {
+    percent = Math.max(0, Math.min(100, 50 - (evaluation / (maxEval - minEval)) * 100));
+  }
+  return (
+    <div className="flex flex-col items-center mr-4">
+      <div className="relative h-[450px] w-6 bg-gradient-to-b from-white to-black rounded-xl border-2 border-slate-200 shadow-inner flex flex-col justify-between">
+        {/* Marker */}
+        <div
+          className="absolute left-0 w-6 flex items-center justify-center"
+          style={{ top: `calc(${percent}% - 10px)` }}
+        >
+          <div className="w-6 h-4 bg-blue-500 rounded-md shadow-lg border-2 border-white flex items-center justify-center">
+            <span className="text-xs font-bold text-white drop-shadow-sm">
+              {evaluation !== null ? (evaluation > 0 ? `+${evaluation.toFixed(1)}` : evaluation.toFixed(1)) : ''}
+            </span>
+          </div>
+        </div>
+        {/* Top/Bottom labels */}
+        <div className="absolute left-0 top-1 w-6 text-center text-xs font-bold text-slate-700">W</div>
+        <div className="absolute left-0 bottom-1 w-6 text-center text-xs font-bold text-slate-700">B</div>
+      </div>
+    </div>
+  );
+}
+
 export default function GameAnalysis() {
   const [pgnInput, setPgnInput] = useState("");
   const [analysisMode, setAnalysisMode] = useState<"fast" | "accurate">("accurate");
@@ -259,12 +289,14 @@ export default function GameAnalysis() {
   const [from, to] = getBestMoveUci();
 
   function getCurrentEvalChange(): number {
+    const moves = parseMoveData();
     const boardIndex = Math.floor(currentMoveIndex / 2);
-    const currmove = parseMoveData()[boardIndex];
+    const currmove = moves[boardIndex];
+    if (!currmove) return 0;
     if (currentMoveIndex % 2 !== 0) {
       return (currmove.blackEval ?? 0) - (currmove.whiteEval ?? 0);
     } else {
-      const prevmove = parseMoveData()[boardIndex - 1];
+      const prevmove = moves[boardIndex - 1];
       return (currmove.whiteEval ?? 0) - (prevmove?.blackEval ?? 0);
     }
   }
@@ -405,16 +437,42 @@ export default function GameAnalysis() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-8">
-                  <div className="flex justify-center">
-                    <div className="rounded-xl overflow-hidden shadow-2xl">
-                      <Chessboard 
-                        position={chess.fen}
-                        boardWidth={450}
-                        arePiecesDraggable={false}
-                        customArrows={from && to ? [[from, to]] : []}
-                      />
-                    </div>
-                  </div>
+                <div className="flex justify-center">
+  {/* Enhanced Evaluation Bar */}
+  {(() => {
+    const evalValue = getCurrentEvaluation();
+    return (
+      <div className="flex flex-col items-center mr-6 space-y-9">
+        {/* Evaluation Score */}
+        <div className="bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg border border-slate-600">
+          <div className="text-xs font-medium text-slate-300 text-center">Eval</div>
+          <div className="text-lg font-bold text-center">
+            {evalValue !== null ? `${evalValue >= 0 ? '+' : ''}${evalValue.toFixed(1)}` : '--'}
+          </div>
+        </div>
+        {/* Vertical Bar */}
+        <div className="relative w-8 h-64 bg-slate-700 rounded-full shadow-inner border border-slate-600 overflow-hidden">
+          {/* Fill based on evaluation */}
+          <div 
+            className="absolute bottom-0 w-full bg-gradient-to-t from-green-400 to-green-500 transition-all duration-500 ease-out"
+            style={{ height: `${evalValue !== null ? Math.max(0, Math.min(100, (evalValue + 10) / 20 * 100)) : 50}%` }}
+          ></div>
+          {/* Center line */}
+          <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-gray-800"></div>
+        </div>
+      </div>
+    );
+  })()}
+  
+  <div className="rounded-xl overflow-hidden shadow-2xl">
+    <Chessboard 
+      position={chess.fen}
+      boardWidth={450}
+      arePiecesDraggable={false}
+      customArrows={from && to ? [[from, to]] : []}
+    />
+  </div>
+</div>
                   
                   {/* Navigation Controls */}
                   <div className="flex justify-center space-x-2 mt-6">
