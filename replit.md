@@ -160,6 +160,8 @@ Changelog:
 - July 3, 2025. Updated simple_chess_analyzer.py to include complete analysis results with best move recommendations for each position
 - July 3, 2025. Fixed Python script file path resolution in API endpoints - changed from __dirname to process.cwd() to correctly locate scripts in server directory
 - July 3, 2025. Added error handling for missing 'pv' (principal variation) key in Stockfish analysis results to prevent crashes when engine doesn't return best moves
+- July 4, 2025. Enhanced Games Database UX with auto-scroll functionality when selecting openings - clicking openings now automatically scrolls to show games below with clear visual feedback
+- July 4, 2025. Added visual enhancements to opening selection including game count badges, colored borders, animation effects, and "Clear Selection" button for better user experience
 
 ## User Preferences
 
