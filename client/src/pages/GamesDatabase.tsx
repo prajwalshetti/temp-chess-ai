@@ -120,6 +120,7 @@ export default function GamesDatabase() {
 
   // Handle opening click to show recent games
   const handleOpeningClick = (opening: any) => {
+    console.log('handleOpeningClick called with:', opening);
     setSelectedOpening(opening);
     
     // Filter games for this specific opening
@@ -815,6 +816,7 @@ export default function GamesDatabase() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {opponentOpenings.map((opening: any) => {
+                    console.log('Rendering opening:', opening);
                     const winRate = Math.round((opening.wins / opening.gamesPlayed) * 100);
                     return (
                       <div 
