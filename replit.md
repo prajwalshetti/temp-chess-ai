@@ -165,6 +165,7 @@ Changelog:
 - July 4, 2025. Implemented identical auto-scroll functionality for Opponent Scout page - both Games Database and Opponent Scout now have consistent opening selection behavior with smooth scrolling
 - July 4, 2025. Fixed homepage "Upload Game" button visibility issue and corrected navigation to Game Analysis page (/analysis route) instead of Games Database
 - July 4, 2025. Enhanced move highlighting in Game Analysis and Opponent Scout pages - now highlights individual moves instead of entire table rows, similar to Lichess interface
+- July 4, 2025. Cleaned up project structure by removing unnecessary files: attached_assets screenshots, obsolete documentation, unused analyzer files, duplicate pages, and unused UI components
 
 ## User Preferences
 
