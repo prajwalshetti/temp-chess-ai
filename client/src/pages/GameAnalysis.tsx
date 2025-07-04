@@ -238,6 +238,21 @@ export default function GameAnalysis() {
     return moves;
   };
 
+  function getBestMoveUci(): [string | null, string | null] {
+    const boardIndex = Math.floor(currentMoveIndex / 2);
+    const move = parseMoveData()[boardIndex];
+    let uci: string | undefined = undefined;
+    if (move) {
+      uci = currentMoveIndex % 2 === 0 ? move.whiteNextBestUci : move.blackNextBestUci;
+    }
+    if (uci && uci.length >= 4) {
+      return [uci.slice(0, 2), uci.slice(2, 4)];
+    }
+    return [null, null];
+  }
+
+  const [from, to] = getBestMoveUci();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto p-6">
@@ -356,6 +371,7 @@ export default function GameAnalysis() {
                         position={chess.fen}
                         boardWidth={450}
                         arePiecesDraggable={false}
+                        customArrows={from && to ? [[from, to]] : []}
                       />
                     </div>
                   </div>
