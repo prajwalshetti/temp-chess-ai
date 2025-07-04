@@ -135,22 +135,25 @@ export default function GamesDatabase() {
     setOpeningGames(gamesWithOpening);
     setSelectedOpeningGame(null);
     
-    // Auto-scroll to games section after a brief delay to allow UI update
+    // Auto-scroll to games section after games are loaded
     setTimeout(() => {
-      console.log('Attempting to scroll to opening-games-section');
       const gamesSection = document.getElementById('opening-games-section');
-      console.log('Found games section:', gamesSection);
       if (gamesSection) {
-        console.log('Scrolling to games section');
-        gamesSection.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start',
-          inline: 'nearest'
+        // Wait for the section to be fully rendered
+        requestAnimationFrame(() => {
+          gamesSection.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+          // Add a subtle pulse effect to highlight the section
+          gamesSection.style.transform = 'scale(1.01)';
+          setTimeout(() => {
+            gamesSection.style.transform = 'scale(1)';
+          }, 200);
         });
-      } else {
-        console.log('Games section not found!');
       }
-    }, 300);
+    }, 100);
   };
 
   // Handle game selection for move-by-move analysis
@@ -816,7 +819,6 @@ export default function GamesDatabase() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {opponentOpenings.map((opening: any) => {
-                    console.log('Rendering opening:', opening);
                     const winRate = Math.round((opening.wins / opening.gamesPlayed) * 100);
                     return (
                       <div 
@@ -857,7 +859,7 @@ export default function GamesDatabase() {
 
             {/* Opening Games Analysis */}
             {selectedOpening && (
-              <Card id="opening-games-section" className="mt-6 border-2 border-blue-200 shadow-lg animate-in slide-in-from-top-4 duration-500">
+              <Card id="opening-games-section" className="mt-6 border-2 border-blue-200 shadow-lg animate-in slide-in-from-top-4 duration-500 transition-transform">
                 <CardHeader className="bg-blue-50">
                   <CardTitle className="flex items-center text-blue-900">
                     <Eye className="mr-2 h-5 w-5" />
