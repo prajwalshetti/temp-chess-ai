@@ -162,6 +162,8 @@ Changelog:
 - July 3, 2025. Added error handling for missing 'pv' (principal variation) key in Stockfish analysis results to prevent crashes when engine doesn't return best moves
 - July 4, 2025. Enhanced Games Database UX with auto-scroll functionality when selecting openings - clicking openings now automatically scrolls to show games below with clear visual feedback
 - July 4, 2025. Added visual enhancements to opening selection including game count badges, colored borders, animation effects, and "Clear Selection" button for better user experience
+- July 4, 2025. Implemented identical auto-scroll functionality for Opponent Scout page - both Games Database and Opponent Scout now have consistent opening selection behavior with smooth scrolling
+- July 4, 2025. Fixed homepage "Upload Game" button visibility issue and corrected navigation to Game Analysis page (/analysis route) instead of Games Database
 
 ## User Preferences
 

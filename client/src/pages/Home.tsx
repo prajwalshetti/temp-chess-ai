@@ -111,7 +111,7 @@ export default function Home() {
                   Solve Puzzles
                 </Button>
               </Link>
-              <Link href="/game-analysis">
+              <Link href="/analysis">
                 <Button variant="outline" size="lg" className="bg-white text-green-800 border-white hover:bg-green-100">
                   <Database className="mr-2 h-5 w-5" />
                   Upload Game
