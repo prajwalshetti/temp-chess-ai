@@ -19,6 +19,9 @@ interface AnalysisResult {
     evaluation: string;
     evalFloat: number;
     bestMove: string;
+    currentBestMoveSan?: string;
+    nextBestMoveSan?: string;
+    nextBestMoveUci?: string;
   }>;
   totalMoves: number;
   analysisLog: string;
@@ -29,9 +32,17 @@ interface MoveResult {
   whiteSan: string;
   whiteEval: number;
   whiteBestMove?: string;
+  whiteCurrentBest?: string;
+  whiteNextBestSan?: string;
+  whiteNextBestUci?: string;
+
   blackSan?: string;
   blackEval?: number;
   blackBestMove?: string;
+  blackCurrentBest?: string;
+  blackNextBestSan?: string;
+  blackNextBestUci?: string;
+
   comment?: string;
   category?: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
 }
@@ -160,54 +171,48 @@ export default function GameAnalysis() {
   // Parse analysis data into structured move data with best moves
   const parseMoveData = (): MoveResult[] => {
     if (!analysisResult) return [];
-    
+
     const moves: MoveResult[] = [];
-    
-    // Use new analysisResults if available, otherwise fall back to parsing log
     if (analysisResult.analysisResults && analysisResult.analysisResults.length > 0) {
-      let whiteMove: { san: string; eval: number; bestMove: string } | null = null;
-      
+      let whiteMove: Partial<MoveResult> = {};
+
       for (const analysis of analysisResult.analysisResults) {
-        if (analysis.turn === 'White') {
-          whiteMove = { 
-            san: analysis.san, 
-            eval: analysis.evalFloat,
-            bestMove: analysis.bestMove
-          };
-        } else if (analysis.turn === 'Black' && whiteMove) {
-          moves.push({
+        if (analysis.turn === "White") {
+          whiteMove = {
             moveNumber: analysis.moveNumber,
-            whiteSan: whiteMove.san,
-            whiteEval: whiteMove.eval,
-            whiteBestMove: whiteMove.bestMove,
+            whiteSan: analysis.san,
+            whiteEval: analysis.evalFloat,
+            whiteBestMove: analysis.bestMove,
+            whiteCurrentBest: analysis.currentBestMoveSan,
+            whiteNextBestSan: analysis.nextBestMoveSan,
+            whiteNextBestUci: analysis.nextBestMoveUci
+          };
+        } else if (analysis.turn === "Black" && whiteMove) {
+          moves.push({
+            ...whiteMove,
             blackSan: analysis.san,
             blackEval: analysis.evalFloat,
-            blackBestMove: analysis.bestMove
-          });
-          whiteMove = null;
+            blackBestMove: analysis.bestMove,
+            blackCurrentBest: analysis.currentBestMoveSan,
+            blackNextBestSan: analysis.nextBestMoveSan,
+            blackNextBestUci: analysis.nextBestMoveUci
+          } as MoveResult);
+          whiteMove = {};
         }
       }
-      
-      // Add final white move if exists
-      if (whiteMove) {
-        moves.push({
-          moveNumber: moves.length + 1,
-          whiteSan: whiteMove.san,
-          whiteEval: whiteMove.eval,
-          whiteBestMove: whiteMove.bestMove
-        });
+      // Final move if only white played
+      if (whiteMove && whiteMove.whiteSan) {
+        moves.push(whiteMove as MoveResult);
       }
     } else {
-      // Fallback to parsing log (without best moves)
+      // Fallback to log parsing (older format)
       const lines = analysisResult.analysisLog.split('\n');
       let whiteMove: { san: string; eval: number } | null = null;
-      
       for (const line of lines) {
         const moveMatch = line.match(/(White|Black) Move (\d+): (\S+)\s+\|\s+Eval after move: ([\+\-\#]?[\d\.]+)/);
         if (moveMatch) {
           const [, color, num, san, evalStr] = moveMatch;
           const evaluation = parseFloat(evalStr.replace('#', ''));
-          
           if (color === 'White') {
             whiteMove = { san, eval: evaluation };
           } else if (color === 'Black' && whiteMove) {
@@ -222,8 +227,6 @@ export default function GameAnalysis() {
           }
         }
       }
-      
-      // Add final white move if exists
       if (whiteMove) {
         moves.push({
           moveNumber: moves.length + 1,
@@ -232,7 +235,6 @@ export default function GameAnalysis() {
         });
       }
     }
-    
     return moves;
   };
 
@@ -498,7 +500,8 @@ export default function GameAnalysis() {
                           {formatEvaluation(move.whiteEval)}
                         </div>
                         <div className="col-span-2 text-xs text-center font-mono text-blue-600 font-medium">
-                          {move.whiteBestMove || '--'}
+                          <div><span className="font-bold">Current:</span> {move.whiteCurrentBest || '--'}</div>
+                          <div><span className="font-bold">Next:</span> {move.whiteNextBestUci || '--'}</div>
                         </div>
                         <div 
                           className={`col-span-2 font-mono text-sm font-semibold text-slate-800 cursor-pointer rounded-lg px-3 py-2 transition-all ${
@@ -514,7 +517,8 @@ export default function GameAnalysis() {
                           {move.blackEval ? formatEvaluation(move.blackEval) : ''}
                         </div>
                         <div className="col-span-3 text-xs text-center font-mono text-blue-600 font-medium">
-                          {move.blackBestMove || '--'}
+                          <div><span className="font-bold">Current:</span> {move.blackCurrentBest || '--'}</div>
+                          <div><span className="font-bold">Next:</span> {move.blackNextBestUci || '--'}</div>
                         </div>
                       </div>
                     ))}
