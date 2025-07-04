@@ -7,7 +7,7 @@ import sys
 from io import StringIO
 
 # === CONFIGURATION ===
-STOCKFISH_PATH = "stockfish"  # Using system stockfish
+STOCKFISH_PATH = r"C:\Users\shett\OneDrive\Desktop\stockfish\stockfish-windows-x86-64-avx2.exe"
 
 def analyze_game(pgn_content, engine, limit):
     """Analyze a chess game from PGN content"""

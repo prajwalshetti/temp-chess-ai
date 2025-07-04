@@ -221,13 +221,14 @@ export default function OpponentScout() {
   const handleOpeningClick = (opening: any) => {
     setSelectedOpening(opening);
     
-    // Filter games for this specific opening
+    // Filter games for this specific opening using the actual opening field from Lichess
     const gamesWithOpening = lichessGames.filter(game => {
-      if (!game.moves || game.moves.length === 0) return false;
+      if (!game.opening) return false;
       
-      const gameOpening = detectOpening(game.moves);
-      return gameOpening.toLowerCase().includes(opening.name.toLowerCase()) ||
-             opening.name.toLowerCase().includes(gameOpening.toLowerCase());
+      // Match by opening name directly from Lichess data
+      return game.opening.toLowerCase() === opening.name.toLowerCase() ||
+             game.opening.toLowerCase().includes(opening.name.toLowerCase()) ||
+             opening.name.toLowerCase().includes(game.opening.toLowerCase());
     }).slice(0, 10);
     
     setOpeningGames(gamesWithOpening);
@@ -508,9 +509,9 @@ export default function OpponentScout() {
     const openingStats: { [key: string]: { name: string, games: any[], wins: number, losses: number, draws: number, color: string } } = {};
     
     lichessGames.forEach(game => {
-      if (!game.moves || game.moves.length === 0) return;
+      if (!game.opening || game.opening === 'Unknown' || !game.opening.trim()) return;
       
-      const opening = detectOpening(game.moves);
+      const opening = game.opening.trim();
       const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
       const playerWon = (playerColor === 'white' && game.result === '1-0') || 
                         (playerColor === 'black' && game.result === '0-1');

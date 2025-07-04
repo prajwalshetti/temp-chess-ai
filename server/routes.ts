@@ -12,6 +12,9 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const isWin = process.platform === "win32";
+const pythonCmd = isWin ? "python" : "python3";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Lichess service
   const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
@@ -454,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use improved Python Stockfish analyzer
       const pythonScript = path.join(process.cwd(), 'server', 'stockfish_analyzer_improved.py');
       
-      const child = spawn('python3', [pythonScript, '--depth', '20', '--format', 'json'], {
+      const child = spawn(pythonCmd, [pythonScript, '--depth', '20', '--format', 'json'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
@@ -542,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the simple Python chess analyzer
       const pythonScript = path.join(process.cwd(), 'server', 'simple_chess_analyzer.py');
       
-      const child = spawn('python3', [pythonScript, '--mode', mode], {
+      const child = spawn(pythonCmd, [pythonScript, '--mode', mode], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
@@ -645,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use Python chess analyzer for authentic Stockfish evaluation
       const pythonScript = path.join(__dirname, 'chess_analyzer.py');
       
-      const child = spawn('python3', [pythonScript, '--mode', 'fast'], {
+      const child = spawn(pythonCmd, [pythonScript, '--mode', 'fast'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
