@@ -2274,15 +2274,17 @@ export default function OpponentScout() {
                       {parseMoveData().map((move, index) => (
                         <div 
                           key={index} 
-                          className={`grid grid-cols-12 gap-1 items-center py-2 px-4 cursor-pointer transition-colors border-b border-gray-100 hover:bg-blue-50 text-sm ${
-                            analysisCurrentMoveIndex === index * 2 || analysisCurrentMoveIndex === index * 2 + 1 ? 'bg-blue-100' : ''
-                          }`}
-                          onClick={() => navigateToAnalysisMove(index * 2)}
+                          className="grid grid-cols-12 gap-1 items-center py-2 px-4 text-sm border-b border-gray-100"
                         >
                           <div className="col-span-1 text-xs text-gray-500 font-medium">
                             {move.moveNumber}
                           </div>
-                          <div className="col-span-2 font-mono text-sm font-medium">
+                          <div 
+                            className={`col-span-2 font-mono text-sm font-medium cursor-pointer rounded px-2 py-1 transition-colors ${
+                              analysisCurrentMoveIndex === index * 2 ? 'bg-blue-500 text-white' : 'hover:bg-blue-100'
+                            }`}
+                            onClick={() => navigateToAnalysisMove(index * 2)}
+                          >
                             {move.whiteSan}
                           </div>
                           <div className="col-span-1 text-xs text-right font-mono text-gray-600">
@@ -2291,7 +2293,12 @@ export default function OpponentScout() {
                           <div className="col-span-2 text-xs text-center font-mono text-blue-600">
                             {move.whiteBestMove || '--'}
                           </div>
-                          <div className="col-span-2 font-mono text-sm font-medium text-gray-800">
+                          <div 
+                            className={`col-span-2 font-mono text-sm font-medium text-gray-800 cursor-pointer rounded px-2 py-1 transition-colors ${
+                              analysisCurrentMoveIndex === index * 2 + 1 ? 'bg-blue-500 text-white' : 'hover:bg-blue-100'
+                            }`}
+                            onClick={() => move.blackSan ? navigateToAnalysisMove(index * 2 + 1) : undefined}
+                          >
                             {move.blackSan || '...'}
                           </div>
                           <div className="col-span-1 text-xs text-right font-mono text-gray-600">
