@@ -232,6 +232,26 @@ export default function OpponentScout() {
     
     setOpeningGames(gamesWithOpening);
     setSelectedOpeningGame(null);
+    
+    // Auto-scroll to games section after games are loaded
+    setTimeout(() => {
+      const gamesSection = document.getElementById('opponent-opening-games-section');
+      if (gamesSection) {
+        // Wait for the section to be fully rendered
+        requestAnimationFrame(() => {
+          gamesSection.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+          // Add a subtle pulse effect to highlight the section
+          gamesSection.style.transform = 'scale(1.01)';
+          setTimeout(() => {
+            gamesSection.style.transform = 'scale(1)';
+          }, 200);
+        });
+      }
+    }, 100);
   };
 
   // Handle game selection for move-by-move analysis
@@ -1021,8 +1041,31 @@ export default function OpponentScout() {
             {/* Opening Repertoire Analysis */}
             <Card>
               <CardHeader>
-                <CardTitle>Opening Repertoire Analysis</CardTitle>
-                <CardDescription>Click any opening to see recent games with engine evaluation</CardDescription>
+                <CardTitle className="flex items-center justify-between">
+                  Opening Repertoire Analysis
+                  {selectedOpening && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedOpening(null);
+                        setOpeningGames([]);
+                        setSelectedOpeningGame(null);
+                      }}
+                      className="text-xs"
+                    >
+                      Clear Selection
+                    </Button>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  Click any opening to see recent games with engine evaluation below
+                  {selectedOpening && (
+                    <span className="block mt-2 text-blue-600 font-medium">
+                      ↓ {selectedOpening.name} games are shown below ↓
+                    </span>
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1063,12 +1106,18 @@ export default function OpponentScout() {
 
             {/* Opening Games Analysis */}
             {selectedOpening && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
+              <Card id="opponent-opening-games-section" className="mt-6 border-2 border-blue-200 shadow-lg animate-in slide-in-from-top-4 duration-500 transition-transform">
+                <CardHeader className="bg-blue-50">
+                  <CardTitle className="flex items-center text-blue-900">
                     <Eye className="mr-2 h-5 w-5" />
                     {selectedOpening.name} - Recent Games
+                    <Badge className="ml-auto bg-blue-500 text-white">
+                      {openingGames.length} games found
+                    </Badge>
                   </CardTitle>
+                  <CardDescription className="text-blue-700">
+                    Analyze move-by-move with real Stockfish evaluations
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
