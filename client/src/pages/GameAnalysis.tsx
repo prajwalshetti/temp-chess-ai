@@ -59,6 +59,11 @@ export default function GameAnalysis() {
   
   const chess = useChess();
 
+  useEffect(() => {
+    console.log('Current move index:', currentMoveIndex);
+    console.log('Current move:', parseMoveData()[currentMoveIndex]);
+  }, [currentMoveIndex]);
+
   // Auto-play effect
   useEffect(() => {
     if (isAutoPlaying && analysisResult) {
@@ -253,6 +258,17 @@ export default function GameAnalysis() {
 
   const [from, to] = getBestMoveUci();
 
+  function getCurrentEvalChange(): number {
+    const boardIndex = Math.floor(currentMoveIndex / 2);
+    const currmove = parseMoveData()[boardIndex];
+    if (currentMoveIndex % 2 !== 0) {
+      return (currmove.blackEval ?? 0) - (currmove.whiteEval ?? 0);
+    } else {
+      const prevmove = parseMoveData()[boardIndex - 1];
+      return (currmove.whiteEval ?? 0) - (prevmove?.blackEval ?? 0);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto p-6">
@@ -352,6 +368,30 @@ export default function GameAnalysis() {
                     <div className="flex items-center space-x-4">
                       <Badge variant="secondary" className="text-xs font-mono bg-white/20 text-white border-0 px-3 py-1">
                         SF 16 • {analysisMode === "fast" ? "Depth 12" : "0.5s/move"}
+                      </Badge>
+                      {/* Eval change badge */}
+                      <Badge variant="secondary" className="text-xs font-mono bg-white/20 text-white border-0 px-3 py-1">
+                        {(() => {
+                          const evalChange = getCurrentEvalChange();
+                          const isWhiteMove = currentMoveIndex % 2 === 0;
+                          if (Math.abs(evalChange) <= 0.1) {
+                            return `Great move (${evalChange >= 0 ? '+' : ''}${evalChange.toFixed(2)})`;
+                          }
+                          if (Math.abs(evalChange) <= 0.3) {
+                            return `Decent move (${evalChange >= 0 ? '+' : ''}${evalChange.toFixed(2)})`;
+                          }
+                          if (evalChange > 0) {
+                            return isWhiteMove
+                              ? `Good move (+${evalChange.toFixed(2)})`
+                              : `Bad move (+${evalChange.toFixed(2)})`;
+                          }
+                          if (evalChange < 0) {
+                            return isWhiteMove
+                              ? `Bad move (${evalChange.toFixed(2)})`
+                              : `Good move (${evalChange.toFixed(2)})`;
+                          }
+                          return `Good move (0)`;
+                        })()}
                       </Badge>
                       {getCurrentEvaluation() !== null && (
                         <div className="text-2xl font-bold bg-white/10 rounded-lg px-4 py-2">
