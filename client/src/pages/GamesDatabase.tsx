@@ -136,15 +136,20 @@ export default function GamesDatabase() {
     
     // Auto-scroll to games section after a brief delay to allow UI update
     setTimeout(() => {
+      console.log('Attempting to scroll to opening-games-section');
       const gamesSection = document.getElementById('opening-games-section');
+      console.log('Found games section:', gamesSection);
       if (gamesSection) {
+        console.log('Scrolling to games section');
         gamesSection.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'start',
           inline: 'nearest'
         });
+      } else {
+        console.log('Games section not found!');
       }
-    }, 100);
+    }, 300);
   };
 
   // Handle game selection for move-by-move analysis
