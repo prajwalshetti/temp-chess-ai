@@ -15,6 +15,13 @@ const __dirname = dirname(__filename);
 const isWin = process.platform === "win32";
 const pythonCmd = isWin ? "python" : "python3";
 
+// Schema for position analysis request
+const analyzePositionSchema = z.object({
+  fen: z.string().min(1, "FEN string is required"),
+  depth: z.number().min(1).max(20).optional().default(15),
+  timeLimit: z.number().min(100).max(10000).optional().default(1000)
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Lichess service
   const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
@@ -26,6 +33,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Set JSON content type for all API routes
     res.setHeader('Content-Type', 'application/json');
     next();
+  });
+
+  // Position Analysis API endpoint
+  app.post('/api/analyze-position', async (req, res) => {
+    try {
+      console.log('[API] Analyzing position:', req.body);
+      
+      // Validate request body
+      const validation = analyzePositionSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Invalid request data',
+          details: validation.error.errors
+        });
+      }
+
+      const { fen, depth, timeLimit } = validation.data;
+
+      // Path to the Python analysis script
+      const scriptPath = path.join(__dirname, 'simple_position_analyze.py');
+      
+      // Execute Python script
+      const pythonProcess = spawn(pythonCmd, [
+        scriptPath,
+        fen,
+        '--depth', depth.toString(),
+        '--time', timeLimit.toString()
+      ]);
+
+      let outputData = '';
+      let errorData = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        outputData += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        errorData += data.toString();
+      });
+
+      pythonProcess.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const result = JSON.parse(outputData);
+            console.log('[API] Analysis result:', result);
+            res.json(result);
+          } catch (parseError) {
+            console.error('[API] Failed to parse analysis result:', parseError);
+            res.status(500).json({
+              error: 'Failed to parse analysis result',
+              details: parseError instanceof Error ? parseError.message : 'Unknown error'
+            });
+          }
+        } else {
+          console.error('[API] Python script failed:', errorData);
+          res.status(500).json({
+            error: 'Analysis failed',
+            details: errorData || 'Unknown error occurred'
+          });
+        }
+      });
+
+      pythonProcess.on('error', (err) => {
+        console.error('[API] Failed to start Python process:', err);
+        res.status(500).json({
+          error: 'Failed to start analysis process',
+          details: err.message
+        });
+      });
+
+    } catch (error) {
+      console.error('[API] Position analysis error:', error);
+      res.status(500).json({
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Test endpoint for position analysis
+  app.get('/api/test-analysis', async (req, res) => {
+    try {
+      // Test with starting position
+      const testFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+      
+      const scriptPath = path.join(__dirname, 'simple_position_analyze.py');
+      const pythonProcess = spawn(pythonCmd, [scriptPath, testFen]);
+
+      let outputData = '';
+      let errorData = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        outputData += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        errorData += data.toString();
+      });
+
+      pythonProcess.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const result = JSON.parse(outputData);
+            res.json({
+              message: 'Analysis test successful',
+              result
+            });
+          } catch (parseError) {
+            res.status(500).json({
+              error: 'Failed to parse test result',
+              details: parseError instanceof Error ? parseError.message : 'Unknown error'
+            });
+          }
+        } else {
+          res.status(500).json({
+            error: 'Test analysis failed',
+            details: errorData || 'Unknown error occurred'
+          });
+        }
+      });
+
+    } catch (error) {
+      console.error('[API] Test analysis error:', error);
+      res.status(500).json({
+        error: 'Test failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
 
   // Test endpoint to verify API routing
