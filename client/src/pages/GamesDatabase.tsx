@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Search, 
   Target, 
@@ -32,6 +33,7 @@ import {
 import type { User, PlayerStats, Opening, Game } from "@shared/schema";
 import { ChessBoard } from "@/components/ChessBoard";
 import { Chess } from "chess.js";
+import { GameAnalyzer } from "@/components/GameAnalyzer";
 
 export default function GamesDatabase() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,6 +56,8 @@ export default function GamesDatabase() {
   const [gameAnalysis, setGameAnalysis] = useState<any>(null);
   const [moveEvaluations, setMoveEvaluations] = useState<any[]>([]);
   const [isAnalyzingGame, setIsAnalyzingGame] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [selectedGameForAnalysis, setSelectedGameForAnalysis] = useState<any>(null);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -158,9 +162,8 @@ export default function GamesDatabase() {
 
   // Handle game selection for move-by-move analysis
   const handleGameSelection = (game: any) => {
-    setSelectedOpeningGame(game);
-    setCurrentMoveIndex(-1); // Start at -1 so first move shows starting position
-    setCurrentPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    setSelectedGameForAnalysis(game);
+    setShowAnalysisModal(true);
   };
 
   // Complete game analysis function
@@ -507,6 +510,14 @@ export default function GamesDatabase() {
     if (count >= 20) return { color: "text-red-600", level: "Critical" };
     if (count >= 10) return { color: "text-orange-500", level: "Moderate" };
     return { color: "text-yellow-600", level: "Minor" };
+  };
+
+  // Helper function to convert moves array to string
+  const convertMovesToString = (game: any): string => {
+    if (!game.moves || !Array.isArray(game.moves) || game.moves.length === 0) {
+      return '';
+    }
+    return game.moves.join(' ');
   };
 
   return (
@@ -906,396 +917,13 @@ export default function GamesDatabase() {
                       </div>
                     </div>
 
-                    {/* Chess Board and Move-by-Move Analysis */}
+                    {/* Game Selection Placeholder */}
                     <div className="lg:col-span-2">
-                      {selectedOpeningGame ? (
-                        <div className="space-y-4">
-                          {/* Game Header */}
-                          <div className="bg-blue-50 p-3 rounded-lg">
-                            <h4 className="font-medium text-blue-900">
-                              {selectedOpeningGame.whitePlayer} vs {selectedOpeningGame.blackPlayer}
-                            </h4>
-                            <div className="text-sm text-blue-700">
-                              {selectedOpeningGame.result} • {detectOpening(selectedOpeningGame.moves) || selectedOpening?.name || 'Opening Analysis'}
-                            </div>
-                          </div>
-
-                          {/* Chess Board */}
-                          <div className="flex justify-center">
-                            <ChessBoard
-                              key={currentPosition} // Force re-render when position changes
-                              fen={currentPosition}
-                              size={400}
-                              interactive={false}
-                            />
-                          </div>
-
-                          {/* Move Navigation */}
-                          {selectedOpeningGame.moves && (
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                              <div className="flex items-center justify-between mb-3">
-                                <h5 className="font-medium flex items-center">
-                                  <Activity className="mr-2 h-4 w-4" />
-                                  Move {Math.max(0, currentMoveIndex + 1)} of {selectedOpeningGame.moves.length}
-                                </h5>
-                                <div className="flex space-x-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => navigateToMove(currentMoveIndex - 1)}
-                                    disabled={currentMoveIndex <= -1}
-                                  >
-                                    ← Prev
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => navigateToMove(-1)}
-                                  >
-                                    Start
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => navigateToMove(currentMoveIndex + 1)}
-                                    disabled={currentMoveIndex >= selectedOpeningGame.moves.length - 1}
-                                  >
-                                    Next →
-                                  </Button>
-                                </div>
-                              </div>
-
-                              {/* Current Move Display with Detailed Analysis */}
-                              {selectedOpeningGame.moves[currentMoveIndex] && (
-                                <div className="bg-white border-l-4 border-blue-500 p-4 rounded">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div>
-                                      <span className="text-lg font-bold text-blue-600">
-                                        {Math.floor(currentMoveIndex / 2) + 1}.{currentMoveIndex % 2 === 0 ? '' : '..'} {selectedOpeningGame.moves[currentMoveIndex]}
-                                      </span>
-                                      <span className="ml-3 text-sm text-gray-600">
-                                        {currentMoveIndex % 2 === 0 ? 'White' : 'Black'} to move
-                                      </span>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-sm font-semibold">
-                                        {isEvaluating ? (
-                                          <div className="flex items-center">
-                                            <Brain className="w-3 h-3 mr-1 animate-pulse text-blue-500" />
-                                            Analyzing...
-                                          </div>
-                                        ) : currentEvaluation !== null ? (
-                                          <div className={`${currentEvaluation > 0 ? 'text-green-600' : currentEvaluation < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                            Eval: {currentEvaluation > 0 ? '+' : ''}{currentEvaluation.toFixed(2)}
-                                          </div>
-                                        ) : (
-                                          <div className="text-gray-500">Eval: --</div>
-                                        )}
-                                      </div>
-                                      <div className="text-xs text-gray-500">Engine depth 17</div>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Move Quality Assessment */}
-                                  <div className="flex items-center space-x-4 mb-3">
-                                    <Badge className={(() => {
-                                      const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                      const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                      const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                      const evalChange = currentEval - prevEval;
-                                      
-                                      if (currentMoveIndex < 6) return 'bg-green-500';
-                                      if (evalChange > 0.2) return 'bg-green-500';
-                                      if (evalChange > -0.1) return 'bg-blue-500';
-                                      if (evalChange > -0.3) return 'bg-yellow-500';
-                                      return 'bg-red-500';
-                                    })()}>
-                                      {(() => {
-                                        const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (currentMoveIndex < 6) return 'Book Move';
-                                        if (evalChange > 0.2) return 'Excellent!';
-                                        if (evalChange > -0.1) return 'Good';
-                                        if (evalChange > -0.3) return 'Inaccuracy';
-                                        return 'Mistake';
-                                      })()}
-                                    </Badge>
-                                    <span className="text-xs text-gray-600">
-                                      {(() => {
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (evalChange > 0.2) {
-                                          return `+${evalChange.toFixed(2)} gain!`;
-                                        } else if (evalChange < -0.2) {
-                                          return `${evalChange.toFixed(2)} loss`;
-                                        } else {
-                                          return 'Maintaining balance';
-                                        }
-                                      })()}
-                                    </span>
-                                  </div>
-
-                                  {/* All Moves Display */}
-                                  <div className="mt-4">
-                                    <h6 className="text-xs font-medium text-gray-700 mb-2">Game Moves:</h6>
-                                    <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-                                      {selectedOpeningGame.moves.map((move: string, index: number) => (
-                                        <button
-                                          key={index}
-                                          onClick={() => navigateToMove(index)}
-                                          className={`text-xs p-1 rounded transition-colors ${
-                                            index === currentMoveIndex 
-                                              ? 'bg-blue-500 text-white' 
-                                              : 'bg-white hover:bg-gray-100'
-                                          }`}
-                                        >
-                                          {Math.floor(index / 2) + 1}.{index % 2 === 0 ? '' : '..'} {move}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {/* Engine Analysis for Current Position */}
-                              <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                                <h4 className="font-medium mb-3 flex items-center">
-                                  <Brain className="mr-2 h-4 w-4 text-blue-500" />
-                                  Position Analysis
-                                </h4>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                  <div>
-                                    <span className="text-gray-600">Position Eval:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        const baseEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const gamePhase = currentMoveIndex / selectedOpeningGame.moves.length;
-                                        const finalEval = baseEval + (gamePhase * 0.3);
-                                        return finalEval >= 0 ? `+${finalEval.toFixed(2)}` : finalEval.toFixed(2);
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Best Move:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        // Generate contextual best moves based on position and game state
-                                        const currentMove = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (currentMoveIndex < 8) {
-                                          // Opening moves
-                                          const openingMoves = ['Nf3', 'Bc4', 'd3', 'Nc3', 'Be2', 'O-O', 'h3', 'a3'];
-                                          return openingMoves[currentMoveIndex % openingMoves.length];
-                                        } else if (currentMoveIndex < 20) {
-                                          // Middlegame - tactical moves
-                                          const middlegameMoves = ['Qd2', 'Rd1', 'Bg5', 'Bxf6', 'Nd5', 'f4', 'Qh4', 'Rfe1'];
-                                          return middlegameMoves[currentMoveIndex % middlegameMoves.length];
-                                        } else {
-                                          // Endgame - precise moves
-                                          const endgameMoves = ['Kf2', 'Rd7', 'a4', 'g4', 'Ke3', 'Rb1', 'f3', 'Kh3'];
-                                          return endgameMoves[currentMoveIndex % endgameMoves.length];
-                                        }
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Accuracy:</span>
-                                    <span className="ml-2 font-medium">
-                                      {(() => {
-                                        const baseAccuracy = 85;
-                                        const variation = Math.sin(currentMoveIndex * 0.4) * 10;
-                                        return Math.round(baseAccuracy + variation);
-                                      })()}%
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Phase:</span>
-                                    <span className="ml-2 font-medium">
-                                      {currentMoveIndex < 8 ? 'Opening' : currentMoveIndex < 25 ? 'Middlegame' : 'Endgame'}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* DecodeChess-style Tactical Analysis */}
-                                <div className="mt-4">
-                                  <h5 className="font-medium mb-3 flex items-center">
-                                    <Brain className="mr-2 h-4 w-4 text-purple-500" />
-                                    AI Insights & Analysis
-                                  </h5>
-                                  
-                                  {/* Main Insight */}
-                                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg mb-3 border-l-4 border-blue-500">
-                                    <div className="font-medium text-blue-900 mb-1">
-                                      {(() => {
-                                        const move = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        const isWhite = currentMoveIndex % 2 === 0;
-                                        
-                                        if (evalChange < -0.2) {
-                                          return `⚠️ Missed Opportunity: ${move} loses ${Math.abs(evalChange).toFixed(2)} points`;
-                                        } else if (evalChange < -0.1) {
-                                          return `❌ Inaccuracy: ${move} gives opponent better chances`;
-                                        } else if (evalChange > 0.2) {
-                                          return `✅ Excellent Find: ${move} seizes the advantage`;
-                                        } else if (currentMoveIndex < 6) {
-                                          return `📚 Opening Theory: ${move} follows known principles`;
-                                        } else {
-                                          return `⚖️ Reasonable Choice: ${move} maintains the position`;
-                                        }
-                                      })()}
-                                    </div>
-                                    <div className="text-sm text-blue-700">
-                                      {(() => {
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (evalChange < -0.2) {
-                                          return "Player missed a stronger continuation that would maintain/increase advantage";
-                                        } else if (evalChange < -0.1) {
-                                          return "A more accurate move was available to keep the pressure";
-                                        } else if (evalChange > 0.2) {
-                                          return "Player found the critical move that transforms the position";
-                                        } else {
-                                          return "Position remains balanced - no major tactical opportunities missed";
-                                        }
-                                      })()}
-                                    </div>
-                                  </div>
-
-                                  {/* Tactical Themes */}
-                                  <div className="grid grid-cols-2 gap-2 mb-3">
-                                    <div className="bg-white border rounded p-2">
-                                      <div className="text-xs font-medium text-red-600 mb-1">
-                                        ❌ Missed Tactics
-                                      </div>
-                                      <div className="text-xs text-gray-600">
-                                        {(() => {
-                                          const evalChange = currentMoveIndex > 0 ? 
-                                            Math.sin(currentMoveIndex * 0.3) * 0.8 - Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                          
-                                          if (evalChange < -0.15) {
-                                            const missedTactics = [
-                                              "Fork opportunity", "Pin available", "Discovered attack", 
-                                              "Double attack", "Skewer possible", "Deflection tactic"
-                                            ];
-                                            return missedTactics[currentMoveIndex % missedTactics.length];
-                                          } else {
-                                            return "No major tactics missed";
-                                          }
-                                        })()}
-                                      </div>
-                                    </div>
-                                    <div className="bg-white border rounded p-2">
-                                      <div className="text-xs font-medium text-orange-600 mb-1">
-                                        💡 Should Consider
-                                      </div>
-                                      <div className="text-xs text-gray-600">
-                                        {(() => {
-                                          const improvements = [
-                                            "Better piece placement",
-                                            "Pawn structure improvement",
-                                            "King safety priority", 
-                                            "Central dominance",
-                                            "Weak square control",
-                                            "Endgame preparation"
-                                          ];
-                                          return improvements[currentMoveIndex % improvements.length];
-                                        })()}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Engine Best Move Analysis */}
-                                  <div className="bg-gray-50 p-3 rounded">
-                                    <div className="text-xs font-medium text-gray-700 mb-2 flex items-center">
-                                      <Target className="mr-1 h-3 w-3" />
-                                      Engine Recommendation:
-                                    </div>
-                                    <div className="text-xs text-gray-600 mb-2">
-                                      {(() => {
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        if (evalChange < -0.2) {
-                                          return `🚨 Major blunder! Player lost ${Math.abs(evalChange).toFixed(2)} points - opponent now has clear advantage.`;
-                                        } else if (evalChange < -0.1) {
-                                          return `⚠️ Inaccuracy detected - better alternatives were available to maintain pressure.`;
-                                        } else if (evalChange > 0.2) {
-                                          return `🎯 Excellent calculation! Player found the strongest continuation.`;
-                                        } else {
-                                          return `⚖️ Reasonable move - maintains balance but missed potential improvements.`;
-                                        }
-                                      })()}
-                                    </div>
-                                    <div className="text-xs text-blue-600 font-medium mb-2">
-                                      {(() => {
-                                        const move = selectedOpeningGame.moves[currentMoveIndex];
-                                        const prevEval = currentMoveIndex > 0 ? Math.sin((currentMoveIndex-1) * 0.3) * 0.8 : 0;
-                                        const currentEval = Math.sin(currentMoveIndex * 0.3) * 0.8;
-                                        const evalChange = currentEval - prevEval;
-                                        
-                                        // Specific move analysis
-                                        if (move === 'Bc4') {
-                                          return "Why Bc4 is inaccurate: This bishop placement allows ...d6-d5! which kicks the bishop and gives Black central space. Better was Nf3 developing with tempo.";
-                                        } else if (move === 'Qd2') {
-                                          return "Why Qd2 is questionable: The queen blocks the bishop's natural development. Better was 0-0 securing king safety first.";
-                                        } else if (evalChange < -0.2) {
-                                          return "Critical error: This move allows opponent to seize the initiative with a forcing continuation that improves their position significantly.";
-                                        } else if (evalChange < -0.1) {
-                                          return "Inaccuracy explanation: A more principled move was available that maintains better piece coordination and central control.";
-                                        } else if (evalChange > 0.2) {
-                                          return "Excellent choice: This move creates concrete threats while improving piece activity - exactly what the position demanded.";
-                                        } else {
-                                          return "Reasonable but not best: Engine suggests a more forcing line that would maintain better winning chances.";
-                                        }
-                                      })()}
-                                    </div>
-                                    
-                                    {/* Detailed Better Move Explanation */}
-                                    <div className="bg-blue-50 p-2 rounded text-xs">
-                                      <div className="font-medium text-blue-800 mb-1">🎯 Better Move Analysis:</div>
-                                      <div className="text-blue-700">
-                                        {(() => {
-                                          const move = selectedOpeningGame.moves[currentMoveIndex];
-                                          const bestMoves = ['Nf3', 'Qd2', 'd3', 'Nc3', 'Be2', 'O-O', 'h3', 'a3'];
-                                          const bestMove = bestMoves[currentMoveIndex % bestMoves.length];
-                                          
-                                          if (move === 'Bc4') {
-                                            return `Instead of Bc4, play Nf3! This develops the knight with tempo (attacking e5), maintains central control, and prepares kingside castling. After Nf3, Black cannot easily challenge with ...d5.`;
-                                          } else if (currentMoveIndex < 6) {
-                                            return `${bestMove} would follow opening principles better - developing pieces toward the center while maintaining king safety as priority.`;
-                                          } else if (currentMoveIndex < 15) {
-                                            return `${bestMove} creates more active piece play and puts pressure on opponent's position, forcing them to find precise defensive moves.`;
-                                          } else {
-                                            return `${bestMove} leads to a more favorable endgame where piece activity and pawn structure give better winning chances.`;
-                                          }
-                                        })()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <Brain className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                          <p>Select a game to see move-by-move analysis</p>
-                        </div>
-                      )}
+                      <div className="text-gray-500 text-center py-8">
+                        <Eye className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <p className="text-lg font-medium">Select a game to analyze</p>
+                        <p className="text-sm">Click on any game from the list to open detailed analysis</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -2301,6 +1929,33 @@ export default function GamesDatabase() {
           </div>
         </div>
       )}
+
+      {/* Analysis Modal */}
+      <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
+        <DialogContent className="max-w-7xl h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              Game Analysis: {selectedGameForAnalysis?.whitePlayer} vs {selectedGameForAnalysis?.blackPlayer}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedGameForAnalysis && (
+            <div className="h-full overflow-auto">
+              <GameAnalyzer
+                pgn={convertMovesToString(selectedGameForAnalysis)}
+                mode="accurate"
+                onAnalysisComplete={(result) => {
+                  console.log("Game analysis completed:", result);
+                }}
+                onAnalysisError={(error) => {
+                  console.error("Game analysis failed:", error);
+                }}
+                className="h-full"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

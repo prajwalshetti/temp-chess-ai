@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import type { User, PlayerStats, Opening, Game } from "@shared/schema";
 import { ChessBoard } from "@/components/ChessBoard";
+import { GameAnalyzer } from "@/components/GameAnalyzer";
 import { Chess } from "chess.js";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,93 +41,30 @@ export default function OpponentScout() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Complete game analysis function using simple analyzer
+  // Helper function to convert moves array to simple string
+  const convertMovesToString = (game: any): string => {
+    if (!game.moves || !Array.isArray(game.moves) || game.moves.length === 0) {
+      console.warn("No moves found in game:", game);
+      return '';
+    }
+    
+    // Simply join the moves with spaces
+    const movesString = game.moves.join(' ');
+    console.log("Moves string:", movesString);
+    return movesString;
+  };
+
+  // Simplified game analysis function using reusable component
   const analyzeGameWithStockfish = async (game: any) => {
-    setIsAnalyzing(true);
+    console.log("Analyzing game:", game);
+    console.log("Game moves:", game.moves);
+    const movesString = convertMovesToString(game);
+    console.log("Moves string:", movesString);
     setSelectedGameForAnalysis(game);
-    
-    try {
-      const response = await fetch('/api/analyze/simple', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pgn: game.pgn,
-          mode: 'fast' // Use fast mode for opponent analysis
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Analysis failed');
-      }
-
-      const analysisData = await response.json();
-      setAnalysisResult(analysisData);
-      
-      // Initialize chess board for analysis
-      const chess = new Chess();
-      setAnalysisChess(chess);
-      setAnalysisCurrentMoveIndex(-1);
-      
-      // Show modal with analysis
-      setShowAnalysisModal(true);
-      
-      toast({
-        title: "Game Analysis Complete!",
-        description: `Analyzed ${analysisData.totalMoves || 0} moves with Stockfish engine.`,
-      });
-    } catch (error) {
-      console.error('Error analyzing game:', error);
-      toast({
-        title: "Analysis Error",
-        description: "Failed to analyze the game. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
+    setShowAnalysisModal(true);
   };
 
-  // Analyze current position function with real-time evaluation
-  const analyzeCurrentPosition = async () => {
-    setIsAnalyzing(true);
-    
-    try {
-      const response = await fetch('/api/analyze/position', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fen: currentPosition,
-          gameId: selectedOpeningGame?.id,
-          moveNumber: currentMoveIndex + 1
-        }),
-      });
 
-      if (!response.ok) {
-        throw new Error('Position analysis failed');
-      }
-
-      const analysisData = await response.json();
-      setEngineAnalysis(analysisData);
-      
-      toast({
-        title: "Position Analyzed!",
-        description: `Engine evaluation: ${(analysisData.analysis.currentEvaluation.evaluation / 100).toFixed(2)}`,
-      });
-    } catch (error) {
-      console.error('Error analyzing position:', error);
-      toast({
-        title: "Analysis Error",
-        description: "Failed to analyze position. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
 
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -142,17 +80,8 @@ export default function OpponentScout() {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [currentPosition, setCurrentPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   const [engineAnalysis, setEngineAnalysis] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedGameForAnalysis, setSelectedGameForAnalysis] = useState<any>(null);
-  const [currentEvaluation, setCurrentEvaluation] = useState<number | null>(null);
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [evaluationCache, setEvaluationCache] = useState<Map<string, number>>(new Map());
-  const [gameAnalysis, setGameAnalysis] = useState<any>(null);
-  const [moveEvaluations, setMoveEvaluations] = useState<any[]>([]);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
-  const [analysisChess, setAnalysisChess] = useState(new Chess());
-  const [analysisCurrentMoveIndex, setAnalysisCurrentMoveIndex] = useState(-1);
 
   // Detect opening from moves
   const detectOpening = (moves: string[]) => {
@@ -276,14 +205,6 @@ export default function OpponentScout() {
       // If moveIndex is -1, show starting position
       if (moveIndex < 0) {
         setCurrentPosition(newPosition);
-        // Show evaluation for starting position if available
-        if (moveEvaluations.length > 0) {
-          const evaluation = moveEvaluations[0]?.evaluationFloat || moveEvaluations[0]?.evaluation || 0;
-          const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
-          setCurrentEvaluation(displayEval);
-        } else {
-          setCurrentEvaluation(0);
-        }
         return;
       }
       
@@ -305,71 +226,14 @@ export default function OpponentScout() {
       console.log(`Setting new position: ${newPosition}`);
       setCurrentPosition(newPosition);
       
-      // Display stored evaluation for this move
-      if (moveEvaluations.length > moveIndex + 1) {
-        const moveEval = moveEvaluations[moveIndex + 1];
-        // Convert centipawns to decimal if needed
-        const evaluation = moveEval?.evaluationFloat || moveEval?.evaluation || 0;
-        const displayEval = Math.abs(evaluation) > 50 ? evaluation / 100 : evaluation;
-        setCurrentEvaluation(displayEval);
-      } else {
-        setCurrentEvaluation(null);
-      }
     } catch (error) {
       console.log("Error calculating position:", error);
       const startPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
       setCurrentPosition(startPos);
-      setCurrentEvaluation(0);
     }
   };
 
-  // Automatic position analysis when navigating
-  const analyzePositionAutomatically = async (fen: string, moveNumber: number) => {
-    if (!selectedOpeningGame) return;
-    
-    // Check cache first
-    if (evaluationCache.has(fen)) {
-      setCurrentEvaluation(evaluationCache.get(fen)!);
-      setIsEvaluating(false);
-      return;
-    }
 
-    setIsEvaluating(true);
-    
-    try {
-      const response = await fetch('/api/analyze/position', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fen: fen,
-          gameId: selectedOpeningGame.id,
-          moveNumber: moveNumber
-        }),
-      });
-
-      if (response.ok) {
-        const analysisData = await response.json();
-        console.log('Analysis data received:', analysisData);
-        
-        const evaluation = analysisData.evaluation || 0;
-        
-        // Cache the evaluation and update state
-        setEvaluationCache(prev => new Map(prev.set(fen, evaluation)));
-        setCurrentEvaluation(evaluation);
-        setEngineAnalysis(analysisData);
-      } else {
-        console.error('Analysis request failed:', response.status);
-        setCurrentEvaluation(null);
-      }
-    } catch (error) {
-      console.error('Auto-analysis error:', error);
-      setCurrentEvaluation(null);
-    } finally {
-      setIsEvaluating(false);
-    }
-  };
 
   // Handle Lichess search
   const handleLichessSearch = async () => {
@@ -602,148 +466,7 @@ export default function OpponentScout() {
     return `${sign}${eval_value.toFixed(2)}`;
   };
 
-  const parseMoveData = () => {
-    if (!analysisResult) return [];
-    
-    const moves: any[] = [];
-    
-    // Use new analysisResults with best moves if available
-    if (analysisResult.analysisResults && analysisResult.analysisResults.length > 0) {
-      let whiteMove: { san: string; eval: number; bestMove: string } | null = null;
-      
-      for (const analysis of analysisResult.analysisResults) {
-        if (analysis.turn === 'White') {
-          whiteMove = { 
-            san: analysis.san, 
-            eval: analysis.evalFloat,
-            bestMove: analysis.bestMove
-          };
-        } else if (analysis.turn === 'Black' && whiteMove) {
-          moves.push({
-            moveNumber: analysis.moveNumber + '.',
-            whiteSan: whiteMove.san,
-            whiteEval: whiteMove.eval,
-            whiteBestMove: whiteMove.bestMove,
-            blackSan: analysis.san,
-            blackEval: analysis.evalFloat,
-            blackBestMove: analysis.bestMove,
-            comment: ''
-          });
-          whiteMove = null;
-        }
-      }
-      
-      // Add final white move if exists
-      if (whiteMove) {
-        moves.push({
-          moveNumber: (moves.length + 1) + '.',
-          whiteSan: whiteMove.san,
-          whiteEval: whiteMove.eval,
-          whiteBestMove: whiteMove.bestMove,
-          blackSan: '',
-          blackEval: null,
-          blackBestMove: '',
-          comment: ''
-        });
-      }
-    }
-    // Handle simple analyzer JSON output format (fallback without best moves)
-    else if (analysisResult.moveEvaluations && selectedGameForAnalysis) {
-      const gameMoves = selectedGameForAnalysis.moves || [];
-      const evaluations = analysisResult.moveEvaluations;
-      
-      for (let i = 0; i < gameMoves.length; i += 2) {
-        const moveNumber = Math.floor(i / 2) + 1;
-        const whiteMove = gameMoves[i];
-        const blackMove = gameMoves[i + 1];
-        const whiteEval = evaluations[i.toString()] || 0;
-        const blackEval = evaluations[(i + 1).toString()] || null;
-        
-        moves.push({
-          moveNumber: moveNumber + '.',
-          whiteSan: whiteMove || '',
-          whiteEval: whiteEval,
-          whiteBestMove: '--',
-          blackSan: blackMove || '',
-          blackEval: blackEval,
-          blackBestMove: '--',
-          comment: ''
-        });
-      }
-    }
-    // Fallback for text-based analysis format (without best moves)
-    else if (analysisResult.analysis) {
-      const lines = analysisResult.analysis.split('\n').filter((line: string) => line.trim() && line.match(/^\d+\./));
-      
-      for (const line of lines) {
-        const trimmed = line.trim();
-        const match = trimmed.match(/^(\d+)\.\s+(\S+)\s+([\+\-]?\d+\.\d+)(?:\s+(\S+)\s+([\+\-]?\d+\.\d+))?/);
-        
-        if (match) {
-          const [, moveNumber, whiteSan, whiteEval, blackSan, blackEval] = match;
-          moves.push({
-            moveNumber: moveNumber + '.',
-            whiteSan: whiteSan,
-            whiteEval: parseFloat(whiteEval),
-            whiteBestMove: '--',
-            blackSan: blackSan || '',
-            blackEval: blackEval ? parseFloat(blackEval) : null,
-            blackBestMove: '--',
-            comment: ''
-          });
-        }
-      }
-    }
-    
-    return moves;
-  };
 
-  const navigateToAnalysisMove = (moveIndex: number) => {
-    const chess = new Chess();
-    setAnalysisChess(chess);
-    setAnalysisCurrentMoveIndex(moveIndex);
-    
-    if (moveIndex === -1) {
-      return;
-    }
-    
-    // Get moves from the selected game
-    const gameMoves = selectedGameForAnalysis?.moves || [];
-    
-    // Play moves up to the current position
-    for (let i = 0; i <= moveIndex; i++) {
-      if (i < gameMoves.length) {
-        try {
-          chess.move(gameMoves[i]);
-        } catch (e) {
-          console.log(`Failed to play move ${i}: ${gameMoves[i]}`);
-        }
-      }
-    }
-    
-    setAnalysisChess(new Chess(chess.fen()));
-  };
-
-  const getCurrentAnalysisEvaluation = () => {
-    if (!analysisResult || analysisCurrentMoveIndex === -1) return null;
-    
-    // Handle simple analyzer format
-    if (analysisResult.moveEvaluations) {
-      return analysisResult.moveEvaluations[analysisCurrentMoveIndex.toString()] || null;
-    }
-    
-    // Handle text-based format
-    const moves = parseMoveData();
-    const moveNum = Math.floor(analysisCurrentMoveIndex / 2);
-    const isWhite = analysisCurrentMoveIndex % 2 === 0;
-    
-    if (moveNum < moves.length) {
-      const move = moves[moveNum];
-      return isWhite ? move.whiteEval : move.blackEval;
-    }
-    
-    return null;
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1182,20 +905,13 @@ export default function OpponentScout() {
                           <div className="flex justify-center mb-4">
                             <button
                               onClick={() => analyzeGameWithStockfish(selectedOpeningGame)}
-                              disabled={isAnalyzing || !selectedOpeningGame}
+                              disabled={!selectedOpeningGame}
                               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg"
                             >
-                              {isAnalyzing ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                  <span>Analyzing...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span>🔥</span>
-                                  <span>Analyze Game</span>
-                                </>
-                              )}
+                              <>
+                                <span>🔥</span>
+                                <span>Analyze Game</span>
+                              </>
                             </button>
                           </div>
 
@@ -1715,13 +1431,9 @@ export default function OpponentScout() {
                               </div>
                               <button
                                 onClick={() => analyzeGameWithStockfish(game)}
-                                disabled={isAnalyzing}
-                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                               >
-                                {isAnalyzing && selectedGameForAnalysis?.id === game.id 
-                                  ? '⚡ Analyzing...' 
-                                  : '🔍 Analyze'
-                                }
+                                🔍 Analyze
                               </button>
                             </div>
                           </div>
@@ -2181,141 +1893,44 @@ export default function OpponentScout() {
             </DialogTitle>
           </DialogHeader>
           
-          {analysisResult && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
-              {/* Chess Board - Left side */}
-              <div className="lg:col-span-7">
-                <Card className="h-full">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Badge variant="secondary" className="text-xs font-mono">
-                          SF 16 • Fast (Depth 12)
-                        </Badge>
-                        {getCurrentAnalysisEvaluation() !== null && (
-                          <div className="text-xl font-bold">
-                            {formatEvaluation(getCurrentAnalysisEvaluation()!)}
-                          </div>
-                        )}
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {analysisCurrentMoveIndex === -1 ? "Starting Position" : `Move ${Math.floor(analysisCurrentMoveIndex / 2) + 1}${analysisCurrentMoveIndex % 2 === 0 ? "" : "..."}`}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                    <ChessBoard 
-                      fen={analysisChess.fen()}
-                      size={350}
-                      interactive={false}
-                    />
-                    
-                    {/* Navigation Controls */}
-                    <div className="flex justify-center space-x-1 mt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => navigateToAnalysisMove(-1)}
-                        disabled={analysisCurrentMoveIndex === -1}
-                        size="sm"
-                        className="px-3"
-                      >
-                        ⏪
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => navigateToAnalysisMove(Math.max(-1, analysisCurrentMoveIndex - 1))}
-                        disabled={analysisCurrentMoveIndex === -1}
-                        size="sm"
-                        className="px-3"
-                      >
-                        ⏮
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => navigateToAnalysisMove(Math.min(analysisResult.totalMoves - 1, analysisCurrentMoveIndex + 1))}
-                        disabled={analysisCurrentMoveIndex >= analysisResult.totalMoves - 1}
-                        size="sm"
-                        className="px-3"
-                      >
-                        ⏭
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => navigateToAnalysisMove(analysisResult.totalMoves - 1)}
-                        disabled={analysisCurrentMoveIndex >= analysisResult.totalMoves - 1}
-                        size="sm"
-                        className="px-3"
-                      >
-                        ⏩
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+          {selectedGameForAnalysis && (() => {
+            const movesString = convertMovesToString(selectedGameForAnalysis);
+            if (!movesString.trim()) {
+              return (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold text-red-800 mb-2">No Moves Available</h3>
+                    <p className="text-red-600">This game doesn't have any moves to analyze.</p>
+                  </div>
+                </div>
+              );
+            }
+            
+            return (
+              <div className="h-full overflow-auto">
+                <GameAnalyzer 
+                  pgn={movesString}
+                  mode="fast"
+                  onAnalysisComplete={(result) => {
+                    console.log("Opponent game analysis completed:", result);
+                    toast({
+                      title: "Analysis Complete",
+                      description: `Analyzed ${result.totalMoves} moves for opponent scouting.`,
+                    });
+                  }}
+                  onAnalysisError={(error) => {
+                    console.error("Opponent game analysis failed:", error);
+                    toast({
+                      title: "Analysis Failed",
+                      description: error,
+                      variant: "destructive",
+                    });
+                  }}
+                  className="h-full"
+                />
               </div>
-
-              {/* Move Analysis - Right side */}
-              <div className="lg:col-span-5">
-                <Card className="h-full">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Move Analysis</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="max-h-96 overflow-y-auto">
-                      {/* Column headers */}
-                      <div className="grid grid-cols-12 gap-1 items-center py-2 px-4 border-b-2 border-gray-200 bg-gray-50 text-xs font-semibold text-gray-700">
-                        <div className="col-span-1">#</div>
-                        <div className="col-span-2">White</div>
-                        <div className="col-span-1 text-right">Eval</div>
-                        <div className="col-span-2 text-center">Best</div>
-                        <div className="col-span-2">Black</div>
-                        <div className="col-span-1 text-right">Eval</div>
-                        <div className="col-span-3 text-center">Best</div>
-                      </div>
-                      
-                      {parseMoveData().map((move, index) => (
-                        <div 
-                          key={index} 
-                          className="grid grid-cols-12 gap-1 items-center py-2 px-4 text-sm border-b border-gray-100"
-                        >
-                          <div className="col-span-1 text-xs text-gray-500 font-medium">
-                            {move.moveNumber}
-                          </div>
-                          <div 
-                            className={`col-span-2 font-mono text-sm font-medium cursor-pointer rounded px-2 py-1 transition-colors ${
-                              analysisCurrentMoveIndex === index * 2 ? 'bg-blue-500 text-white' : 'hover:bg-blue-100'
-                            }`}
-                            onClick={() => navigateToAnalysisMove(index * 2)}
-                          >
-                            {move.whiteSan}
-                          </div>
-                          <div className="col-span-1 text-xs text-right font-mono text-gray-600">
-                            {formatEvaluation(move.whiteEval)}
-                          </div>
-                          <div className="col-span-2 text-xs text-center font-mono text-blue-600">
-                            {move.whiteBestMove || '--'}
-                          </div>
-                          <div 
-                            className={`col-span-2 font-mono text-sm font-medium text-gray-800 cursor-pointer rounded px-2 py-1 transition-colors ${
-                              analysisCurrentMoveIndex === index * 2 + 1 ? 'bg-blue-500 text-white' : 'hover:bg-blue-100'
-                            }`}
-                            onClick={() => move.blackSan ? navigateToAnalysisMove(index * 2 + 1) : undefined}
-                          >
-                            {move.blackSan || '...'}
-                          </div>
-                          <div className="col-span-1 text-xs text-right font-mono text-gray-600">
-                            {move.blackEval ? formatEvaluation(move.blackEval) : ''}
-                          </div>
-                          <div className="col-span-3 text-xs text-center font-mono text-blue-600">
-                            {move.blackBestMove || '--'}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
