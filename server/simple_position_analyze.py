@@ -3,20 +3,14 @@ import sys
 import json
 import argparse
 import re
+import chess
 
 STOCKFISH_PATH = r"C:\Users\shett\OneDrive\Desktop\stockfish\stockfish-windows-x86-64-avx2.exe"
 
 def analyze_position(fen, depth=15, time_limit=1000):
     """
     Analyze a chess position using Stockfish
-    
-    Args:
-        fen (str): FEN string of the position
-        depth (int): Analysis depth (default: 15)
-        time_limit (int): Time limit in milliseconds (default: 1000ms)
-    
-    Returns:
-        dict: Analysis results containing eval, best move, and best line
+    Returns UCI best move, SAN best move, and SAN best line.
     """
     try:
         # Start Stockfish process
@@ -87,29 +81,55 @@ def analyze_position(fen, depth=15, time_limit=1000):
         process.stdin.close()
         process.wait()
         
+        # Use python-chess to convert UCI to SAN
+        board = chess.Board(fen)
+        uci_best_move = best_move
+        san_best_move = None
+        san_best_line = []
+        if best_move:
+            try:
+                move_obj = chess.Move.from_uci(best_move)
+                san_best_move = board.san(move_obj)
+            except Exception:
+                san_best_move = None
+        # For best line
+        temp_board = board.copy()
+        for uci in best_line:
+            try:
+                move_obj = chess.Move.from_uci(uci)
+                san = temp_board.san(move_obj)
+                san_best_line.append(san)
+                temp_board.push(move_obj)
+            except Exception:
+                break
         # Debug: Print raw output for troubleshooting
         print(f"DEBUG: Raw output lines: {output_lines}", file=sys.stderr)
         print(f"DEBUG: Extracted eval: {eval_score}", file=sys.stderr)
         print(f"DEBUG: Extracted best_move: {best_move}", file=sys.stderr)
         print(f"DEBUG: Extracted best_line: {best_line}", file=sys.stderr)
-        
+        print(f"DEBUG: SAN best move: {san_best_move}", file=sys.stderr)
+        print(f"DEBUG: SAN best line: {san_best_line}", file=sys.stderr)
         # Return results
         result = {
             "fen": fen,
             "eval": eval_score,
-            "best_move": best_move,
-            "best_line": best_line[:10] if best_line else [],  # Limit to first 10 moves
+            "best_move": uci_best_move,  # for compatibility
+            "uci_best_move": uci_best_move,
+            "san_best_move": san_best_move,
+            "san_best_line": san_best_line[:10] if san_best_line else [],
+            "best_line": best_line[:10] if best_line else [],  # keep for compatibility
             "depth": depth,
             "success": True
         }
-        
         return result
-        
     except Exception as e:
         return {
             "fen": fen,
             "eval": None,
             "best_move": None,
+            "uci_best_move": None,
+            "san_best_move": None,
+            "san_best_line": [],
             "best_line": [],
             "error": str(e),
             "success": False

@@ -7,6 +7,8 @@ interface AnalysisResult {
   eval: number | string | null;
   best_move: string | null;
   best_line: string[];
+  san_best_move?: string | null;
+  san_best_line?: string[];
   depth: number;
   success: boolean;
   error?: string;
@@ -174,6 +176,9 @@ const handleSquareClick = (square: string) => {
       }
 
       const result: AnalysisResult = await response.json();
+      if(result.fen.split(' ')[1] === 'b') {
+        result.san_best_line = ["..."].concat(result.san_best_line || []);
+      }
       setAnalysis(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during analysis');
@@ -589,7 +594,7 @@ const handleSquareClick = (square: string) => {
                       Best Move
                     </h3>
                     <div className="text-2xl font-mono text-blue-400 bg-slate-900 p-4 rounded-lg border border-slate-600 shadow-inner">
-                      {analysis.best_move || 'N/A'}
+                      {analysis.san_best_move || analysis.best_move || 'N/A'}
                     </div>
                   </div>
                   
@@ -598,15 +603,15 @@ const handleSquareClick = (square: string) => {
                       <span className="mr-2">🔮</span>
                       Best Line
                     </h3>
-                    <div className="text-sm font-mono text-slate-300">
-                      {analysis.best_line.length > 0 ? (
+                    <div className="text-lg font-mono text-slate-300">
+                      {analysis.san_best_line && analysis.san_best_line.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2">
-                          {analysis.best_line.map((move, index) => (
+                          {analysis.san_best_line.map((move: string, index: number) => (
                             <span
                               key={index}
-                              className="px-3 py-2 bg-slate-900 rounded-lg text-xs text-center border border-slate-600 hover:bg-slate-800 transition-colors duration-200"
+                              className="px-3 py-2 bg-slate-900 rounded-lg text-lg text-center border border-slate-600 hover:bg-slate-800 transition-colors duration-200"
                             >
-                              {Math.floor(index / 2) + 1}.{index % 2 === 0 ? '' : '..'} {move}
+                              {move}
                             </span>
                           ))}
                         </div>
