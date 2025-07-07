@@ -332,6 +332,13 @@ export function GameAnalyzer({
     }
   }
 
+  const handleAnalyzePosition = () => {
+    if (chess.fen) {
+      localStorage.setItem('analyze_fen', chess.fen);
+      window.open('/position', '_blank');
+    }
+  };
+
   // Show loading state while analyzing
   if (analyzeGameMutation.isPending) {
     return (
@@ -572,6 +579,12 @@ export function GameAnalyzer({
                 >
                   4x
                 </Button>
+                <Button
+                onClick={handleAnalyzePosition}
+                className="ml-2"
+              >
+                Try manual moves
+              </Button>
               </div>
             </div>
           </CardContent>

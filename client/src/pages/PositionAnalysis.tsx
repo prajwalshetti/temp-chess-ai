@@ -236,6 +236,14 @@ const handleSquareClick = (square: string) => {
   };
   
   useEffect(() => {
+    const fen = localStorage.getItem('analyze_fen');
+    if (fen) {
+      setPosition(fen);
+      localStorage.removeItem('analyze_fen');
+    }
+  }, []);
+
+  useEffect(() => {
     analyzePosition();
   }, [position]);
 
