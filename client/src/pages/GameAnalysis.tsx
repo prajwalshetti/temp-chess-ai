@@ -32,14 +32,7 @@ export default function GameAnalysis() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
-            Game Analysis
-          </h1>
-          <p className="text-slate-600 mt-3 text-lg">
-            Professional Stockfish analysis with real-time evaluation tracking
-          </p>
-        </div>
+
 
         {!showAnalysis ? (
           /* Input Section - Enhanced with modern styling */

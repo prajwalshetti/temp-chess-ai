@@ -6,6 +6,7 @@ import { Chessboard } from "react-chessboard";
 import { useChess } from "@/hooks/use-chess";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { EvalChangeBadge } from "./EvalChangeBadge";
 
 interface AnalysisResult {
   pgn: string;
@@ -132,6 +133,23 @@ export function GameAnalyzer({
       }
     };
   }, [isAutoPlaying, autoPlaySpeed, analysisResult, chess]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") {
+        navigateToMove(Math.max(-1, currentMoveIndex - 1));
+      } else if (event.key === "ArrowRight") {
+        if (analysisResult && typeof analysisResult.totalMoves === 'number') {
+          navigateToMove(Math.min(analysisResult.totalMoves - 1, currentMoveIndex + 1));
+        }
+      } else if (event.key === " " || event.key === "Spacebar" || event.key === "space") {
+        event.preventDefault();
+        toggleAutoPlay();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentMoveIndex, analysisResult]);
 
   const analyzeGameMutation = useMutation({
     mutationFn: async ({ pgn, mode }: { pgn: string; mode: string }): Promise<AnalysisResult> => {
@@ -364,83 +382,87 @@ export function GameAnalyzer({
   }
 
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-12 gap-8 ${className}`}>
+    <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${className} min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-3`}>
       {/* Chess Board - Left side */}
       <div className="lg:col-span-7">
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-slate-800 to-slate-700 text-white rounded-t-lg pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Badge variant="secondary" className="text-xs font-mono bg-white/20 text-white border-0 px-3 py-1">
-                  SF 16 • {mode === "fast" ? "Depth 12" : "0.5s/move"}
-                </Badge>
-                {/* Eval change badge */}
-                <Badge variant="secondary" className="text-xs font-mono bg-white/20 text-white border-0 px-3 py-1">
-                  {(() => {
-                    const evalChange = getCurrentEvalChange();
-                    const isWhiteMove = currentMoveIndex % 2 === 0;
-                    if (Math.abs(evalChange) <= 0.1) {
-                      return `Great move (${evalChange >= 0 ? '+' : ''}${evalChange.toFixed(2)})`;
-                    }
-                    if (Math.abs(evalChange) <= 0.3) {
-                      return `Decent move (${evalChange >= 0 ? '+' : ''}${evalChange.toFixed(2)})`;
-                    }
-                    if (evalChange > 0) {
-                      return isWhiteMove
-                        ? `Good move (+${evalChange.toFixed(2)})`
-                        : `Bad move (+${evalChange.toFixed(2)})`;
-                    }
-                    if (evalChange < 0) {
-                      return isWhiteMove
-                        ? `Bad move (${evalChange.toFixed(2)})`
-                        : `Good move (${evalChange.toFixed(2)})`;
-                    }
-                    return `Good move (0)`;
-                  })()}
-                </Badge>
-                {getCurrentEvaluation() !== null && (
-                  <div className="text-2xl font-bold bg-white/10 rounded-lg px-4 py-2">
-                    {formatEvaluation(getCurrentEvaluation()!)}
+        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-md hover:shadow-3xl transition-all duration-300 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 text-white rounded-t-lg pb-4 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Badge variant="secondary" className="text-xs font-mono bg-white/30 text-white border-0 px-3 py-1 shadow-lg backdrop-blur-sm">
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                      SF 16 • {mode === "fast" ? "Depth 12" : "0.5s/move"}
+                    </div>
+                  </Badge>
+                  {/* Eval change badge */}
+                  <EvalChangeBadge
+                    currentEvaluation={getCurrentEvaluation()}
+                    evalChange={getCurrentEvalChange()}
+                    isWhiteMove={currentMoveIndex % 2 === 0}
+                  />
+                  {getCurrentEvaluation() !== null && (
+                    <div className="text-xl font-bold bg-gradient-to-r from-white/20 to-white/10 rounded-xl px-4 py-2 shadow-lg backdrop-blur-sm border border-white/20">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-gradient-to-r from-green-400 to-blue-400 rounded-full"></div>
+                        {formatEvaluation(getCurrentEvaluation()!)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30 px-3 py-1 shadow-lg backdrop-blur-sm">
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                    {currentMoveIndex === -1 ? "Starting Position" : `Move ${Math.floor(currentMoveIndex / 2) + 1}${currentMoveIndex % 2 === 0 ? "" : "..."}`}
                   </div>
-                )}
+                </Badge>
               </div>
-              <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/20">
-                {currentMoveIndex === -1 ? "Starting Position" : `Move ${Math.floor(currentMoveIndex / 2) + 1}${currentMoveIndex % 2 === 0 ? "" : "..."}`}
-              </Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-8">
+          <CardContent className="p-4 bg-gradient-to-br from-white to-gray-50">
             <div className="flex justify-center">
               {/* Enhanced Evaluation Bar */}
               {(() => {
                 const evalValue = getCurrentEvaluation();
                 return (
-                  <div className="flex flex-col items-center mr-6 space-y-9">
+                  <div className="flex flex-col items-center mr-4 space-y-3">
                     {/* Evaluation Score */}
-                    <div className="bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg border border-slate-600">
-                      <div className="text-xs font-medium text-slate-300 text-center">Eval</div>
-                      <div className="text-lg font-bold text-center">
-                        {evalValue !== null ? `${evalValue >= 0 ? '+' : ''}${evalValue.toFixed(1)}` : '--'}
+                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white px-4 py-2 rounded-xl shadow-2xl border border-slate-600 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
+                      <div className="relative z-10">
+                        <div className="text-xs font-medium text-slate-300 text-center mb-1">Eval</div>
+                        <div className="text-lg font-bold text-center">
+                          {evalValue !== null ? `${evalValue >= 0 ? '+' : ''}${evalValue.toFixed(1)}` : '--'}
+                        </div>
                       </div>
                     </div>
                     {/* Vertical Bar */}
-                    <div className="relative w-8 h-64 bg-slate-700 rounded-full shadow-inner border border-slate-600 overflow-hidden">
+                    <div className="relative w-8 h-64 bg-gradient-to-t from-slate-800 to-slate-700 rounded-2xl shadow-2xl border-2 border-slate-600 overflow-hidden">
+                      {/* Gradient background */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-red-900/50 via-gray-800 to-green-900/50"></div>
                       {/* Fill based on evaluation */}
                       <div 
-                        className="absolute bottom-0 w-full bg-gradient-to-t from-green-400 to-green-500 transition-all duration-500 ease-out"
+                        className="absolute bottom-0 w-full bg-gradient-to-t from-emerald-400 via-green-400 to-green-300 transition-all duration-700 ease-out shadow-lg"
                         style={{ height: `${evalValue !== null ? Math.max(0, Math.min(100, (evalValue + 10) / 20 * 100)) : 50}%` }}
-                      ></div>
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20"></div>
+                      </div>
                       {/* Center line */}
-                      <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-gray-800"></div>
+                      <div className="absolute left-0 right-0 top-1/2 h-1 bg-gradient-to-r from-transparent via-white to-transparent shadow-lg"></div>
+                      {/* Markers */}
+                      <div className="absolute left-0 right-0 top-1/4 h-0.5 bg-white/40"></div>
+                      <div className="absolute left-0 right-0 top-3/4 h-0.5 bg-white/40"></div>
                     </div>
                   </div>
                 );
               })()}
               
-              <div className="rounded-xl overflow-hidden shadow-2xl">
+              <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 bg-gradient-to-br from-white to-gray-100">
                 <Chessboard 
                   position={chess.fen}
-                  boardWidth={450}
+                  boardWidth={380}
                   arePiecesDraggable={false}
                   customArrows={from && to ? [[from, to]] : []}
                 />
@@ -448,13 +470,13 @@ export function GameAnalyzer({
             </div>
             
             {/* Navigation Controls */}
-            <div className="flex justify-center space-x-2 mt-6">
+            <div className="flex justify-center space-x-2 mt-4">
               <Button
                 variant="outline"
                 onClick={() => navigateToMove(-1)}
                 disabled={currentMoveIndex === -1}
                 size="sm"
-                className="px-4 py-2 rounded-lg border-2 border-slate-200 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50"
+                className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 hover:border-slate-400 hover:shadow-lg disabled:opacity-50 transition-all duration-200"
               >
                 ⏪
               </Button>
@@ -463,7 +485,7 @@ export function GameAnalyzer({
                 onClick={() => navigateToMove(Math.max(-1, currentMoveIndex - 1))}
                 disabled={currentMoveIndex === -1}
                 size="sm"
-                className="px-4 py-2 rounded-lg border-2 border-slate-200 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50"
+                className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 hover:border-slate-400 hover:shadow-lg disabled:opacity-50 transition-all duration-200"
               >
                 ⏮
               </Button>
@@ -471,10 +493,10 @@ export function GameAnalyzer({
                 variant="outline"
                 onClick={toggleAutoPlay}
                 size="sm"
-                className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
+                className={`px-4 py-2 rounded-xl border-2 font-medium transition-all duration-200 shadow-lg ${
                   isAutoPlaying 
-                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400 hover:from-red-600 hover:to-red-700" 
-                    : "border-green-400 hover:border-green-500 hover:bg-green-50"
+                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400 hover:from-red-600 hover:to-red-700 hover:shadow-xl" 
+                    : "border-green-400 bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 hover:border-green-500 hover:shadow-xl"
                 }`}
               >
                 {isAutoPlaying ? "⏸️" : "▶️"}
@@ -484,7 +506,7 @@ export function GameAnalyzer({
                 onClick={() => navigateToMove(Math.min(analysisResult.totalMoves - 1, currentMoveIndex + 1))}
                 disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
                 size="sm"
-                className="px-4 py-2 rounded-lg border-2 border-slate-200 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50"
+                className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 hover:border-slate-400 hover:shadow-lg disabled:opacity-50 transition-all duration-200"
               >
                 ⏭
               </Button>
@@ -493,21 +515,25 @@ export function GameAnalyzer({
                 onClick={() => navigateToMove(analysisResult.totalMoves - 1)}
                 disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
                 size="sm"
-                className="px-4 py-2 rounded-lg border-2 border-slate-200 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50"
+                className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 hover:border-slate-400 hover:shadow-lg disabled:opacity-50 transition-all duration-200"
               >
                 ⏩
               </Button>
             </div>
             
             {/* Auto-play speed controls */}
-            <div className="flex justify-center items-center space-x-3 mt-4">
-              <span className="text-sm font-medium text-slate-600">Speed:</span>
-              <div className="flex space-x-2">
+            <div className="flex justify-center items-center space-x-3 mt-3">
+              <span className="text-sm font-semibold text-slate-700 bg-white/80 px-2 py-1 rounded-lg shadow-sm">Speed:</span>
+              <div className="flex space-x-1 bg-white/80 rounded-xl p-1 shadow-lg">
                 <Button
                   variant={autoPlaySpeed === 2000 ? "default" : "outline"}
                   onClick={() => setAutoPlaySpeed(2000)}
                   size="sm"
-                  className="px-3 py-1 text-xs rounded-md"
+                  className={`px-3 py-1 text-sm rounded-lg font-medium transition-all duration-200 ${
+                    autoPlaySpeed === 2000 
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md" 
+                      : "bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                  }`}
                 >
                   0.5x
                 </Button>
@@ -515,7 +541,11 @@ export function GameAnalyzer({
                   variant={autoPlaySpeed === 1000 ? "default" : "outline"}
                   onClick={() => setAutoPlaySpeed(1000)}
                   size="sm"
-                  className="px-3 py-1 text-xs rounded-md"
+                  className={`px-3 py-1 text-sm rounded-lg font-medium transition-all duration-200 ${
+                    autoPlaySpeed === 1000 
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md" 
+                      : "bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                  }`}
                 >
                   1x
                 </Button>
@@ -523,7 +553,11 @@ export function GameAnalyzer({
                   variant={autoPlaySpeed === 500 ? "default" : "outline"}
                   onClick={() => setAutoPlaySpeed(500)}
                   size="sm"
-                  className="px-3 py-1 text-xs rounded-md"
+                  className={`px-3 py-1 text-sm rounded-lg font-medium transition-all duration-200 ${
+                    autoPlaySpeed === 500 
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md" 
+                      : "bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                  }`}
                 >
                   2x
                 </Button>
@@ -531,7 +565,11 @@ export function GameAnalyzer({
                   variant={autoPlaySpeed === 250 ? "default" : "outline"}
                   onClick={() => setAutoPlaySpeed(250)}
                   size="sm"
-                  className="px-3 py-1 text-xs rounded-md"
+                  className={`px-3 py-1 text-sm rounded-lg font-medium transition-all duration-200 ${
+                    autoPlaySpeed === 250 
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md" 
+                      : "bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                  }`}
                 >
                   4x
                 </Button>
@@ -540,79 +578,85 @@ export function GameAnalyzer({
           </CardContent>
         </Card>
       </div>
-
+  
       {/* Move Analysis - Right side */}
       <div className="lg:col-span-5">
-        <Card className="h-full shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-t-lg pb-4">
-            <CardTitle className="text-xl font-semibold flex items-center gap-2">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                📊
-              </div>
-              Move Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-y-auto">
-              {/* Column headers */}
-              <div className="grid grid-cols-12 gap-1 items-center py-3 px-4 border-b-2 border-slate-200 bg-gradient-to-r from-slate-100 to-slate-50 text-xs font-bold text-slate-700">
-                <div className="col-span-1">#</div>
-                <div className="col-span-2">White</div>
-                <div className="col-span-1 text-right">Eval</div>
-                <div className="col-span-2 text-center">Best</div>
-                <div className="col-span-2">Black</div>
-                <div className="col-span-1 text-right">Eval</div>
-                <div className="col-span-3 text-center">Best</div>
-              </div>
-              
-              {parseMoveData().map((move, index) => (
-                <div 
-                  key={index} 
-                  className="grid grid-cols-12 gap-1 items-center py-3 px-4 text-sm border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="col-span-1 text-xs text-slate-500 font-bold">
-                    {move.moveNumber}
-                  </div>
-                  <div 
-                    className={`col-span-2 font-mono text-sm font-semibold cursor-pointer rounded-lg px-3 py-2 transition-all ${
-                      currentMoveIndex === index * 2 
-                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md' 
-                        : 'hover:bg-blue-100 hover:shadow-sm'
-                    }`}
-                    onClick={() => navigateToMove(index * 2)}
-                  >
-                    {move.whiteSan}
-                  </div>
-                  <div className="col-span-1 text-xs text-right font-mono text-slate-600 font-medium">
-                    {formatEvaluation(move.whiteEval)}
-                  </div>
-                  <div className="col-span-2 text-xs text-center font-mono text-blue-600 font-medium">
-                    <div><span className="font-bold">Current:</span> {move.whiteCurrentBest || '--'}</div>
-                    <div><span className="font-bold">Next:</span> {move.whiteNextBestUci || '--'}</div>
-                  </div>
-                  <div 
-                    className={`col-span-2 font-mono text-sm font-semibold text-slate-800 cursor-pointer rounded-lg px-3 py-2 transition-all ${
-                      currentMoveIndex === index * 2 + 1 
-                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md' 
-                        : 'hover:bg-blue-100 hover:shadow-sm'
-                    }`}
-                    onClick={() => move.blackSan ? navigateToMove(index * 2 + 1) : undefined}
-                  >
-                    {move.blackSan || '...'}
-                  </div>
-                  <div className="col-span-1 text-xs text-right font-mono text-slate-600 font-medium">
-                    {move.blackEval ? formatEvaluation(move.blackEval) : ''}
-                  </div>
-                  <div className="col-span-3 text-xs text-center font-mono text-blue-600 font-medium">
-                    <div><span className="font-bold">Current:</span> {move.blackCurrentBest || '--'}</div>
-                    <div><span className="font-bold">Next:</span> {move.blackNextBestUci || '--'}</div>
-                  </div>
-                </div>
-              ))}
+  <Card className="h-full shadow-lg border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
+    <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 text-white rounded-t-lg pb-4">
+      <CardTitle className="flex items-center gap-2 text-xl font-bold">
+        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center border border-white/25">
+          📊
+        </div>
+        <div>
+          <div>Move Analysis</div>
+          <div className="text-sm text-white/80 font-normal">Engine evaluation & best moves</div>
+        </div>
+      </CardTitle>
+    </CardHeader>
+
+    <CardContent className="p-0 bg-gray-50">
+    <div className="overflow-y-auto max-h-[32rem]">
+    <div className="grid grid-cols-12 gap-1 items-center py-2 px-4 border-b border-gray-200 bg-white text-xs font-semibold text-gray-700 sticky top-0 z-10">
+          <div className="col-span-1 text-center">#</div>
+          <div className="col-span-2">White</div>
+          <div className="col-span-1 text-right">Eval</div>
+          <div className="col-span-2 text-center">Best</div>
+          <div className="col-span-2">Black</div>
+          <div className="col-span-1 text-right">Eval</div>
+          <div className="col-span-3 text-center">Best</div>
+        </div>
+
+        {parseMoveData().map((move, idx) => (
+          <div
+            key={idx}
+            className="grid grid-cols-12 gap-1 items-center py-2 px-4 text-sm border-b border-gray-200 hover:bg-gray-100 transition-all duration-200 group"
+          >
+            <div className="col-span-1 text-center text-gray-500">{move.moveNumber}</div>
+
+            <div
+              className={`col-span-2 font-mono text-sm font-medium cursor-pointer rounded-md px-2 py-1 transition-all duration-200 ${
+                currentMoveIndex === idx * 2
+                  ? 'bg-blue-600 text-white shadow-md scale-105'
+                  : 'bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300'
+              }`}
+              onClick={() => navigateToMove(idx * 2)}
+            >
+              {move.whiteSan}
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="col-span-1 text-right font-mono text-gray-600 text-xs">{formatEvaluation(move.whiteEval)}</div>
+
+            <div className="col-span-2 text-center font-mono text-xs text-blue-700 bg-blue-50 rounded-md py-1">
+              <div><span className="font-semibold">Cur:</span> {move.whiteCurrentBest || '--'}</div>
+              <div><span className="font-semibold">Next:</span> {move.whiteNextBestUci || '--'}</div>
+            </div>
+
+            <div
+              className={`col-span-2 font-mono text-sm font-medium cursor-pointer rounded-md px-2 py-1 transition-all duration-200 ${
+                currentMoveIndex === idx * 2 + 1
+                  ? 'bg-blue-600 text-white shadow-md scale-105'
+                  : 'bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300'
+              }`}
+              onClick={() => move.blackSan && navigateToMove(idx * 2 + 1)}
+            >
+              {move.blackSan || '...'}
+            </div>
+
+            <div className="col-span-1 text-right font-mono text-gray-600 text-xs">
+              {move.blackEval != null ? formatEvaluation(move.blackEval) : ''}
+            </div>
+
+            <div className="col-span-3 text-center font-mono text-xs text-blue-700 bg-blue-50 rounded-md py-1">
+              <div><span className="font-semibold">Cur:</span> {move.blackCurrentBest || '--'}</div>
+              <div><span className="font-semibold">Next:</span> {move.blackNextBestUci || '--'}</div>
+            </div>
+          </div>
+        ))}
       </div>
+    </CardContent>
+  </Card>
+</div>
+
     </div>
   );
 } 
