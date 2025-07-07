@@ -30,13 +30,13 @@ export default function GameAnalysis() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
       <div className="container mx-auto p-6">
 
 
         {!showAnalysis ? (
           /* Input Section - Enhanced with modern styling */
-          <Card className="max-w-3xl mx-auto shadow-xl border-0 bg-white/70 backdrop-blur-sm">
+          <Card className="max-w-3xl mx-auto shadow-xl border-0 bg-slate-800/70 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
               <CardTitle className="text-xl font-semibold flex items-center gap-2">
                 <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
@@ -47,7 +47,7 @@ export default function GameAnalysis() {
             </CardHeader>
             <CardContent className="p-8 space-y-6">
               <div>
-                <label className="block text-sm font-semibold mb-3 text-slate-700">
+                <label className="block text-sm font-semibold mb-3 text-slate-200">
                   PGN Notation:
                 </label>
                 <Textarea
@@ -55,12 +55,12 @@ export default function GameAnalysis() {
                   onChange={(e) => setPgnInput(e.target.value)}
                   placeholder="Paste your PGN here..."
                   rows={12}
-                  className="font-mono text-sm border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl resize-none shadow-inner"
+                  className="font-mono text-sm border-2 border-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 rounded-xl resize-none shadow-inner bg-slate-700 text-slate-200 placeholder-slate-400"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-semibold mb-3 text-slate-700">
+                <label className="block text-sm font-semibold mb-3 text-slate-200">
                   Analysis Mode:
                 </label>
                 <div className="flex space-x-3">
@@ -70,8 +70,8 @@ export default function GameAnalysis() {
                     size="sm"
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${
                       analysisMode === "fast" 
-                        ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg hover:shadow-xl" 
-                        : "border-2 border-slate-200 hover:border-green-400 hover:bg-green-50"
+                        ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:shadow-xl hover:from-green-700 hover:to-emerald-700" 
+                        : "border-2 border-slate-600 hover:border-green-400 hover:bg-green-900/30 text-slate-200 bg-slate-700/50"
                     }`}
                   >
                     ⚡ Fast (depth 12)
@@ -82,8 +82,8 @@ export default function GameAnalysis() {
                     size="sm"
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${
                       analysisMode === "accurate" 
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg hover:shadow-xl" 
-                        : "border-2 border-slate-200 hover:border-blue-400 hover:bg-blue-50"
+                        ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:shadow-xl hover:from-green-700 hover:to-emerald-700" 
+                        : "border-2 border-slate-600 hover:border-green-400 hover:bg-green-900/30 text-slate-200 bg-slate-700/50"
                     }`}
                   >
                     🔍 Accurate (0.5s per move)
@@ -122,7 +122,7 @@ export default function GameAnalysis() {
               <Button 
                 onClick={handleNewAnalysis}
                 variant="outline"
-                className="px-8 py-3 rounded-xl border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 font-semibold transition-all transform hover:scale-105 shadow-lg"
+                className="px-8 py-3 rounded-xl border-2 border-slate-600 hover:border-slate-500 hover:bg-slate-700/50 font-semibold transition-all transform hover:scale-105 shadow-lg text-slate-200 bg-slate-800/50"
               >
                 ← New Analysis
               </Button>

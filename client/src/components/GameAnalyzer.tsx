@@ -142,8 +142,7 @@ export function GameAnalyzer({
         if (analysisResult && typeof analysisResult.totalMoves === 'number') {
           navigateToMove(Math.min(analysisResult.totalMoves - 1, currentMoveIndex + 1));
         }
-      } else if (event.key === " " || event.key === "Spacebar" || event.key === "space") {
-        event.preventDefault();
+      } else if(event.key ==="space") {
         toggleAutoPlay();
       }
     };
@@ -337,11 +336,11 @@ export function GameAnalyzer({
   if (analyzeGameMutation.isPending) {
     return (
       <div className={`flex items-center justify-center p-8 ${className}`}>
-        <Card className="w-full max-w-2xl">
+        <Card className="w-full max-w-2xl bg-slate-800/70 backdrop-blur-sm border-0 shadow-xl">
           <CardContent className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-            <h3 className="text-lg font-semibold mb-2">Analyzing Game...</h3>
-            <p className="text-slate-600">Please wait while Stockfish analyzes your game</p>
+            <h3 className="text-lg font-semibold mb-2 text-slate-200">Analyzing Game...</h3>
+            <p className="text-slate-400">Please wait while Stockfish analyzes your game</p>
           </CardContent>
         </Card>
       </div>
@@ -382,16 +381,16 @@ export function GameAnalyzer({
   }
 
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${className} min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-3`}>
+    <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${className} min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-3`}>
       {/* Chess Board - Left side */}
       <div className="lg:col-span-7">
-        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-md hover:shadow-3xl transition-all duration-300 overflow-hidden">
+        <Card className="shadow-2xl border-0 bg-slate-800/90 backdrop-blur-md hover:shadow-3xl transition-all duration-300 overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 text-white rounded-t-lg pb-4 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Badge variant="secondary" className="text-xs font-mono bg-white/30 text-white border-0 px-3 py-1 shadow-lg backdrop-blur-sm">
+                  <Badge variant="secondary" className="text-xs font-mono bg-white/20 text-white border-0 px-3 py-1 shadow-lg backdrop-blur-sm">
                     <div className="flex items-center gap-1">
                       <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
                       SF 16 • {mode === "fast" ? "Depth 12" : "0.5s/move"}
@@ -421,7 +420,7 @@ export function GameAnalyzer({
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-4 bg-gradient-to-br from-white to-gray-50">
+          <CardContent className="p-4 bg-gradient-to-br from-slate-800 to-slate-900">
             <div className="flex justify-center">
               {/* Enhanced Evaluation Bar */}
               {(() => {
@@ -459,7 +458,7 @@ export function GameAnalyzer({
                 );
               })()}
               
-              <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 bg-gradient-to-br from-white to-gray-100">
+              <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-600/50 bg-gradient-to-br from-slate-700 to-slate-800">
                 <Chessboard 
                   position={chess.fen}
                   boardWidth={380}
@@ -476,7 +475,7 @@ export function GameAnalyzer({
                 onClick={() => navigateToMove(-1)}
                 disabled={currentMoveIndex === -1}
                 size="sm"
-                className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 hover:border-slate-400 hover:shadow-lg disabled:opacity-50 transition-all duration-200"
+                className="px-3 py-2 rounded-xl border-2 border-slate-600 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 hover:border-slate-500 hover:shadow-lg disabled:opacity-50 transition-all duration-200 text-slate-200"
               >
                 ⏪
               </Button>
@@ -485,7 +484,7 @@ export function GameAnalyzer({
                 onClick={() => navigateToMove(Math.max(-1, currentMoveIndex - 1))}
                 disabled={currentMoveIndex === -1}
                 size="sm"
-                className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 hover:border-slate-400 hover:shadow-lg disabled:opacity-50 transition-all duration-200"
+                className="px-3 py-2 rounded-xl border-2 border-slate-600 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 hover:border-slate-500 hover:shadow-lg disabled:opacity-50 transition-all duration-200 text-slate-200"
               >
                 ⏮
               </Button>
@@ -496,7 +495,7 @@ export function GameAnalyzer({
                 className={`px-4 py-2 rounded-xl border-2 font-medium transition-all duration-200 shadow-lg ${
                   isAutoPlaying 
                     ? "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400 hover:from-red-600 hover:to-red-700 hover:shadow-xl" 
-                    : "border-green-400 bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 hover:border-green-500 hover:shadow-xl"
+                    : "border-green-500 bg-gradient-to-r from-green-700 to-green-800 hover:from-green-600 hover:to-green-700 hover:border-green-400 hover:shadow-xl text-green-200"
                 }`}
               >
                 {isAutoPlaying ? "⏸️" : "▶️"}
@@ -506,7 +505,7 @@ export function GameAnalyzer({
                 onClick={() => navigateToMove(Math.min(analysisResult.totalMoves - 1, currentMoveIndex + 1))}
                 disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
                 size="sm"
-                className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 hover:border-slate-400 hover:shadow-lg disabled:opacity-50 transition-all duration-200"
+                className="px-3 py-2 rounded-xl border-2 border-slate-600 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 hover:border-slate-500 hover:shadow-lg disabled:opacity-50 transition-all duration-200 text-slate-200"
               >
                 ⏭
               </Button>
@@ -515,7 +514,7 @@ export function GameAnalyzer({
                 onClick={() => navigateToMove(analysisResult.totalMoves - 1)}
                 disabled={currentMoveIndex >= analysisResult.totalMoves - 1}
                 size="sm"
-                className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 hover:border-slate-400 hover:shadow-lg disabled:opacity-50 transition-all duration-200"
+                className="px-3 py-2 rounded-xl border-2 border-slate-600 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 hover:border-slate-500 hover:shadow-lg disabled:opacity-50 transition-all duration-200 text-slate-200"
               >
                 ⏩
               </Button>
@@ -523,8 +522,8 @@ export function GameAnalyzer({
             
             {/* Auto-play speed controls */}
             <div className="flex justify-center items-center space-x-3 mt-3">
-              <span className="text-sm font-semibold text-slate-700 bg-white/80 px-2 py-1 rounded-lg shadow-sm">Speed:</span>
-              <div className="flex space-x-1 bg-white/80 rounded-xl p-1 shadow-lg">
+              <span className="text-sm font-semibold text-slate-200 bg-slate-700/80 px-2 py-1 rounded-lg shadow-sm">Speed:</span>
+              <div className="flex space-x-1 bg-slate-700/80 rounded-xl p-1 shadow-lg">
                 <Button
                   variant={autoPlaySpeed === 2000 ? "default" : "outline"}
                   onClick={() => setAutoPlaySpeed(2000)}
@@ -532,7 +531,7 @@ export function GameAnalyzer({
                   className={`px-3 py-1 text-sm rounded-lg font-medium transition-all duration-200 ${
                     autoPlaySpeed === 2000 
                       ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md" 
-                      : "bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                      : "bg-slate-600 hover:bg-slate-500 border border-slate-500 hover:border-slate-400 text-slate-200"
                   }`}
                 >
                   0.5x
@@ -544,7 +543,7 @@ export function GameAnalyzer({
                   className={`px-3 py-1 text-sm rounded-lg font-medium transition-all duration-200 ${
                     autoPlaySpeed === 1000 
                       ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md" 
-                      : "bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                      : "bg-slate-600 hover:bg-slate-500 border border-slate-500 hover:border-slate-400 text-slate-200"
                   }`}
                 >
                   1x
@@ -556,7 +555,7 @@ export function GameAnalyzer({
                   className={`px-3 py-1 text-sm rounded-lg font-medium transition-all duration-200 ${
                     autoPlaySpeed === 500 
                       ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md" 
-                      : "bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                      : "bg-slate-600 hover:bg-slate-500 border border-slate-500 hover:border-slate-400 text-slate-200"
                   }`}
                 >
                   2x
@@ -568,7 +567,7 @@ export function GameAnalyzer({
                   className={`px-3 py-1 text-sm rounded-lg font-medium transition-all duration-200 ${
                     autoPlaySpeed === 250 
                       ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md" 
-                      : "bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                      : "bg-slate-600 hover:bg-slate-500 border border-slate-500 hover:border-slate-400 text-slate-200"
                   }`}
                 >
                   4x
@@ -581,7 +580,7 @@ export function GameAnalyzer({
   
       {/* Move Analysis - Right side */}
       <div className="lg:col-span-5">
-  <Card className="h-full shadow-lg border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
+  <Card className="h-full shadow-lg border-0 bg-slate-800/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
     <CardHeader className="bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 text-white rounded-t-lg pb-4">
       <CardTitle className="flex items-center gap-2 text-xl font-bold">
         <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center border border-white/25">
@@ -594,9 +593,9 @@ export function GameAnalyzer({
       </CardTitle>
     </CardHeader>
 
-    <CardContent className="p-0 bg-gray-50">
+    <CardContent className="p-0 bg-slate-900">
     <div className="overflow-y-auto max-h-[32rem]">
-    <div className="grid grid-cols-12 gap-1 items-center py-2 px-4 border-b border-gray-200 bg-white text-xs font-semibold text-gray-700 sticky top-0 z-10">
+    <div className="grid grid-cols-12 gap-1 items-center py-2 px-4 border-b border-slate-700 bg-slate-800 text-xs font-semibold text-slate-200 sticky top-0 z-10">
           <div className="col-span-1 text-center">#</div>
           <div className="col-span-2">White</div>
           <div className="col-span-1 text-right">Eval</div>
@@ -609,24 +608,24 @@ export function GameAnalyzer({
         {parseMoveData().map((move, idx) => (
           <div
             key={idx}
-            className="grid grid-cols-12 gap-1 items-center py-2 px-4 text-sm border-b border-gray-200 hover:bg-gray-100 transition-all duration-200 group"
+            className="grid grid-cols-12 gap-1 items-center py-2 px-4 text-sm border-b border-slate-700 hover:bg-slate-800 transition-all duration-200 group"
           >
-            <div className="col-span-1 text-center text-gray-500">{move.moveNumber}</div>
+            <div className="col-span-1 text-center text-slate-400">{move.moveNumber}</div>
 
             <div
               className={`col-span-2 font-mono text-sm font-medium cursor-pointer rounded-md px-2 py-1 transition-all duration-200 ${
                 currentMoveIndex === idx * 2
                   ? 'bg-blue-600 text-white shadow-md scale-105'
-                  : 'bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300'
+                  : 'bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-blue-400 text-slate-200'
               }`}
               onClick={() => navigateToMove(idx * 2)}
             >
               {move.whiteSan}
             </div>
 
-            <div className="col-span-1 text-right font-mono text-gray-600 text-xs">{formatEvaluation(move.whiteEval)}</div>
+            <div className="col-span-1 text-right font-mono text-slate-300 text-xs">{formatEvaluation(move.whiteEval)}</div>
 
-            <div className="col-span-2 text-center font-mono text-xs text-blue-700 bg-blue-50 rounded-md py-1">
+            <div className="col-span-2 text-center font-mono text-xs text-blue-300 bg-slate-700 rounded-md py-1">
               <div><span className="font-semibold">Cur:</span> {move.whiteCurrentBest || '--'}</div>
               <div><span className="font-semibold">Next:</span> {move.whiteNextBestUci || '--'}</div>
             </div>
@@ -635,18 +634,18 @@ export function GameAnalyzer({
               className={`col-span-2 font-mono text-sm font-medium cursor-pointer rounded-md px-2 py-1 transition-all duration-200 ${
                 currentMoveIndex === idx * 2 + 1
                   ? 'bg-blue-600 text-white shadow-md scale-105'
-                  : 'bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300'
+                  : 'bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-blue-400 text-slate-200'
               }`}
               onClick={() => move.blackSan && navigateToMove(idx * 2 + 1)}
             >
               {move.blackSan || '...'}
             </div>
 
-            <div className="col-span-1 text-right font-mono text-gray-600 text-xs">
+            <div className="col-span-1 text-right font-mono text-slate-300 text-xs">
               {move.blackEval != null ? formatEvaluation(move.blackEval) : ''}
             </div>
 
-            <div className="col-span-3 text-center font-mono text-xs text-blue-700 bg-blue-50 rounded-md py-1">
+            <div className="col-span-3 text-center font-mono text-xs text-blue-300 bg-slate-700 rounded-md py-1">
               <div><span className="font-semibold">Cur:</span> {move.blackCurrentBest || '--'}</div>
               <div><span className="font-semibold">Next:</span> {move.blackNextBestUci || '--'}</div>
             </div>
