@@ -7,6 +7,7 @@ import { useChess } from "@/hooks/use-chess";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { EvalChangeBadge } from "./EvalChangeBadge";
+import { Chess } from "chess.js";
 
 interface AnalysisResult {
   pgn: string;
@@ -22,6 +23,7 @@ interface AnalysisResult {
     currentBestMoveSan?: string;
     nextBestMoveSan?: string;
     nextBestMoveUci?: string;
+    bestLineSan?: string[]; // Added for best line SAN
   }>;
   totalMoves: number;
   analysisLog: string;
@@ -96,6 +98,12 @@ export function GameAnalyzer({
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [autoPlaySpeed, setAutoPlaySpeed] = useState(1000); // milliseconds
+  const [exploreMode, setExploreMode] = useState(false);
+  const [exploreFen, setExploreFen] = useState<string | null>(null);
+  const [exploreEval, setExploreEval] = useState<number | string | null>(null);
+  const [exploreEvalLoading, setExploreEvalLoading] = useState(false);
+  const [exploreEvalError, setExploreEvalError] = useState<string | null>(null);
+  const [exploreBestMoveUci, setExploreBestMoveUci] = useState<string | null>(null);
   const { toast } = useToast();
   const autoPlayIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -134,8 +142,19 @@ export function GameAnalyzer({
     };
   }, [isAutoPlaying, autoPlaySpeed, analysisResult, chess]);
 
+  // Helper to exit explore mode
+  const exitExploreMode = () => {
+    setExploreMode(false);
+    setExploreFen(null);
+    setExploreEval(null);
+    setExploreEvalError(null);
+    setExploreEvalLoading(false);
+    setExploreBestMoveUci(null);
+  };
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (exploreMode) exitExploreMode();
       if (event.key === "ArrowLeft") {
         navigateToMove(Math.max(-1, currentMoveIndex - 1));
       } else if (event.key === "ArrowRight") {
@@ -148,7 +167,7 @@ export function GameAnalyzer({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentMoveIndex, analysisResult]);
+  }, [currentMoveIndex, analysisResult, exploreMode]);
 
   const analyzeGameMutation = useMutation({
     mutationFn: async ({ pgn, mode }: { pgn: string; mode: string }): Promise<AnalysisResult> => {
@@ -203,6 +222,7 @@ export function GameAnalyzer({
   }, [pgn, mode]);
 
   const navigateToMove = (moveIndex: number) => {
+    exitExploreMode();
     if (!analysisResult) return;
     
     setCurrentMoveIndex(moveIndex);
@@ -210,6 +230,7 @@ export function GameAnalyzer({
   };
 
   const toggleAutoPlay = () => {
+    exitExploreMode();
     if (isAutoPlaying) {
       setIsAutoPlaying(false);
     } else {
@@ -339,6 +360,56 @@ export function GameAnalyzer({
     }
   };
 
+  // Handler for user move (explore mode)
+  const handlePieceDrop = (sourceSquare: string, targetSquare: string, piece: string) => {
+    if (!exploreMode) {
+      setExploreMode(true);
+    }
+    const currentFen = exploreFen || chess.fen;
+    const chessInstance = new Chess(currentFen);
+    const move = chessInstance.move({ from: sourceSquare, to: targetSquare, promotion: 'q' });
+    if (move) {
+      const newFen = chessInstance.fen();
+      setExploreFen(newFen);
+      setExploreEval(null);
+      setExploreEvalError(null);
+      setExploreEvalLoading(true);
+      return true;
+    }
+    return false;
+  };
+
+  // Trigger backend evaluation when exploreFen changes in explore mode
+  useEffect(() => {
+    if (exploreMode && exploreFen) {
+      setExploreEvalLoading(true);
+      setExploreEvalError(null);
+      setExploreEval(null);
+      fetch('/api/analyze-position', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fen: exploreFen, depth: 15, timeLimit: 1000 }),
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Analysis failed');
+          }
+          return response.json();
+        })
+        .then((result) => {
+          setExploreEval(result);
+          setExploreBestMoveUci(result.uci_best_move);
+        })
+        .catch((err) => {
+          setExploreEvalError(err.message || 'Error analyzing position');
+        })
+        .finally(() => {
+          setExploreEvalLoading(false);
+        });
+    }
+  }, [exploreFen, exploreMode]);
+
   // Show loading state while analyzing
   if (analyzeGameMutation.isPending) {
     return (
@@ -396,28 +467,31 @@ export function GameAnalyzer({
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Badge variant="secondary" className="text-xs font-mono bg-white/20 text-white border-0 px-3 py-1 shadow-lg backdrop-blur-sm">
-                    <div className="flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                      SF 16 • {mode === "fast" ? "Depth 12" : "0.5s/move"}
-                    </div>
-                  </Badge>
-                  {/* Eval change badge */}
-                  <EvalChangeBadge
-                    currentEvaluation={getCurrentEvaluation()}
-                    evalChange={getCurrentEvalChange()}
-                    isWhiteMove={currentMoveIndex % 2 === 0}
-                  />
-                  {getCurrentEvaluation() !== null && (
-                    <div className="text-xl font-bold bg-gradient-to-r from-white/20 to-white/10 rounded-xl px-4 py-2 shadow-lg backdrop-blur-sm border border-white/20">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-gradient-to-r from-green-400 to-blue-400 rounded-full"></div>
-                        {formatEvaluation(getCurrentEvaluation()!)}
+                <EvalChangeBadge
+                  currentEvaluation={getCurrentEvaluation()}
+                  evalChange={getCurrentEvalChange()}
+                  isWhiteMove={currentMoveIndex % 2 === 0}
+                />
+                {/* Best line SAN display */}
+                {(() => {
+                  let bestLine: string[] | undefined = undefined;
+                  if (exploreMode && exploreEval !== null && typeof exploreEval === 'object' && exploreEval !== null && 'san_best_line' in exploreEval) {
+                    // If exploreEval is the backend response object, use san_best_line
+                    bestLine = (exploreEval as any).san_best_line;
+                  } else if (analysisResult && analysisResult.analysisResults && currentMoveIndex >= 0 && currentMoveIndex < analysisResult.analysisResults.length) {
+                    bestLine = analysisResult.analysisResults[currentMoveIndex]?.bestLineSan;
+                  }
+                  if (bestLine && bestLine.length > 0) {
+                    return (
+                      <div className="mx-4 flex flex-wrap gap-1 text-sm font-mono text-slate-200 bg-slate-700/60 px-3 py-1 rounded-lg shadow-sm border border-slate-600/40">
+                        {bestLine.map((move, idx) => (
+                          <span key={idx}>{move}</span>
+                        ))}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    );
+                  }
+                  return <div className="mx-4" />;
+                })()}
                 <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30 px-3 py-1 shadow-lg backdrop-blur-sm">
                   <div className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
@@ -431,7 +505,23 @@ export function GameAnalyzer({
             <div className="flex justify-center">
               {/* Enhanced Evaluation Bar */}
               {(() => {
-                const evalValue = getCurrentEvaluation();
+                // Use explore mode eval and fen if in explore mode, else main game
+                let evalValue: number | null = null;
+                if (exploreMode && exploreEval !== null && exploreFen) {
+                  let rawEval = null;
+                  if (typeof exploreEval === 'object' && exploreEval !== null && 'eval' in exploreEval) {
+                    rawEval = (exploreEval as any).eval;
+                  }
+                  if (typeof rawEval === 'number') {
+                    const fenParts = exploreFen.split(' ');
+                    const isBlackTurn = fenParts[1] === 'b';
+                    evalValue = isBlackTurn ? -rawEval : rawEval;
+                  } else {
+                    evalValue = null;
+                  }
+                } else {
+                  evalValue = getCurrentEvaluation();
+                }
                 return (
                   <div className="flex flex-col items-center mr-4 space-y-3">
                     {/* Evaluation Score */}
@@ -467,11 +557,23 @@ export function GameAnalyzer({
               
               <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-600/50 bg-gradient-to-br from-slate-700 to-slate-800">
                 <Chessboard 
-                  position={chess.fen}
+                  position={exploreFen || chess.fen}
                   boardWidth={380}
-                  arePiecesDraggable={false}
-                  customArrows={from && to ? [[from, to]] : []}
-                />
+                  arePiecesDraggable={true}
+                  onPieceDrop={handlePieceDrop}
+                  customArrows={(() => {
+                    if (exploreMode && exploreEval !== null && typeof exploreEval !== 'undefined' && typeof exploreEval !== 'string' && exploreFen && typeof exploreEval !== 'undefined') {
+                      // Try to get the best move arrow from the last analysis result
+                      // We'll need to store the last analysis result (from the backend) in a state
+                      // For now, let's use a new state: exploreBestMoveUci
+                      if (exploreBestMoveUci && exploreBestMoveUci.length >= 4) {
+                        return [[exploreBestMoveUci.slice(0, 2), exploreBestMoveUci.slice(2, 4)]];
+                      }
+                    }
+                    if (from && to) return [[from, to]];
+                    return [];
+                  })()}
+                /> 
               </div>
             </div>
             
@@ -639,8 +741,7 @@ export function GameAnalyzer({
             <div className="col-span-1 text-right font-mono text-slate-300 text-xs">{formatEvaluation(move.whiteEval)}</div>
 
             <div className="col-span-2 text-center font-mono text-xs text-blue-300 bg-slate-700 rounded-md py-1">
-              <div><span className="font-semibold">Cur:</span> {move.whiteCurrentBest || '--'}</div>
-              <div><span className="font-semibold">Next:</span> {move.whiteNextBestUci || '--'}</div>
+              <div>{move.whiteCurrentBest || '--'}</div>
             </div>
 
             <div
@@ -659,8 +760,7 @@ export function GameAnalyzer({
             </div>
 
             <div className="col-span-3 text-center font-mono text-xs text-blue-300 bg-slate-700 rounded-md py-1">
-              <div><span className="font-semibold">Cur:</span> {move.blackCurrentBest || '--'}</div>
-              <div><span className="font-semibold">Next:</span> {move.blackNextBestUci || '--'}</div>
+              <div>{move.blackCurrentBest || '--'}</div>
             </div>
           </div>
         ))}
