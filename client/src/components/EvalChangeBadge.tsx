@@ -12,6 +12,9 @@ export const EvalChangeBadge: React.FC<EvalChangeBadgeProps> = ({ currentEvaluat
   const prevEval = currentEvaluation ? currentEvaluation - evalChange : 0;
   
   const getMoveData = () => {
+    if (playerChange > 100 || playerChange<-100) {
+      return { icon: "-", text: `-`, bgColor: "bg-red-500/20", textColor: "text-red-300" };
+    }
     if (playerChange < -2.0) {
       return { icon: "💥", text: `Blunder (${evalChange.toFixed(2)})`, bgColor: "bg-red-500/20", textColor: "text-red-300" };
     }

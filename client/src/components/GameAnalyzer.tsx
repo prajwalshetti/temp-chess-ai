@@ -37,6 +37,7 @@ interface MoveResult {
   whiteCurrentBest?: string;
   whiteNextBestSan?: string;
   whiteNextBestUci?: string;
+  whiteEvalString?: string; // <-- Add this line
 
   blackSan?: string;
   blackEval?: number;
@@ -44,6 +45,7 @@ interface MoveResult {
   blackCurrentBest?: string;
   blackNextBestSan?: string;
   blackNextBestUci?: string;
+  blackEvalString?: string; // <-- Add this line
 
   comment?: string;
   category?: 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
@@ -104,6 +106,10 @@ export function GameAnalyzer({
   const [exploreEvalLoading, setExploreEvalLoading] = useState(false);
   const [exploreEvalError, setExploreEvalError] = useState<string | null>(null);
   const [exploreBestMoveUci, setExploreBestMoveUci] = useState<string | null>(null);
+  // Add liveEval state for backend eval
+  const [liveEval, setLiveEval] = useState<number | string | null>(null);
+  // Add liveBestLine state for backend best line
+  const [liveBestLine, setLiveBestLine] = useState<string[] | null>(null);
   const { toast } = useToast();
   const autoPlayIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -245,7 +251,38 @@ export function GameAnalyzer({
 
   const getCurrentEvaluation = () => {
     if (!analysisResult || currentMoveIndex < 0) return null;
-    return analysisResult.moveEvaluations[currentMoveIndex.toString()];
+    const evalFromGame = analysisResult.moveEvaluations[currentMoveIndex.toString()];
+    if (typeof evalFromGame === 'number' && (evalFromGame > 200 || evalFromGame < -200)) {
+      // Use backend response
+      if (exploreMode && exploreEval !== null && exploreFen) {
+        let rawEval = null;
+        if (typeof exploreEval === 'object' && exploreEval !== null && 'eval' in exploreEval) {
+          rawEval = (exploreEval as any).eval;
+        }
+        if (typeof rawEval === 'number') {
+          const fenParts = exploreFen.split(' ');
+          const isBlackTurn = fenParts[1] === 'b';
+          return isBlackTurn ? -rawEval : rawEval;
+        } else if (typeof rawEval === 'string') {
+          return rawEval; // Show mate strings like 'M1', 'M2', etc.
+        } else {
+          return null;
+        }
+      } else if (!exploreMode && liveEval !== null) {
+        const fenParts = chess.fen.split(' ');
+        const isBlackTurn = fenParts[1] === 'b';
+        if (typeof liveEval === 'number') {
+          return isBlackTurn ? -liveEval : liveEval;
+        } else if (typeof liveEval === 'string') {
+          return liveEval;
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+    return evalFromGame;
   };
 
   const formatEvaluation = (evaluation: number) => {
@@ -272,7 +309,8 @@ export function GameAnalyzer({
             whiteBestMove: analysis.bestMove,
             whiteCurrentBest: analysis.currentBestMoveSan,
             whiteNextBestSan: analysis.nextBestMoveSan,
-            whiteNextBestUci: analysis.nextBestMoveUci
+            whiteNextBestUci: analysis.nextBestMoveUci,
+            whiteEvalString: analysis.evaluation
           };
         } else if (analysis.turn === "Black" && whiteMove) {
           moves.push({
@@ -282,7 +320,8 @@ export function GameAnalyzer({
             blackBestMove: analysis.bestMove,
             blackCurrentBest: analysis.currentBestMoveSan,
             blackNextBestSan: analysis.nextBestMoveSan,
-            blackNextBestUci: analysis.nextBestMoveUci
+            blackNextBestUci: analysis.nextBestMoveUci,
+            blackEvalString: analysis.evaluation
           } as MoveResult);
           whiteMove = {};
         }
@@ -367,7 +406,12 @@ export function GameAnalyzer({
     }
     const currentFen = exploreFen || chess.fen;
     const chessInstance = new Chess(currentFen);
-    const move = chessInstance.move({ from: sourceSquare, to: targetSquare, promotion: 'q' });
+    let move;
+    try {
+      move = chessInstance.move({ from: sourceSquare, to: targetSquare, promotion: 'q' });
+    } catch (error) {
+      return false;
+    }
     if (move) {
       const newFen = chessInstance.fen();
       setExploreFen(newFen);
@@ -409,6 +453,46 @@ export function GameAnalyzer({
         });
     }
   }, [exploreFen, exploreMode]);
+
+  // Add this after the state declarations and before the render logic
+  useEffect(() => {
+    if (!exploreMode) {
+      const fen = chess.fen;
+      if (!fen) return;
+      setLiveEval(null); // Reset before fetching
+      setLiveBestLine(null); // Reset best line
+      fetch('/api/analyze-position', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fen, depth: 15, timeLimit: 1000 }),
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Analysis failed');
+          }
+          return response.json();
+        })
+        .then((result) => {
+          if (typeof result.eval === 'number' || typeof result.eval === 'string') {
+            setLiveEval(result.eval);
+          } else {
+            setLiveEval(null);
+          }
+          if (Array.isArray(result.san_best_line)) {
+            setLiveBestLine(result.san_best_line);
+          } else {
+            setLiveBestLine(null);
+          }
+        })
+        .catch(() => {
+          setLiveEval(null);
+          setLiveBestLine(null);
+        });
+    }
+    // Only trigger when not in explore mode and FEN changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exploreMode, chess.fen]);
 
   // Show loading state while analyzing
   if (analyzeGameMutation.isPending) {
@@ -476,9 +560,11 @@ export function GameAnalyzer({
                 {(() => {
                   let bestLine: string[] | undefined = undefined;
                   if (exploreMode && exploreEval !== null && typeof exploreEval === 'object' && exploreEval !== null && 'san_best_line' in exploreEval) {
-                    // If exploreEval is the backend response object, use san_best_line
                     bestLine = (exploreEval as any).san_best_line;
-                  } else if (analysisResult && analysisResult.analysisResults && currentMoveIndex >= 0 && currentMoveIndex < analysisResult.analysisResults.length) {
+                  } else if (!exploreMode && liveBestLine) {
+                    bestLine = liveBestLine;
+                  }
+                  if (!bestLine && analysisResult && analysisResult.analysisResults && currentMoveIndex >= 0 && currentMoveIndex < analysisResult.analysisResults.length) {
                     bestLine = analysisResult.analysisResults[currentMoveIndex]?.bestLineSan;
                   }
                   if (bestLine && bestLine.length > 0) {
@@ -505,23 +591,8 @@ export function GameAnalyzer({
             <div className="flex justify-center">
               {/* Enhanced Evaluation Bar */}
               {(() => {
-                // Use explore mode eval and fen if in explore mode, else main game
-                let evalValue: number | null = null;
-                if (exploreMode && exploreEval !== null && exploreFen) {
-                  let rawEval = null;
-                  if (typeof exploreEval === 'object' && exploreEval !== null && 'eval' in exploreEval) {
-                    rawEval = (exploreEval as any).eval;
-                  }
-                  if (typeof rawEval === 'number') {
-                    const fenParts = exploreFen.split(' ');
-                    const isBlackTurn = fenParts[1] === 'b';
-                    evalValue = isBlackTurn ? -rawEval : rawEval;
-                  } else {
-                    evalValue = null;
-                  }
-                } else {
-                  evalValue = getCurrentEvaluation();
-                }
+                // Always use game analysis for eval bar and number
+                let evalValue: number | string | null = getCurrentEvaluation();
                 return (
                   <div className="flex flex-col items-center mr-4 space-y-3">
                     {/* Evaluation Score */}
@@ -530,7 +601,11 @@ export function GameAnalyzer({
                       <div className="relative z-10">
                         <div className="text-xs font-medium text-slate-300 text-center mb-1">Eval</div>
                         <div className="text-lg font-bold text-center">
-                          {evalValue !== null ? `${evalValue >= 0 ? '+' : ''}${evalValue.toFixed(1)}` : '--'}
+                          {typeof evalValue === 'number'
+                            ? `${evalValue >= 0 ? '+' : ''}${evalValue.toFixed(1)}`
+                            : typeof evalValue === 'string'
+                              ? evalValue
+                              : '--'}
                         </div>
                       </div>
                     </div>
@@ -541,7 +616,7 @@ export function GameAnalyzer({
                       {/* Fill based on evaluation */}
                       <div 
                         className="absolute bottom-0 w-full bg-gradient-to-t from-emerald-400 via-green-400 to-green-300 transition-all duration-700 ease-out shadow-lg"
-                        style={{ height: `${evalValue !== null ? Math.max(0, Math.min(100, (evalValue + 10) / 20 * 100)) : 50}%` }}
+                        style={{ height: `${typeof evalValue === 'number' ? Math.max(0, Math.min(100, (evalValue + 10) / 20 * 100)) : 50}%` }}
                       >
                         <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20"></div>
                       </div>
@@ -738,7 +813,7 @@ export function GameAnalyzer({
               {move.whiteSan}
             </div>
 
-            <div className="col-span-1 text-right font-mono text-slate-300 text-xs">{formatEvaluation(move.whiteEval)}</div>
+            <div className="col-span-1 text-right font-mono text-slate-300 text-xs">{move.whiteEvalString && move.whiteEvalString[0]=='#'?'#M'+move.whiteEvalString.slice(1): formatEvaluation(move.whiteEval??0)}</div>
 
             <div className="col-span-2 text-center font-mono text-xs text-blue-300 bg-slate-700 rounded-md py-1">
               <div>{move.whiteCurrentBest || '--'}</div>
@@ -755,9 +830,8 @@ export function GameAnalyzer({
               {move.blackSan || '...'}
             </div>
 
-            <div className="col-span-1 text-right font-mono text-slate-300 text-xs">
-              {move.blackEval != null ? formatEvaluation(move.blackEval) : ''}
-            </div>
+            <div className="col-span-1 text-right font-mono text-slate-300 text-xs">{move.blackEvalString && move.blackEvalString[0]=='#'?'#M'+move.blackEvalString.slice(1): formatEvaluation(move.blackEval??0)}</div>
+
 
             <div className="col-span-3 text-center font-mono text-xs text-blue-300 bg-slate-700 rounded-md py-1">
               <div>{move.blackCurrentBest || '--'}</div>
