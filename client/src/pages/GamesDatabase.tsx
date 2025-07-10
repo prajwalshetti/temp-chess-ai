@@ -1930,32 +1930,33 @@ export default function GamesDatabase() {
         </div>
       )}
 
-      {/* Analysis Modal */}
       <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
-        <DialogContent className="max-w-7xl h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              Game Analysis: {selectedGameForAnalysis?.whitePlayer} vs {selectedGameForAnalysis?.blackPlayer}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedGameForAnalysis && (
-            <div className="h-full overflow-auto">
-              <GameAnalyzer
-                pgn={convertMovesToString(selectedGameForAnalysis)}
-                mode="accurate"
-                onAnalysisComplete={(result) => {
-                  console.log("Game analysis completed:", result);
-                }}
-                onAnalysisError={(error) => {
-                  console.error("Game analysis failed:", error);
-                }}
-                className="h-full"
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+  <DialogContent className="fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none p-6 m-0 bg-white overflow-hidden z-[9999] !left-0 !top-0 !right-0 !bottom-0 !transform-none !translate-x-0 !translate-y-0">
+    {/* <DialogHeader>
+      <DialogTitle>
+        Game Analysis: {selectedGameForAnalysis?.whitePlayer} vs {selectedGameForAnalysis?.blackPlayer}
+      </DialogTitle>
+    </DialogHeader> */}
+    
+    {selectedGameForAnalysis && (
+      <div className="flex-1 overflow-auto mt-1">
+        <h1>        Game Analysis: {selectedGameForAnalysis?.whitePlayer} vs {selectedGameForAnalysis?.blackPlayer}
+        </h1>
+        <GameAnalyzer
+          pgn={convertMovesToString(selectedGameForAnalysis)}
+          mode="accurate"
+          onAnalysisComplete={(result) => {
+            console.log("Game analysis completed:", result);
+          }}
+          onAnalysisError={(error) => {
+            console.error("Game analysis failed:", error);
+          }}
+          className="h-full"
+        />
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
     </div>
   );
 }

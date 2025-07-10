@@ -1886,51 +1886,32 @@ export default function OpponentScout() {
 
       {/* Analysis Modal */}
       <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
-        <DialogContent className="max-w-7xl h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              Game Analysis: {selectedGameForAnalysis?.whitePlayer} vs {selectedGameForAnalysis?.blackPlayer}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedGameForAnalysis && (() => {
-            const movesString = convertMovesToString(selectedGameForAnalysis);
-            if (!movesString.trim()) {
-              return (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-red-800 mb-2">No Moves Available</h3>
-                    <p className="text-red-600">This game doesn't have any moves to analyze.</p>
-                  </div>
-                </div>
-              );
-            }
-            
-            return (
-              <div className="h-full overflow-auto">
-                <GameAnalyzer 
-                  pgn={movesString}
-                  mode="fast"
-                  onAnalysisComplete={(result) => {
-                    console.log("Opponent game analysis completed:", result);
-                    toast({
-                      title: "Analysis Complete",
-                      description: `Analyzed ${result.totalMoves} moves for opponent scouting.`,
-                    });
-                  }}
-                  onAnalysisError={(error) => {
-                    console.error("Opponent game analysis failed:", error);
-                    toast({
-                      title: "Analysis Failed",
-                      description: error,
-                      variant: "destructive",
-                    });
-                  }}
-                  className="h-full"
-                />
-              </div>
-            );
-          })()}
+        <DialogContent className="fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none p-6 m-0 bg-white overflow-hidden z-[9999] !left-0 !top-0 !right-0 !bottom-0 !transform-none !translate-x-0 !translate-y-0">
+          {selectedGameForAnalysis && (
+            <div className="flex-1 overflow-auto mt-1">
+              <h1>Game Analysis: {selectedGameForAnalysis?.whitePlayer} vs {selectedGameForAnalysis?.blackPlayer}</h1>
+              <GameAnalyzer
+                pgn={convertMovesToString(selectedGameForAnalysis)}
+                mode="fast"
+                onAnalysisComplete={(result) => {
+                  console.log("Opponent game analysis completed:", result);
+                  toast({
+                    title: "Analysis Complete",
+                    description: `Analyzed ${result.totalMoves} moves for opponent scouting.`,
+                  });
+                }}
+                onAnalysisError={(error) => {
+                  console.error("Opponent game analysis failed:", error);
+                  toast({
+                    title: "Analysis Failed",
+                    description: error,
+                    variant: "destructive",
+                  });
+                }}
+                className="h-full"
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
