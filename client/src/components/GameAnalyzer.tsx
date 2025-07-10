@@ -251,39 +251,47 @@ export function GameAnalyzer({
 
   const getCurrentEvaluation = () => {
     if (!analysisResult || currentMoveIndex < 0) return null;
+  
     const evalFromGame = analysisResult.moveEvaluations[currentMoveIndex.toString()];
-    if (typeof evalFromGame === 'number' && (evalFromGame > 200 || evalFromGame < -200)) {
-      // Use backend response
-      if (exploreMode && exploreEval !== null && exploreFen) {
-        let rawEval = null;
-        if (typeof exploreEval === 'object' && exploreEval !== null && 'eval' in exploreEval) {
-          rawEval = (exploreEval as any).eval;
-        }
-        if (typeof rawEval === 'number') {
-          const fenParts = exploreFen.split(' ');
-          const isBlackTurn = fenParts[1] === 'b';
-          return isBlackTurn ? -rawEval : rawEval;
-        } else if (typeof rawEval === 'string') {
-          return rawEval; // Show mate strings like 'M1', 'M2', etc.
-        } else {
-          return null;
-        }
-      } else if (!exploreMode && liveEval !== null) {
-        const fenParts = chess.fen.split(' ');
-        const isBlackTurn = fenParts[1] === 'b';
-        if (typeof liveEval === 'number') {
-          return isBlackTurn ? -liveEval : liveEval;
-        } else if (typeof liveEval === 'string') {
-          return liveEval;
-        } else {
-          return null;
-        }
+  
+    // 1. Always use exploreEval in explore mode
+    if (exploreMode && exploreEval !== null && exploreFen) {
+      let rawEval = null;
+  
+      if (typeof exploreEval === 'object' && exploreEval !== null && 'eval' in exploreEval) {
+        rawEval = (exploreEval as any).eval;
+      } else {
+        rawEval = exploreEval;
+      }
+  
+      if (typeof rawEval === 'number') {
+        const isBlackTurn = exploreFen.split(' ')[1] === 'b';
+        return isBlackTurn ? -rawEval : rawEval;
+      } else if (typeof rawEval === 'string') {
+        return rawEval; // e.g., "M1"
       } else {
         return null;
       }
     }
+  
+    // 2. Use liveEval if evalFromGame is too large
+    if (!exploreMode && typeof evalFromGame === 'number' && (evalFromGame > 200 || evalFromGame < -200)) {
+      if (liveEval !== null) {
+        const isBlackTurn = chess.fen.split(' ')[1] === 'b';
+  
+        if (typeof liveEval === 'number') {
+          return isBlackTurn ? -liveEval : liveEval;
+        } else if (typeof liveEval === 'string') {
+          return liveEval;
+        }
+      }
+      return null;
+    }
+  
+    // 3. Default: use precomputed evaluation
     return evalFromGame;
   };
+  
 
   const formatEvaluation = (evaluation: number) => {
     if (Math.abs(evaluation) > 100) {
@@ -391,13 +399,6 @@ export function GameAnalyzer({
       return (currmove.whiteEval ?? 0) - (prevmove?.blackEval ?? 0);
     }
   }
-
-  const handleAnalyzePosition = () => {
-    if (chess.fen) {
-      localStorage.setItem('analyze_fen', chess.fen);
-      window.open('/position', '_blank');
-    }
-  };
 
   // Handler for user move (explore mode)
   const handlePieceDrop = (sourceSquare: string, targetSquare: string, piece: string) => {
@@ -756,12 +757,6 @@ export function GameAnalyzer({
                 >
                   4x
                 </Button>
-                <Button
-                onClick={handleAnalyzePosition}
-                className="ml-2"
-              >
-                Try manual moves
-              </Button>
               </div>
             </div>
           </CardContent>
