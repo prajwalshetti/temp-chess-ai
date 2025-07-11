@@ -241,20 +241,24 @@ export default function OpponentScout() {
 
     setIsLoadingLichess(true);
     try {
-      const [gamesResponse, insightsResponse, tournamentsResponse] = await Promise.all([
+      const [gamesResponse, insightsResponse, tournamentsResponse, tacticsResponse] = await Promise.all([
         fetch(`/api/lichess/user/${searchQuery}/games?max=50`),
         fetch(`/api/lichess/user/${searchQuery}/insights`),
-        fetch(`/api/lichess/user/${searchQuery}/tournaments`)
+        fetch(`/api/lichess/user/${searchQuery}/tournaments`),
+        fetch(`/api/tactics?username=${encodeURIComponent(searchQuery)}`)
       ]);
       
       if (gamesResponse.ok && insightsResponse.ok) {
         const gamesData = await gamesResponse.json();
         const insightsData = await insightsResponse.json();
         const tournamentsData = tournamentsResponse.ok ? await tournamentsResponse.json() : { tournaments: [] };
+        const tacticsData = tacticsResponse.ok ? await tacticsResponse.json() : { tactics: [] };
         
         setLichessGames(gamesData.games);
         setLichessInsights(insightsData);
         setLichessTournaments(tournamentsData.tournaments);
+        // For now, just log the tactics response
+        console.log('Tactics endpoint response:', tacticsData);
         
         // Fetch authentic Lichess profile data directly from their API
         try {

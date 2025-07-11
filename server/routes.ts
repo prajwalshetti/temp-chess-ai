@@ -8,6 +8,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { analyzeTactics } from './tacticAnalyzer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -172,6 +173,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       environment: process.env.NODE_ENV || 'unknown',
       lichessToken: process.env.LICHESS_API_TOKEN ? 'configured' : 'missing'
     });
+  });
+
+  // Dummy endpoint for tactics
+  app.get('/api/tactics', async (req, res) => {
+    // For now, just use a dummy username
+    let tacticUsername = req.query.username;
+    if (Array.isArray(tacticUsername)) tacticUsername = tacticUsername[0];
+    if (typeof tacticUsername !== 'string') tacticUsername = 'dummy';
+    console.log('Tactics endpoint called for username:', tacticUsername);
+    const result = await analyzeTactics(tacticUsername);
+    console.log('Tactics result:', result);
+    res.json(result);
   });
 
   // Helper function to analyze openings
