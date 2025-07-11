@@ -1198,12 +1198,23 @@ export default function OpponentScout() {
                     <div className="space-y-2 text-sm">
                       {lichessGames && lichessGames.length > 0 ? (
                         (() => {
+                          // Debug: Log the first game to see the structure
+                          if (lichessGames.length > 0) {
+                            console.log('First game structure:', lichessGames[0]);
+                            console.log('Analysis data:', lichessGames[0].analysisData);
+                            if (lichessGames[0].analysisData) {
+                              console.log('Tactical insights:', lichessGames[0].analysisData.tacticalInsights);
+                            }
+                          }
+                          
                           const gamesWithTactics = lichessGames.filter((game: any) => 
-                            game.analysis && game.analysis.missedTactics && game.analysis.missedTactics.length > 0
+                            game.analysisData && game.analysisData.tacticalInsights && game.analysisData.tacticalInsights.missedTactics && game.analysisData.tacticalInsights.missedTactics.length > 0
                           );
                           
+                          console.log('Games with tactics:', gamesWithTactics.length);
+                          
                           const tacticalCounts = gamesWithTactics.reduce((acc: any, game: any) => {
-                            game.analysis.missedTactics.forEach((tactic: any) => {
+                            game.analysisData.tacticalInsights.missedTactics.forEach((tactic: any) => {
                               acc[tactic.tacticalType] = (acc[tactic.tacticalType] || 0) + 1;
                             });
                             return acc;
