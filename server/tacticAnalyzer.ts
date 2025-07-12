@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js';
+import { classifyChessTactics, ClassificationInput, TacticClassification } from './tacticClassifier.js';
 
 export async function analyzeTactics(username: string, options?: { shortVariation?: boolean }) {
   // 1. Fetch games from Lichess
@@ -14,7 +15,10 @@ export async function analyzeTactics(username: string, options?: { shortVariatio
   const blunders = [];
   for (const game of games) {
     if (!game.analysis) continue;
-    for (let index = 1; index < game.analysis.length; index++) {
+        const isUsernameWhite = game.players.white.user.name === username;
+        const startIndex = isUsernameWhite ? 2 : 1;
+    
+    for (let index = startIndex; index < game.analysis.length; index += 2) {
       const move = game.analysis[index];
       const prevMove = game.analysis[index - 1];
       if (
@@ -23,9 +27,13 @@ export async function analyzeTactics(username: string, options?: { shortVariatio
       ) {
         blunders.push({
           game,
+          gameId: game.id,
+          gameMoves: game.moves,
+          gameAnalysis: game.analysis,
           index: index - 1,
           eval: move.eval ?? `mate:${move.mate}`,
-          variation: move.variation || ''
+          variation: move.variation || '',
+          isUsernameWhite: isUsernameWhite
         });
       }
     }
@@ -69,9 +77,29 @@ export async function analyzeTactics(username: string, options?: { shortVariatio
       moves: variation,
       result,
       termination,
-      pgn: tacticGame.pgn()
     });
   }
 
-  return { username, tactics, blunderCount: blunders.length };
+  // 4. Classify tactics using the classifier
+  const classificationInput: ClassificationInput = {
+    username,
+    blunders: blunders.map(blunder => ({
+      gameId: blunder.gameId,
+      gameMoves: blunder.gameMoves,
+      index: blunder.index,
+      variation: blunder.variation
+    })),
+    tactics,
+    blunderCount: blunders.length
+  };
+
+  const classifications: TacticClassification[] = classifyChessTactics(classificationInput);
+
+  return { 
+    username, 
+    blunders, 
+    tactics, 
+    blunderCount: blunders.length,
+    classifications 
+  };
 } 
