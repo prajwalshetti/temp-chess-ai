@@ -31,6 +31,19 @@ import {
   BookOpen
 } from "lucide-react";
 import type { User, PlayerStats, Opening, Game } from "@shared/schema";
+
+// Extend User type to include ratingByFormat for Lichess data
+type ExtendedUser = User & {
+  ratingByFormat?: {
+    ultraBullet: number | null;
+    bullet: number | null;
+    blitz: number | null;
+    rapid: number | null;
+    classical: number | null;
+    correspondence: number | null;
+  };
+};
+
 import { ChessBoard } from "@/components/ChessBoard";
 import { GameAnalyzer } from "@/components/GameAnalyzer";
 import { Chess } from "chess.js";
@@ -68,7 +81,7 @@ export default function OpponentScout() {
 
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedOpponent, setSelectedOpponent] = useState<User | null>(null);
+  const [selectedOpponent, setSelectedOpponent] = useState<ExtendedUser | null>(null);
   const [searchType, setSearchType] = useState<'fide' | 'aicf' | 'lichess'>('lichess');
   const [lichessGames, setLichessGames] = useState<any[]>([]);
   const [isLoadingLichess, setIsLoadingLichess] = useState(false);
@@ -241,20 +254,48 @@ export default function OpponentScout() {
 
     setIsLoadingLichess(true);
     try {
-      const [gamesResponse, insightsResponse, tournamentsResponse, tacticsResponse] = await Promise.all([
-        fetch(`/api/lichess/user/${searchQuery}/games?max=50`),
+      // First, fetch games with evaluation data from Lichess
+      const gamesResponse = await fetch(`https://lichess.org/api/games/user/${searchQuery}?max=50&analysed=true&evals=true&moves=true&perfType=blitz,rapid,classical`, {
+        headers: { 'Accept': 'application/x-ndjson' }
+      });
+      
+      if (!gamesResponse.ok) {
+        throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
+      }
+      
+      const gamesText = await gamesResponse.text();
+      const games = gamesText.split('\n').filter(Boolean).map(line => JSON.parse(line));
+      
+      // Now fetch other data in parallel
+      const [insightsResponse, tournamentsResponse, tacticsResponse] = await Promise.all([
         fetch(`/api/lichess/user/${searchQuery}/insights`),
         fetch(`/api/lichess/user/${searchQuery}/tournaments`),
-        fetch(`/api/tactics?username=${encodeURIComponent(searchQuery)}`)
+        fetch(`/api/tactics/${encodeURIComponent(searchQuery)}`),
       ]);
       
-      if (gamesResponse.ok && insightsResponse.ok) {
-        const gamesData = await gamesResponse.json();
+      if (insightsResponse.ok) {
         const insightsData = await insightsResponse.json();
         const tournamentsData = tournamentsResponse.ok ? await tournamentsResponse.json() : { tournaments: [] };
         const tacticsData = tacticsResponse.ok ? await tacticsResponse.json() : { tactics: [] };
         
-        setLichessGames(gamesData.games);
+        // Process games for display (convert to the format expected by the UI)
+        const processedGames = games.map(game => ({
+          id: game.id,
+          whitePlayer: game.players.white.user.name,
+          blackPlayer: game.players.black.user.name,
+          whiteRating: game.players.white.rating,
+          blackRating: game.players.black.rating,
+          result: game.winner === 'white' ? '1-0' : game.winner === 'black' ? '0-1' : '1/2-1/2',
+          opening: game.opening?.name || 'Unknown Opening',
+          timeControl: game.clock ? `${game.clock.initial / 60}+${game.clock.increment}` : game.speed,
+          moves: game.moves ? game.moves.split(' ') : [],
+          pgn: game.moves, // Simplified PGN
+          createdAt: new Date(game.createdAt),
+          gameUrl: `https://lichess.org/${game.id}`,
+          analysis: game.analysis // Include analysis data for tactics
+        }));
+        
+        setLichessGames(processedGames);
         setLichessInsights(insightsData);
         setLichessTournaments(tournamentsData.tournaments);
         // For now, just log the tactics response

@@ -8,7 +8,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { analyzeTactics } from './tacticAnalyzer';
+import { analyzeTactics, analyzeTacticsWithGames } from './tacticAnalyzer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -175,16 +175,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Dummy endpoint for tactics
-  app.get('/api/tactics', async (req, res) => {
-    // For now, just use a dummy username
-    let tacticUsername = req.query.username;
-    if (Array.isArray(tacticUsername)) tacticUsername = tacticUsername[0];
-    if (typeof tacticUsername !== 'string') tacticUsername = 'dummy';
-    console.log('Tactics endpoint called for username:', tacticUsername);
-    const result = await analyzeTactics(tacticUsername);
-    console.log('Tactics result:', result);
-    res.json(result);
+  // Tactics endpoint - can accept games data to avoid duplicate API calls
+  app.post('/api/tactics', async (req, res) => {
+    try {
+      const { username, games } = req.body;
+      
+      if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+      }
+      
+      console.log('Tactics endpoint called for username:', username);
+      
+      let result;
+      if (games && Array.isArray(games)) {
+        // Use provided games data
+        console.log('Using provided games data for tactics analysis');
+        result = await analyzeTacticsWithGames(username, games);
+      } else {
+        // Fetch games from Lichess (fallback)
+        console.log('Fetching games from Lichess for tactics analysis');
+        result = await analyzeTactics(username);
+      }
+      
+      console.log('Tactics result:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('Error in tactics endpoint:', error);
+      res.status(500).json({ error: 'Failed to analyze tactics' });
+    }
+  });
+
+  // Get tactics by fetching games directly from Lichess
+  app.get('/api/tactics/:username', async (req, res) => {
+    try {
+      const { username } = req.params;
+      
+      if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+      }
+      
+      console.log('Tactics endpoint called for username:', username);
+      const result = await analyzeTactics(username);
+      console.log('Tactics result:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('Error in tactics endpoint:', error);
+      res.status(500).json({ error: 'Failed to analyze tactics' });
+    }
   });
 
   // Helper function to analyze openings
