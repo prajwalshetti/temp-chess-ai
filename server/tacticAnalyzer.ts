@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { classifyChessTactics, ClassificationInput, TacticClassification } from './tacticClassifier.js';
+import { classifyChessTactics, ClassificationInput, TacticClassification } from './tacticClassifier';
 
 export async function analyzeTactics(username: string, options?: { shortVariation?: boolean }) {
   // 1. Fetch games from Lichess
