@@ -87,10 +87,11 @@ export async function analyzeTactics(username: string, options?: { shortVariatio
       gameId: blunder.gameId,
       gameMoves: blunder.gameMoves,
       index: blunder.index,
-      variation: blunder.variation
+      variation: blunder.variation,
+      isUsernameWhite: blunder.isUsernameWhite
     })),
     tactics,
-    blunderCount: blunders.length
+    blunderCount: blunders.length,
   };
 
   const classifications: TacticClassification[] = classifyChessTactics(classificationInput);

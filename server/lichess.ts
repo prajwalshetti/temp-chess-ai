@@ -69,7 +69,7 @@ export class ChessAnalyzer {
   analyzeGame(moves: string[], targetPlayer: string, isWhite: boolean): any {
     const analysis = { accuracy: this.calculateAccuracy(moves, isWhite), missedTactics: [] as any[], criticalMoments: [] as any[], tacticalInsights: { missedTactics: [] as any[], goodMoves: [] as any[], blunders: [] as any[] }, openingAnalysis: { accuracy: 0, preparation: 'Unknown' }, endgameAnalysis: null };
     const chess = new Chess(); let moveCount = 0;
-    console.log(`Analyzing real game positions for ${targetPlayer}...`);
+    // console.log(`Analyzing real game positions for ${targetPlayer}...`);
     for (const move of moves) {
       try {
         const isPlayerMove = isWhite ? (moveCount % 2 === 0) : (moveCount % 2 === 1);
@@ -82,7 +82,7 @@ export class ChessAnalyzer {
             if (!playedTacticalMove) {
               const bestTactic = tacticalOpportunities[0];
               analysis.missedTactics.push({ moveNumber: Math.floor(moveCount / 2) + 1, position: positionBefore, actualMove: move, missedTactic: bestTactic, tacticalType: bestTactic.type, description: bestTactic.description, severity: bestTactic.severity || 'medium' });
-              console.log(`Found real missed tactic at move ${Math.floor(moveCount / 2) + 1}: ${bestTactic.type} - ${bestTactic.description}`);
+              // console.log(`Found real missed tactic at move ${Math.floor(moveCount / 2) + 1}: ${bestTactic.type} - ${bestTactic.description}`);
             }
           }
         } else { chess.move(move); }
@@ -90,7 +90,7 @@ export class ChessAnalyzer {
       } catch (error) { console.error(`Error analyzing move ${move}:`, error); break; }
     }
     analysis.tacticalInsights.missedTactics = analysis.missedTactics;
-    console.log(`Analysis complete: Found ${analysis.missedTactics.length} genuine tactical opportunities in real game positions`);
+    // console.log(`Analysis complete: Found ${analysis.missedTactics.length} genuine tactical opportunities in real game positions`);
     return analysis;
   }
 
