@@ -254,19 +254,7 @@ export default function OpponentScout() {
 
     setIsLoadingLichess(true);
     try {
-      // First, fetch games with evaluation data from Lichess
-      const gamesResponse = await fetch(`https://lichess.org/api/games/user/${searchQuery}?max=50&analysed=true&evals=true&moves=true&perfType=blitz,rapid,classical`, {
-        headers: { 'Accept': 'application/x-ndjson' }
-      });
-      
-      if (!gamesResponse.ok) {
-        throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
-      }
-      
-      const gamesText = await gamesResponse.text();
-      const games = gamesText.split('\n').filter(Boolean).map(line => JSON.parse(line));
-      
-      // Now fetch other data in parallel
+      // Fetch insights which contains both games and opening repertoire
       const [insightsResponse, tournamentsResponse, tacticsResponse] = await Promise.all([
         fetch(`/api/lichess/user/${searchQuery}/insights`),
         fetch(`/api/lichess/user/${searchQuery}/tournaments`),
@@ -278,27 +266,9 @@ export default function OpponentScout() {
         const tournamentsData = tournamentsResponse.ok ? await tournamentsResponse.json() : { tournaments: [] };
         const tacticsData = tacticsResponse.ok ? await tacticsResponse.json() : { tactics: [] };
         
-        // Process games for display (convert to the format expected by the UI)
-        const processedGames = games.map(game => ({
-          id: game.id,
-          whitePlayer: game.players.white.user.name,
-          blackPlayer: game.players.black.user.name,
-          whiteRating: game.players.white.rating,
-          blackRating: game.players.black.rating,
-          result: game.winner === 'white' ? '1-0' : game.winner === 'black' ? '0-1' : '1/2-1/2',
-          opening: game.opening?.name || 'Unknown Opening',
-          timeControl: game.clock ? `${game.clock.initial / 60}+${game.clock.increment}` : game.speed,
-          moves: game.moves ? game.moves.split(' ') : [],
-          pgn: game.moves, // Simplified PGN
-          createdAt: new Date(game.createdAt),
-          gameUrl: `https://lichess.org/${game.id}`,
-          analysis: game.analysis // Include analysis data for tactics
-        }));
-        
-        setLichessGames(processedGames);
+        // Use insights data which already contains opening repertoire
         setLichessInsights(insightsData);
         setLichessTournaments(tournamentsData.tournaments);
-        // For now, just log the tactics response
         console.log('Tactics endpoint response:', tacticsData);
         
         // Fetch authentic Lichess profile data directly from their API
@@ -413,47 +383,31 @@ export default function OpponentScout() {
     endgameScore: 45
   } : null;
 
-  // Generate real opening repertoire from Lichess games
-  const opponentOpenings = lichessGames.length > 0 ? (() => {
-    const openingStats: { [key: string]: { name: string, games: any[], wins: number, losses: number, draws: number, color: string } } = {};
-    
-    lichessGames.forEach(game => {
-      if (!game.opening || game.opening === 'Unknown' || !game.opening.trim()) return;
-      
-      const opening = game.opening.trim();
-      const playerColor = game.whitePlayer.toLowerCase() === searchQuery.toLowerCase() ? 'white' : 'black';
-      const playerWon = (playerColor === 'white' && game.result === '1-0') || 
-                        (playerColor === 'black' && game.result === '0-1');
-      const isDraw = game.result === '1/2-1/2';
-      
-      if (!openingStats[opening]) {
-        openingStats[opening] = { 
-          name: opening, 
-          games: [], 
-          wins: 0, 
-          losses: 0, 
-          draws: 0,
-          color: playerColor 
-        };
-      }
-      
-      openingStats[opening].games.push(game);
-      if (playerWon) openingStats[opening].wins++;
-      else if (isDraw) openingStats[opening].draws++;
-      else openingStats[opening].losses++;
-    });
-    
-    return Object.keys(openingStats).map((key, index) => ({
-      id: index + 1,
-      name: openingStats[key].name,
-      moves: openingStats[key].games[0]?.moves?.slice(0, 4).join(' ') || '',
-      color: openingStats[key].color,
-      gamesPlayed: openingStats[key].games.length,
-      wins: openingStats[key].wins,
-      losses: openingStats[key].losses,
-      draws: openingStats[key].draws
-    })).sort((a, b) => b.gamesPlayed - a.gamesPlayed);
-  })() : [];
+  // Use opening repertoire from insights data (already processed by backend)
+  const opponentOpenings = lichessInsights?.openingRepertoire ? 
+    Object.entries(lichessInsights.openingRepertoire)
+      .filter(([opening, data]: [string, any]) => 
+        opening && 
+        opening.trim() !== '' && 
+        opening !== 'Unknown Opening' && 
+        data && 
+        typeof data.winRate === 'number' && 
+        typeof data.games === 'number' && 
+        data.games >= 2 &&
+        data.winRate >= 0 && 
+        data.winRate <= 1
+      )
+      .map(([opening, data]: [string, any], index) => ({
+        id: index + 1,
+        name: opening,
+        moves: '', // Not available in insights data
+        color: 'unknown', // Not available in insights data
+        gamesPlayed: data.games,
+        wins: data.wins,
+        losses: data.losses,
+        draws: data.draws
+      }))
+      .sort((a, b) => b.gamesPlayed - a.gamesPlayed) : [];
 
   // Head-to-head analysis
   const headToHeadData = selectedOpponent ? {
