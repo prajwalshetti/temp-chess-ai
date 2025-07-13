@@ -179,7 +179,7 @@ const handleSquareClick = (square: string) => {
 
       const result: AnalysisResult = await response.json();
       if(result.fen.split(' ')[1] === 'b') {
-        result.san_best_line = ["..."].concat(result.san_best_line || []);
+        result.san_best_line = ['...'].concat(result.san_best_line || []);
       }
       setAnalysis(result);
     } catch (err) {
@@ -264,34 +264,34 @@ const handleSquareClick = (square: string) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-4'>
+      <div className='max-w-7xl mx-auto'>
         
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div className='grid grid-cols-1 xl:grid-cols-2 gap-8'>
           {/* Chess Board Section */}
-          <div className="space-y-6">
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-2xl font-bold text-white flex items-center">
-                  <span className="mr-2">♟️</span>
+          <div className='space-y-6'>
+            <div className='bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700'>
+              <div className='flex justify-between items-center mb-2'>
+                <h2 className='text-2xl font-bold text-white flex items-center'>
+                  <span className='mr-2'>♟️</span>
                   Chess Board
                 </h2>
-                {/* <div className="flex space-x-3">
+                {/* <div className='flex space-x-3'>
                   <button
                     onClick={() => setBoardOrientation(boardOrientation === 'white' ? 'black' : 'white')}
-                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                    className='px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                   >
                     🔄 Flip Board
                   </button>
                   <button
                     onClick={resetToStarting}
-                    className="px-4 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                    className='px-4 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                   >
                     ↺ Reset
                   </button>
                   <button
                     onClick={clearBoard}
-                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                    className='px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                   >
                     🗑️ Clear Board
                   </button>
@@ -304,8 +304,8 @@ const handleSquareClick = (square: string) => {
                 </div> */}
               </div>
               
-              <div className="w-full max-w-md mx-auto">
-                <div className="p-4 bg-gradient-to-br from-amber-100 to-amber-200 rounded-2xl shadow-inner">
+              <div className='w-full max-w-md mx-auto'>
+                <div className='p-4 bg-gradient-to-br from-amber-100 to-amber-200 rounded-2xl shadow-inner'>
                   <Chessboard
                     position={position}
                     onPieceDrop={onDrop}
@@ -326,15 +326,15 @@ const handleSquareClick = (square: string) => {
             </div>
   
             {/* Piece Setup Helper */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
-              <h3 className="text-xl font-bold mb-4 text-white flex items-center">
-                <span className="mr-2">⚙️</span>
+            <div className='bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700'>
+              <h3 className='text-xl font-bold mb-4 text-white flex items-center'>
+                <span className='mr-2'>⚙️</span>
                 Add Pieces
               </h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">White Pieces</h4>
-                  <div className="flex flex-wrap gap-2">
+              <div className='grid grid-cols-2 gap-6'>
+                <div className='space-y-3'>
+                  <h4 className='text-sm font-semibold text-slate-300 uppercase tracking-wide'>White Pieces</h4>
+                  <div className='flex flex-wrap gap-2'>
                     {['♕', '♖', '♗', '♘', '♙'].map((piece, index) => (
                       <button
                         key={`w${index}`}
@@ -384,7 +384,7 @@ const handleSquareClick = (square: string) => {
                             }
                           }
                         }}
-                        className="w-12 h-12 bg-gradient-to-br from-white to-gray-100 border-2 border-gray-300 rounded-xl flex items-center justify-center text-xl hover:from-gray-50 hover:to-gray-200 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                        className='w-12 h-12 bg-gradient-to-br from-white to-gray-100 border-2 border-gray-300 rounded-xl flex items-center justify-center text-xl hover:from-gray-50 hover:to-gray-200 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105'
                       >
                         {piece}
                       </button>
@@ -392,9 +392,9 @@ const handleSquareClick = (square: string) => {
                   </div>
                 </div>
                 
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Black Pieces</h4>
-                  <div className="flex flex-wrap gap-2">
+                <div className='space-y-3'>
+                  <h4 className='text-sm font-semibold text-slate-300 uppercase tracking-wide'>Black Pieces</h4>
+                  <div className='flex flex-wrap gap-2'>
                     {['♛', '♜', '♝', '♞', '♟'].map((piece, index) => (
                       <button
                         key={`b${index}`}
@@ -444,7 +444,7 @@ const handleSquareClick = (square: string) => {
                             }
                           }
                         }}
-                        className="w-12 h-12 bg-gradient-to-br from-gray-800 to-black text-white border-2 border-gray-600 rounded-xl flex items-center justify-center text-xl hover:from-gray-700 hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                        className='w-12 h-12 bg-gradient-to-br from-gray-800 to-black text-white border-2 border-gray-600 rounded-xl flex items-center justify-center text-xl hover:from-gray-700 hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105'
                       >
                         {piece}
                       </button>
@@ -452,50 +452,50 @@ const handleSquareClick = (square: string) => {
                   </div>
                 </div>
               </div>
-              <div className="mt-4 text-xs text-slate-400 bg-slate-700 p-3 rounded-lg">
+              <div className='mt-4 text-xs text-slate-400 bg-slate-700 p-3 rounded-lg'>
                 💡 Click a piece to add it to the first available square on the board
               </div>
             </div>
   
             {/* Analysis Controls */}
-            {/* <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
-              <h3 className="text-xl font-bold mb-4 text-white flex items-center">
-                <span className="mr-2">🔍</span>
+            {/* <div className='bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700'>
+              <h3 className='text-xl font-bold mb-4 text-white flex items-center'>
+                <span className='mr-2'>🔍</span>
                 Analysis Settings
               </h3>
               
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">
+              <div className='grid grid-cols-2 gap-4 mb-6'>
+                <div className='space-y-2'>
+                  <label className='block text-sm font-semibold text-slate-300 uppercase tracking-wide'>
                     Depth (1-20)
                   </label>
                   <input
-                    type="number"
-                    min="1"
-                    max="20"
+                    type='number'
+                    min='1'
+                    max='20'
                     value={depth}
                     onChange={(e) => setDepth(Number(e.target.value))}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white transition-all duration-300"
+                    className='w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white transition-all duration-300'
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">
+                <div className='space-y-2'>
+                  <label className='block text-sm font-semibold text-slate-300 uppercase tracking-wide'>
                     Time Limit (ms)
                   </label>
                   <input
-                    type="number"
-                    min="100"
-                    max="10000"
+                    type='number'
+                    min='100'
+                    max='10000'
                     value={timeLimit}
                     onChange={(e) => setTimeLimit(Number(e.target.value))}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white transition-all duration-300"
+                    className='w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white transition-all duration-300'
                   />
                 </div>
               </div>
               
               {kingError && (
-                <div className="bg-red-100 text-red-700 rounded-lg px-4 py-2 mb-4 font-semibold text-center border border-red-300">
+                <div className='bg-red-100 text-red-700 rounded-lg px-4 py-2 mb-4 font-semibold text-center border border-red-300'>
                   {kingError}
                 </div>
               )}
@@ -509,13 +509,13 @@ const handleSquareClick = (square: string) => {
                 }`}
               >
                 {loading ? (
-                  <span className="flex items-center justify-center">
-                    <span className="animate-spin mr-2">⚙️</span>
+                  <span className='flex items-center justify-center'>
+                    <span className='animate-spin mr-2'>⚙️</span>
                     Analyzing...
                   </span>
                 ) : (
-                  <span className="flex items-center justify-center">
-                    <span className="mr-2">🚀</span>
+                  <span className='flex items-center justify-center'>
+                    <span className='mr-2'>🚀</span>
                     Analyze Position
                   </span>
                 )}
@@ -523,27 +523,27 @@ const handleSquareClick = (square: string) => {
             </div> */}
   
             {/* Quick Positions */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
-              <h3 className="text-xl font-bold mb-4 text-white flex items-center">
-                <span className="mr-2">⚡</span>
+            <div className='bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700'>
+              <h3 className='text-xl font-bold mb-4 text-white flex items-center'>
+                <span className='mr-2'>⚡</span>
                 Quick Load
               </h3>
-              <div className="flex flex-wrap gap-3">
+              <div className='flex flex-wrap gap-3'>
                 <button
                   onClick={() => loadPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  className='px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                 >
                   🏠 Starting Position
                 </button>
                 <button
                   onClick={() => loadPosition('r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 1')}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  className='px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                 >
                   🇮🇹 Italian Game
                 </button>
                 <button
                   onClick={() => loadPosition('rnbqkb1r/pp1p1ppp/5n2/2p1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 1')}
-                  className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  className='px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                 >
                   🇪🇸 Spanish Opening
                 </button>
@@ -552,25 +552,25 @@ const handleSquareClick = (square: string) => {
           </div>
   
           {/* Analysis Results Section */}
-          <div className="space-y-4">
+          <div className='space-y-4'>
             {/* Board Control Buttons */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-3 rounded-xl shadow-2xl border border-slate-700">
-              <div className="flex flex-wrap gap-2 justify-center">
+            <div className='bg-gradient-to-br from-slate-800 to-slate-900 p-3 rounded-xl shadow-2xl border border-slate-700'>
+              <div className='flex flex-wrap gap-2 justify-center'>
                 <button
                   onClick={() => setBoardOrientation(boardOrientation === 'white' ? 'black' : 'white')}
-                  className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  className='px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                 >
                   🔄 Flip Board
                 </button>
                 <button
                   onClick={resetToStarting}
-                  className="px-3 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  className='px-3 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                 >
                   ↺ Reset
                 </button>
                 <button
                   onClick={clearBoard}
-                  className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  className='px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                 >
                   🗑️ Clear Board
                 </button>
@@ -585,12 +585,12 @@ const handleSquareClick = (square: string) => {
             
             {/* Error Display */}
             {error && (
-              <div className="bg-gradient-to-br from-red-900 to-red-800 border-2 border-red-600 rounded-xl p-4 shadow-2xl">
-                <div className="flex items-center">
-                  <div className="text-red-400 text-xl mr-3">⚠️</div>
+              <div className='bg-gradient-to-br from-red-900 to-red-800 border-2 border-red-600 rounded-xl p-4 shadow-2xl'>
+                <div className='flex items-center'>
+                  <div className='text-red-400 text-xl mr-3'>⚠️</div>
                   <div>
-                    <h3 className="text-lg font-bold text-red-200">Error</h3>
-                    <div className="mt-1 text-red-300 text-sm">{error}</div>
+                    <h3 className='text-lg font-bold text-red-200'>Error</h3>
+                    <div className='mt-1 text-red-300 text-sm'>{error}</div>
                   </div>
                 </div>
               </div>
@@ -598,49 +598,49 @@ const handleSquareClick = (square: string) => {
   
             {/* Analysis Results */}
             {loading ? (
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700">
-                <h2 className="text-xl font-bold mb-4 text-white flex items-center">
-                  <span className="mr-2">⚙️</span>
+              <div className='bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700'>
+                <h2 className='text-xl font-bold mb-4 text-white flex items-center'>
+                  <span className='mr-2'>⚙️</span>
                   Analyzing Position...
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
                   {/* Evaluation Loading */}
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
-                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
-                      <span className="mr-1">⚖️</span>
+                  <div className='bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600'>
+                    <h3 className='font-semibold text-slate-200 mb-2 flex items-center text-sm'>
+                      <span className='mr-1'>⚖️</span>
                       Evaluation
                     </h3>
-                    <div className="text-2xl font-bold text-slate-400 animate-pulse">
+                    <div className='text-2xl font-bold text-slate-400 animate-pulse'>
                       ...
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">
+                    <div className='text-xs text-slate-400 mt-1'>
                       Calculating...
                     </div>
                   </div>
                   
                   {/* Best Move Loading */}
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
-                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
-                      <span className="mr-1">🎯</span>
+                  <div className='bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600'>
+                    <h3 className='font-semibold text-slate-200 mb-2 flex items-center text-sm'>
+                      <span className='mr-1'>🎯</span>
                       Best Move
                     </h3>
-                    <div className="text-xl font-mono text-blue-400 bg-slate-900 p-3 rounded-md border border-slate-600 text-center animate-pulse">
+                    <div className='text-xl font-mono text-blue-400 bg-slate-900 p-3 rounded-md border border-slate-600 text-center animate-pulse'>
                       ...
                     </div>
                   </div>
                   
                   {/* Info Loading */}
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
-                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
-                      <span className="mr-1">📏</span>
+                  <div className='bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600'>
+                    <h3 className='font-semibold text-slate-200 mb-2 flex items-center text-sm'>
+                      <span className='mr-1'>📏</span>
                       Status
                     </h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-center items-center">
-                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className='space-y-2 text-sm'>
+                      <div className='flex justify-center items-center'>
+                        <div className='w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
                       </div>
-                      <div className="text-center text-xs text-slate-400">
+                      <div className='text-center text-xs text-slate-400'>
                         Analyzing...
                       </div>
                     </div>
@@ -648,36 +648,36 @@ const handleSquareClick = (square: string) => {
                 </div>
                 
                 {/* Best Line Loading */}
-                <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
-                  <h3 className="font-semibold text-slate-200 mb-3 flex items-center text-sm">
-                    <span className="mr-1">🔮</span>
+                <div className='bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600'>
+                  <h3 className='font-semibold text-slate-200 mb-3 flex items-center text-sm'>
+                    <span className='mr-1'>🔮</span>
                     Best Line
                   </h3>
-                  <div className="text-sm font-mono text-slate-300">
-                    <div className="text-slate-500 bg-slate-900 p-3 rounded text-center text-sm animate-pulse">
+                  <div className='text-sm font-mono text-slate-300'>
+                    <div className='text-slate-500 bg-slate-900 p-3 rounded text-center text-sm animate-pulse'>
                       Calculating best line...
                     </div>
                   </div>
                 </div>
               </div>
             ) : analysis && (
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700">
-                <h2 className="text-xl font-bold mb-4 text-white flex items-center">
-                  <span className="mr-2">📊</span>
+              <div className='bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700'>
+                <h2 className='text-xl font-bold mb-4 text-white flex items-center'>
+                  <span className='mr-2'>📊</span>
                   Analysis Results
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
                   {/* Evaluation */}
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
-                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
-                      <span className="mr-1">⚖️</span>
+                  <div className='bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600'>
+                    <h3 className='font-semibold text-slate-200 mb-2 flex items-center text-sm'>
+                      <span className='mr-1'>⚖️</span>
                       Evaluation ({getActivePlayer()})
                     </h3>
                     <div className={`text-2xl font-bold ${getEvaluationColor(analysis.eval)}`}>
                       {formatEvaluation(analysis.eval)}
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">
+                    <div className='text-xs text-slate-400 mt-1'>
                       {typeof analysis.eval === 'string' && analysis.eval.startsWith('M') 
                         ? '🏆 Forced mate' 
                         : '♟️ Pawns advantage'}
@@ -685,25 +685,25 @@ const handleSquareClick = (square: string) => {
                   </div>
                   
                   {/* Best Move */}
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
-                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
-                      <span className="mr-1">🎯</span>
+                  <div className='bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600'>
+                    <h3 className='font-semibold text-slate-200 mb-2 flex items-center text-sm'>
+                      <span className='mr-1'>🎯</span>
                       Best Move
                     </h3>
-                    <div className="text-xl font-mono text-blue-400 bg-slate-900 p-3 rounded-md border border-slate-600 text-center">
+                    <div className='text-xl font-mono text-blue-400 bg-slate-900 p-3 rounded-md border border-slate-600 text-center'>
                       {analysis.san_best_move || analysis.best_move || 'N/A'}
                     </div>
                   </div>
                   
                   {/* Analysis Info */}
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
-                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
-                      <span className="mr-1">📏</span>
+                  <div className='bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600'>
+                    <h3 className='font-semibold text-slate-200 mb-2 flex items-center text-sm'>
+                      <span className='mr-1'>📏</span>
                       Info
                     </h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Status:</span>
+                    <div className='space-y-2 text-sm'>
+                      <div className='flex justify-between items-center'>
+                        <span className='text-slate-400'>Status:</span>
                         <span className={`font-mono px-2 py-1 rounded text-xs ${analysis.success ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'}`}>
                           {analysis.success ? 'Success' : 'Failed'}
                         </span>
@@ -713,25 +713,25 @@ const handleSquareClick = (square: string) => {
                 </div>
                 
                 {/* Best Line - Full Width */}
-                <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
-                  <h3 className="font-semibold text-slate-200 mb-3 flex items-center text-sm">
-                    <span className="mr-1">🔮</span>
+                <div className='bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600'>
+                  <h3 className='font-semibold text-slate-200 mb-3 flex items-center text-sm'>
+                    <span className='mr-1'>🔮</span>
                     Best Line
                   </h3>
-                  <div className="text-sm font-mono text-slate-300">
+                  <div className='text-sm font-mono text-slate-300'>
                     {analysis.san_best_line && analysis.san_best_line.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
+                      <div className='flex flex-wrap gap-2'>
                         {analysis.san_best_line.map((move: string, index: number) => (
                           <span
                             key={index}
-                            className="px-2 py-1 bg-slate-900 rounded text-sm border border-slate-600 hover:bg-slate-800 transition-colors duration-200"
+                            className='px-2 py-1 bg-slate-900 rounded text-sm border border-slate-600 hover:bg-slate-800 transition-colors duration-200'
                           >
                             {move}
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-slate-500 bg-slate-900 p-3 rounded text-center text-sm">
+                      <div className='text-slate-500 bg-slate-900 p-3 rounded text-center text-sm'>
                         No line available
                       </div>
                     )}
@@ -739,12 +739,12 @@ const handleSquareClick = (square: string) => {
                 </div>
                 
                 {/* FEN - Collapsible */}
-                <details className="mt-4 group">
-                  <summary className="cursor-pointer text-sm text-slate-400 hover:text-slate-300 transition-colors duration-200 flex items-center">
-                    <span className="mr-2 group-open:rotate-90 transition-transform duration-200">▶</span>
+                <details className='mt-4 group'>
+                  <summary className='cursor-pointer text-sm text-slate-400 hover:text-slate-300 transition-colors duration-200 flex items-center'>
+                    <span className='mr-2 group-open:rotate-90 transition-transform duration-200'>▶</span>
                     FEN Position
                   </summary>
-                  <div className="mt-2 text-xs font-mono bg-slate-900 p-3 rounded-lg border border-slate-600 break-all text-slate-300">
+                  <div className='mt-2 text-xs font-mono bg-slate-900 p-3 rounded-lg border border-slate-600 break-all text-slate-300'>
                     {analysis.fen}
                   </div>
                 </details>
@@ -752,10 +752,10 @@ const handleSquareClick = (square: string) => {
             )}
 
                         {/* Active Player Section */}
-                        <div className="text-left">
-              <div className="inline-flex items-center space-x-4 bg-gray-800 p-3 rounded-xl shadow-lg border border-gray-600">
-                <div className="flex items-center space-x-3">
-                  <span className="text-sm font-medium text-slate-300">Active Player:</span>
+                        <div className='text-left'>
+              <div className='inline-flex items-center space-x-4 bg-gray-800 p-3 rounded-xl shadow-lg border border-gray-600'>
+                <div className='flex items-center space-x-3'>
+                  <span className='text-sm font-medium text-slate-300'>Active Player:</span>
                   <span className={`px-3 py-1 rounded-lg text-sm font-bold shadow-md transition-all duration-300 ${
                     getActivePlayer() === 'White' 
                       ? 'bg-gradient-to-r from-white to-gray-100 text-black border-2 border-gray-300' 
@@ -766,7 +766,7 @@ const handleSquareClick = (square: string) => {
                 </div>
                 <button
                   onClick={toggleActivePlayer}
-                  className="px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  className='px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium'
                 >
                   ⚡ Switch Turn
                 </button>
@@ -775,30 +775,30 @@ const handleSquareClick = (square: string) => {
   
             {/* Instructions */}
             {!analysis && (
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700">
-                <h3 className="text-lg font-bold mb-3 text-white flex items-center">
-                  <span className="mr-2">📋</span>
+              <div className='bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700'>
+                <h3 className='text-lg font-bold mb-3 text-white flex items-center'>
+                  <span className='mr-2'>📋</span>
                   Instructions
                 </h3>
-                <div className="space-y-2 text-sm text-slate-300">
-                  <div className="flex items-start space-x-3 p-3 bg-slate-700 rounded-lg">
-                    <span className="text-blue-400 font-bold">🎯</span>
+                <div className='space-y-2 text-sm text-slate-300'>
+                  <div className='flex items-start space-x-3 p-3 bg-slate-700 rounded-lg'>
+                    <span className='text-blue-400 font-bold'>🎯</span>
                     <span>Drag and drop pieces to set up your position</span>
                   </div>
-                  <div className="flex items-start space-x-3 p-3 bg-slate-700 rounded-lg">
-                    <span className="text-purple-400 font-bold">⚡</span>
-                    <span>Use "Switch Turn" to change whose move it is</span>
+                  <div className='flex items-start space-x-3 p-3 bg-slate-700 rounded-lg'>
+                    <span className='text-purple-400 font-bold'>⚡</span>
+                    <span>Use 'Switch Turn' to change whose move it is</span>
                   </div>
-                  <div className="flex items-start space-x-3 p-3 bg-slate-700 rounded-lg">
-                    <span className="text-green-400 font-bold">🚀</span>
-                    <span>Click "Analyze Position" to get engine evaluation</span>
+                  <div className='flex items-start space-x-3 p-3 bg-slate-700 rounded-lg'>
+                    <span className='text-green-400 font-bold'>🚀</span>
+                    <span>Click 'Analyze Position' to get engine evaluation</span>
                   </div>
-                  <div className="flex items-start space-x-3 p-3 bg-slate-700 rounded-lg">
-                    <span className="text-orange-400 font-bold">⚡</span>
+                  <div className='flex items-start space-x-3 p-3 bg-slate-700 rounded-lg'>
+                    <span className='text-orange-400 font-bold'>⚡</span>
                     <span>Try the quick load buttons for common openings</span>
                   </div>
-                  <div className="flex items-start space-x-3 p-3 bg-slate-700 rounded-lg">
-                    <span className="text-cyan-400 font-bold">🔄</span>
+                  <div className='flex items-start space-x-3 p-3 bg-slate-700 rounded-lg'>
+                    <span className='text-cyan-400 font-bold'>🔄</span>
                     <span>Flip the board to see from different perspectives</span>
                   </div>
                 </div>
