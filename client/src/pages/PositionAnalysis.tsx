@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
+import { useLocation } from 'wouter';
 
 interface AnalysisResult {
   fen: string;
@@ -15,6 +16,7 @@ interface AnalysisResult {
 }
 
 function ChessPositionAnalysis() {
+  const [, setLocation] = useLocation();
   const [position, setPosition] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [depth, setDepth] = useState(15);
   const [timeLimit, setTimeLimit] = useState(1000);
@@ -230,6 +232,11 @@ const handleSquareClick = (square: string) => {
     setAnalysis(null);
   };
 
+  const clearBoard = () => {
+    setPosition('4k3/8/8/8/8/8/8/4K3 w - - 0 1');
+    setAnalysis(null);
+  };
+
   const loadPosition = (fen: string) => {
     setPosition(fen);
     setAnalysis(null);
@@ -264,12 +271,12 @@ const handleSquareClick = (square: string) => {
           {/* Chess Board Section */}
           <div className="space-y-6">
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-2">
                 <h2 className="text-2xl font-bold text-white flex items-center">
                   <span className="mr-2">♟️</span>
                   Chess Board
                 </h2>
-                <div className="flex space-x-3">
+                {/* <div className="flex space-x-3">
                   <button
                     onClick={() => setBoardOrientation(boardOrientation === 'white' ? 'black' : 'white')}
                     className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
@@ -283,12 +290,18 @@ const handleSquareClick = (square: string) => {
                     ↺ Reset
                   </button>
                   <button
+                    onClick={clearBoard}
+                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  >
+                    🗑️ Clear Board
+                  </button>
+                  <button
                     onClick={() => setErasingMode((v) => !v)}
                     className={`px-4 py-2 rounded-lg text-white text-sm font-medium shadow-lg transition-all duration-300 ${erasingMode ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800'}`}
                   >
                     {erasingMode ? '🧹Erase ON' : '🧹Erase OFF'}
                   </button>
-                </div>
+                </div> */}
               </div>
               
               <div className="w-full max-w-md mx-auto">
@@ -309,26 +322,7 @@ const handleSquareClick = (square: string) => {
                 </div>
               </div>
               
-              <div className="mt-6 text-center">
-                <div className="inline-flex items-center space-x-4 bg-slate-700 p-4 rounded-xl shadow-lg">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-sm font-medium text-slate-300">Active Player:</span>
-                    <span className={`px-4 py-2 rounded-lg text-sm font-bold shadow-md transition-all duration-300 ${
-                      getActivePlayer() === 'White' 
-                        ? 'bg-gradient-to-r from-white to-gray-100 text-black border-2 border-gray-300' 
-                        : 'bg-gradient-to-r from-gray-800 to-black text-white border-2 border-gray-600'
-                    }`}>
-                      {getActivePlayer()}
-                    </span>
-                  </div>
-                  <button
-                    onClick={toggleActivePlayer}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
-                  >
-                    ⚡ Switch Turn
-                  </button>
-                </div>
-              </div>
+
             </div>
   
             {/* Piece Setup Helper */}
@@ -464,7 +458,7 @@ const handleSquareClick = (square: string) => {
             </div>
   
             {/* Analysis Controls */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
+            {/* <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
               <h3 className="text-xl font-bold mb-4 text-white flex items-center">
                 <span className="mr-2">🔍</span>
                 Analysis Settings
@@ -526,7 +520,7 @@ const handleSquareClick = (square: string) => {
                   </span>
                 )}
               </button>
-            </div>
+            </div> */}
   
             {/* Quick Positions */}
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
@@ -558,109 +552,235 @@ const handleSquareClick = (square: string) => {
           </div>
   
           {/* Analysis Results Section */}
-          <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Board Control Buttons */}
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-3 rounded-xl shadow-2xl border border-slate-700">
+              <div className="flex flex-wrap gap-2 justify-center">
+                <button
+                  onClick={() => setBoardOrientation(boardOrientation === 'white' ? 'black' : 'white')}
+                  className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                >
+                  🔄 Flip Board
+                </button>
+                <button
+                  onClick={resetToStarting}
+                  className="px-3 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg hover:from-slate-700 hover:to-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                >
+                  ↺ Reset
+                </button>
+                <button
+                  onClick={clearBoard}
+                  className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                >
+                  🗑️ Clear Board
+                </button>
+                <button
+                  onClick={() => setErasingMode((v) => !v)}
+                  className={`px-3 py-2 rounded-lg text-white text-sm font-medium shadow-lg transition-all duration-300 ${erasingMode ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800'}`}
+                >
+                  {erasingMode ? '🧹Erase ON' : '🧹Erase OFF'}
+                </button>
+              </div>
+            </div>
+            
             {/* Error Display */}
             {error && (
-              <div className="bg-gradient-to-br from-red-900 to-red-800 border-2 border-red-600 rounded-2xl p-6 shadow-2xl">
+              <div className="bg-gradient-to-br from-red-900 to-red-800 border-2 border-red-600 rounded-xl p-4 shadow-2xl">
                 <div className="flex items-center">
-                  <div className="text-red-400 text-2xl mr-4">⚠️</div>
+                  <div className="text-red-400 text-xl mr-3">⚠️</div>
                   <div>
                     <h3 className="text-lg font-bold text-red-200">Error</h3>
-                    <div className="mt-2 text-red-300">{error}</div>
+                    <div className="mt-1 text-red-300 text-sm">{error}</div>
                   </div>
                 </div>
               </div>
             )}
   
             {/* Analysis Results */}
-            {analysis && (
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
-                <h2 className="text-2xl font-bold mb-6 text-white flex items-center">
+            {loading ? (
+              <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700">
+                <h2 className="text-xl font-bold mb-4 text-white flex items-center">
+                  <span className="mr-2">⚙️</span>
+                  Analyzing Position...
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  {/* Evaluation Loading */}
+                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
+                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
+                      <span className="mr-1">⚖️</span>
+                      Evaluation
+                    </h3>
+                    <div className="text-2xl font-bold text-slate-400 animate-pulse">
+                      ...
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Calculating...
+                    </div>
+                  </div>
+                  
+                  {/* Best Move Loading */}
+                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
+                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
+                      <span className="mr-1">🎯</span>
+                      Best Move
+                    </h3>
+                    <div className="text-xl font-mono text-blue-400 bg-slate-900 p-3 rounded-md border border-slate-600 text-center animate-pulse">
+                      ...
+                    </div>
+                  </div>
+                  
+                  {/* Info Loading */}
+                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
+                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
+                      <span className="mr-1">📏</span>
+                      Status
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-center items-center">
+                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <div className="text-center text-xs text-slate-400">
+                        Analyzing...
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Best Line Loading */}
+                <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
+                  <h3 className="font-semibold text-slate-200 mb-3 flex items-center text-sm">
+                    <span className="mr-1">🔮</span>
+                    Best Line
+                  </h3>
+                  <div className="text-sm font-mono text-slate-300">
+                    <div className="text-slate-500 bg-slate-900 p-3 rounded text-center text-sm animate-pulse">
+                      Calculating best line...
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : analysis && (
+              <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700">
+                <h2 className="text-xl font-bold mb-4 text-white flex items-center">
                   <span className="mr-2">📊</span>
                   Analysis Results
                 </h2>
                 
-                <div className="space-y-6">
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-6 rounded-xl shadow-lg border border-slate-600">
-                    <h3 className="font-bold text-slate-200 mb-3 flex items-center">
-                      <span className="mr-2">⚖️</span>
-                      Evaluation ( {getActivePlayer()} to move )
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  {/* Evaluation */}
+                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
+                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
+                      <span className="mr-1">⚖️</span>
+                      Evaluation ({getActivePlayer()})
                     </h3>
-                    <div className={`text-4xl font-bold ${getEvaluationColor(analysis.eval)}`}>
+                    <div className={`text-2xl font-bold ${getEvaluationColor(analysis.eval)}`}>
                       {formatEvaluation(analysis.eval)}
                     </div>
-                    <div className="text-sm text-slate-400 mt-2 font-medium">
+                    <div className="text-xs text-slate-400 mt-1">
                       {typeof analysis.eval === 'string' && analysis.eval.startsWith('M') 
                         ? '🏆 Forced mate' 
                         : '♟️ Pawns advantage'}
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-6 rounded-xl shadow-lg border border-slate-600">
-                    <h3 className="font-bold text-slate-200 mb-3 flex items-center">
-                      <span className="mr-2">🎯</span>
+                  {/* Best Move */}
+                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
+                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
+                      <span className="mr-1">🎯</span>
                       Best Move
                     </h3>
-                    <div className="text-2xl font-mono text-blue-400 bg-slate-900 p-4 rounded-lg border border-slate-600 shadow-inner">
+                    <div className="text-xl font-mono text-blue-400 bg-slate-900 p-3 rounded-md border border-slate-600 text-center">
                       {analysis.san_best_move || analysis.best_move || 'N/A'}
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-6 rounded-xl shadow-lg border border-slate-600">
-                    <h3 className="font-bold text-slate-200 mb-3 flex items-center">
-                      <span className="mr-2">🔮</span>
-                      Best Line
+                  {/* Analysis Info */}
+                  <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
+                    <h3 className="font-semibold text-slate-200 mb-2 flex items-center text-sm">
+                      <span className="mr-1">📏</span>
+                      Info
                     </h3>
-                    <div className="text-lg font-mono text-slate-300">
-                      {analysis.san_best_line && analysis.san_best_line.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          {analysis.san_best_line.map((move: string, index: number) => (
-                            <span
-                              key={index}
-                              className="px-3 py-2 bg-slate-900 rounded-lg text-lg text-center border border-slate-600 hover:bg-slate-800 transition-colors duration-200"
-                            >
-                              {move}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-slate-500 bg-slate-900 p-4 rounded-lg text-center">
-                          No line available
-                        </div>
-                      )}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Status:</span>
+                        <span className={`font-mono px-2 py-1 rounded text-xs ${analysis.success ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'}`}>
+                          {analysis.success ? 'Success' : 'Failed'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="mt-6 text-sm text-slate-400 border-t border-slate-600 pt-6 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span>📏 Analysis depth:</span>
-                    <span className="font-mono bg-slate-700 px-2 py-1 rounded">{analysis.depth}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>✅ Status:</span>
-                    <span className={`font-mono px-2 py-1 rounded ${analysis.success ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'}`}>
-                      {analysis.success ? 'Success' : 'Failed'}
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <div className="text-xs text-slate-500 mb-1">FEN Position:</div>
-                    <div className="text-xs font-mono bg-slate-900 p-3 rounded-lg border border-slate-600 break-all">
-                      {analysis.fen}
-                    </div>
+                {/* Best Line - Full Width */}
+                <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-4 rounded-lg shadow-lg border border-slate-600">
+                  <h3 className="font-semibold text-slate-200 mb-3 flex items-center text-sm">
+                    <span className="mr-1">🔮</span>
+                    Best Line
+                  </h3>
+                  <div className="text-sm font-mono text-slate-300">
+                    {analysis.san_best_line && analysis.san_best_line.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {analysis.san_best_line.map((move: string, index: number) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-slate-900 rounded text-sm border border-slate-600 hover:bg-slate-800 transition-colors duration-200"
+                          >
+                            {move}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-slate-500 bg-slate-900 p-3 rounded text-center text-sm">
+                        No line available
+                      </div>
+                    )}
                   </div>
                 </div>
+                
+                {/* FEN - Collapsible */}
+                <details className="mt-4 group">
+                  <summary className="cursor-pointer text-sm text-slate-400 hover:text-slate-300 transition-colors duration-200 flex items-center">
+                    <span className="mr-2 group-open:rotate-90 transition-transform duration-200">▶</span>
+                    FEN Position
+                  </summary>
+                  <div className="mt-2 text-xs font-mono bg-slate-900 p-3 rounded-lg border border-slate-600 break-all text-slate-300">
+                    {analysis.fen}
+                  </div>
+                </details>
               </div>
             )}
+
+                        {/* Active Player Section */}
+                        <div className="text-left">
+              <div className="inline-flex items-center space-x-4 bg-gray-800 p-3 rounded-xl shadow-lg border border-gray-600">
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm font-medium text-slate-300">Active Player:</span>
+                  <span className={`px-3 py-1 rounded-lg text-sm font-bold shadow-md transition-all duration-300 ${
+                    getActivePlayer() === 'White' 
+                      ? 'bg-gradient-to-r from-white to-gray-100 text-black border-2 border-gray-300' 
+                      : 'bg-gradient-to-r from-gray-800 to-black text-white border-2 border-gray-600'
+                  }`}>
+                    {getActivePlayer()}
+                  </span>
+                </div>
+                <button
+                  onClick={toggleActivePlayer}
+                  className="px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                >
+                  ⚡ Switch Turn
+                </button>
+              </div>
+            </div>
   
             {/* Instructions */}
             {!analysis && (
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-700">
-                <h3 className="text-xl font-bold mb-4 text-white flex items-center">
+              <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl border border-slate-700">
+                <h3 className="text-lg font-bold mb-3 text-white flex items-center">
                   <span className="mr-2">📋</span>
                   Instructions
                 </h3>
-                <div className="space-y-3 text-sm text-slate-300">
+                <div className="space-y-2 text-sm text-slate-300">
                   <div className="flex items-start space-x-3 p-3 bg-slate-700 rounded-lg">
                     <span className="text-blue-400 font-bold">🎯</span>
                     <span>Drag and drop pieces to set up your position</span>
