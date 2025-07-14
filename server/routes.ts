@@ -9,6 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { analyzeTactics, analyzeTacticsWithGames } from './tacticAnalyzer';
+import axios from "axios";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,6 +25,15 @@ const analyzePositionSchema = z.object({
   timeLimit: z.number().min(100).max(10000).optional().default(1000)
 });
 
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>
+    }
+  }>
+};
+
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Lichess service
   const lichessService = new LichessService(process.env.LICHESS_API_TOKEN || '');
@@ -35,6 +46,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader('Content-Type', 'application/json');
     next();
   });
+
+// Gemini endpoint: /api/gemini
+app.post('/api/gemini', async (req, res) => {
+  const prompt: unknown = req.body?.prompt;
+
+  if (typeof prompt !== 'string' || prompt.trim().length === 0) {
+    return res.status(400).json({ error: 'Prompt must be a non-empty string.' });
+  }
+
+  const apiKey: string | undefined = process.env.API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'Gemini API key is not configured in environment.' });
+  }
+
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+  try {
+    const geminiResponse = await axios.post<GeminiResponse>(
+      GEMINI_URL,
+      {
+        contents: [
+          {
+            parts: [{ text: prompt }]
+          }
+        ]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const text = geminiResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    res.json({ result: text });
+  } catch (error: any) {
+    console.error("Gemini API Error:", error.response?.data || error.message);
+    res.status(500).json({ error: 'Gemini API request failed', details: error.response?.data });
+  }
+});
+
 
   // Position Analysis API endpoint
   app.post('/api/analyze-position', async (req, res) => {
