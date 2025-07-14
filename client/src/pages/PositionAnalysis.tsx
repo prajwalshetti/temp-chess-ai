@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Chessboard } from "react-chessboard";
-import { Chess } from "chess.js";
+import { Chess, Square } from "chess.js";
 import { useLocation } from "wouter";
 
 interface AnalysisResult {
@@ -33,6 +33,9 @@ function ChessPositionAnalysis({ mode = "board-editor" }: { mode?: AnalysisMode 
   const [chess] = useState(() => new Chess());
   const [moveHistory, setMoveHistory] = useState<string[]>([]);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
+  // --- Tap-to-move state ---
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
 
   // King validation logic
   const [kingError, setKingError] = React.useState<string | null>(null);
@@ -76,6 +79,8 @@ function ChessPositionAnalysis({ mode = "board-editor" }: { mode?: AnalysisMode 
           setMoveHistory(chess.history());
           setCurrentMoveIndex(chess.history().length - 1);
           setAnalysis(null); // Clear previous analysis
+          setSelectedSquare(null); // Clear tap selection
+          setPossibleMoves([]);
           return true;
         }
       } catch (error) {
@@ -150,7 +155,46 @@ function ChessPositionAnalysis({ mode = "board-editor" }: { mode?: AnalysisMode 
 
   const handleSquareClick = (square: string) => {
     if (mode === "analysis-board") {
-      // No square clicking functionality in analysis board mode
+      const chessInstance = new Chess(position);
+      const sq = square as Square;
+      if (selectedSquare) {
+        // If a square is already selected, try to move
+        const moves = chessInstance.moves({ square: selectedSquare, verbose: true });
+        const validTargets = moves.map((m: any) => m.to as Square);
+        if (validTargets.includes(sq)) {
+          // Make the move
+          chessInstance.move({ from: selectedSquare, to: sq, promotion: 'q' });
+          setPosition(chessInstance.fen());
+          setMoveHistory(chessInstance.history());
+          setCurrentMoveIndex(chessInstance.history().length - 1);
+          setAnalysis(null);
+          setSelectedSquare(null);
+          setPossibleMoves([]);
+        } else {
+          // If clicked another piece of the same color, select it
+          const piece = chessInstance.get(sq);
+          if (piece && piece.color === chessInstance.turn()) {
+            setSelectedSquare(sq);
+            const moves = chessInstance.moves({ square: sq, verbose: true });
+            setPossibleMoves(moves.map((m: any) => m.to as Square));
+          } else {
+            // Deselect
+            setSelectedSquare(null);
+            setPossibleMoves([]);
+          }
+        }
+      } else {
+        // No square selected yet
+        const piece = chessInstance.get(sq);
+        if (piece && piece.color === chessInstance.turn()) {
+          setSelectedSquare(sq);
+          const moves = chessInstance.moves({ square: sq, verbose: true });
+          setPossibleMoves(moves.map((m: any) => m.to as Square));
+        } else {
+          setSelectedSquare(null);
+          setPossibleMoves([]);
+        }
+      }
       return;
     }
     
@@ -344,6 +388,44 @@ function ChessPositionAnalysis({ mode = "board-editor" }: { mode?: AnalysisMode 
     }
   };
 
+  // --- Highlighting for tap-to-move ---
+  const getCustomSquareStyles = () => {
+    if (mode !== "analysis-board") return {};
+    
+    const styles: Record<string, React.CSSProperties> = {};
+    
+    // Style possible moves with subtle dots
+    const chessInstance = new Chess(position);
+    const turn = chessInstance.turn();
+    possibleMoves.forEach(sq => {
+      const piece = chessInstance.get(sq);
+      if (piece && piece.color !== turn) {
+        // Opponent's piece: show border (attack square)
+        styles[sq] = {
+          background: `radial-gradient(circle at center, rgba(25, 31, 52, 0.4) 25%, transparent 25%)`,
+          border: '2px solid #ff4d4f', // red border for attack
+          boxSizing: 'border-box',
+        };
+      } else {
+        // Normal possible move
+        styles[sq] = {
+          background: `radial-gradient(circle at center, rgba(25, 31, 52, 0.4) 25%, transparent 25%)`
+        };
+      }
+    });
+    
+    // Highlight selected square with smooth glow
+    if (selectedSquare) {
+      styles[selectedSquare] = {
+        backgroundColor: '#ffe808b3',
+        boxShadow: '0 0 20px rgba(255, 232, 8, 0.7)',
+        border: '2px solid #ffe808b3'
+      };
+    }
+    
+    return styles;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-4">
       <div className="max-w-7xl mx-auto">
@@ -373,6 +455,7 @@ function ChessPositionAnalysis({ mode = "board-editor" }: { mode?: AnalysisMode 
                     }}
                     boardWidth={400}
                     customArrows={getBestMoveArrow()}
+                    customSquareStyles={getCustomSquareStyles()}
                   />
                 </div>
               </div>
