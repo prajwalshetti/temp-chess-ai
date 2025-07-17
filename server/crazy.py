@@ -1,3 +1,4 @@
+from unittest import result
 import chess
 import chess.engine
 import chess.pgn
@@ -24,9 +25,7 @@ HARDCODED_PGN1 = """
 6. Re1 Qe7
 7. Nb5 O-O
 8. h3 Re8
-9. Nxc7 Rd8
-10. Nxa8 Ng4
-11.hxg4
+9. Nxc7
 """
 
 HARDCODED_PGN2 = """
@@ -38,7 +37,7 @@ HARDCODED_PGN2 = """
 """
 
 # Parse the PGN and play all moves
-pgn = StringIO(HARDCODED_PGN1)
+pgn = StringIO(HARDCODED_PGN2)
 game = chess.pgn.read_game(pgn)
 if game is None:
     print("Failed to parse PGN.")
@@ -59,7 +58,10 @@ mate_in_two = []
 mate_in_three = []
 mate_allowed=[]
 mate_missed=[]
-forks=[]
+forks_missed=[]
+forks_allowed=[]
+forks_executed=[]
+blunders=[]
 
 
 with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
@@ -91,74 +93,75 @@ for i in range(1,len(results)):
     results[i]['current_best_move'] = results[i-1]['next_best_move']
     results[i]['current_best_line'] = results[i-1]['next_best_line']
     results[i]['current_best_evaluation'] = results[i-1]['evaluation_after_move_played']
+    results[i]['fen_before_move_played']=results[i-1]['fen_after_move_played']
 
 def check_for_mate(res):
-    if res['evaluation_after_move_played'] in [99.99,-99.99]:
+    if any('#' in move for move in res['next_best_line']):
         mate_allowed.append(res)
-    elif res['current_best_evaluation'] in [99.99,-99.99]:
+    elif any('#' in move for move in res['current_best_line']):
         mate_missed.append(res)
 
-    
-
-def check_for_fork(res):
-    # Only check for knight moves
-    best_move = res['next_best_move']
-    best_line = res['next_best_line']
-    fen = res['fen_after_move_played']
-    if not best_move or not best_move.startswith('N'):
+def check_for_forks(results,i):
+    res=results[i]
+    best_move = res.get('next_best_move')
+    best_line=res.get('next_best_line')
+    fen = res.get('fen_after_move_played')
+    if not (best_move and best_move.startswith('N')):
         return
-    # Extract the destination square from the SAN move (e.g., Nf6 -> f6)
+
     m = re.search(r'([a-h][1-8])$', best_move)
     if not m:
         return
-    to_square = m.group(1)
+    to_square = chess.parse_square(m.group(1))
+
     board = chess.Board(fen)
     try:
-        move = None
-        for legal in board.legal_moves:
-            if board.san(legal) == best_move:
-                move = legal
-                break
-        if move is None:
+        move = next((m for m in board.legal_moves if board.san(m) == best_move), None)
+        if not move:
             return
         board.push(move)
     except Exception:
         return
-    piece = board.piece_at(chess.parse_square(to_square))
+
+    piece = board.piece_at(to_square)
     if not piece or piece.piece_type != chess.KNIGHT:
         return
-    knight_attacks = board.attacks(chess.parse_square(to_square))
-    valuable_targets = 0
-    for sq in knight_attacks:
-        target = board.piece_at(sq)
-        if target and target.color != piece.color and target.piece_type != chess.PAWN:
-            valuable_targets += 1
-    if valuable_targets >= 2:
-        forks.append(res)
+
+    attacks = board.attacks(to_square)
+    if sum(1 for sq in attacks if (t := board.piece_at(sq)) and t.color != piece.color and t.piece_type != chess.PAWN) >= 2:
+        if len(best_line) < 3:
+            return
+        enginefirst=best_line[0]
+        enginesecond=best_line[2]
+        if enginefirst.startswith('N') and enginesecond.startswith('N'):
+            forks_allowed.append(results[i])
+        else:
+            return
+
+        if i+1>=len(results):
+            return
+
+        userfirst=results[i+1].get('move_played')
+        if userfirst!=enginefirst:
+            forks_missed.append(results[i+1])
+        elif i+3>=len(results):
+            forks_executed.append(results[i+1])
+        elif results[i+3].get('move_played').startswith('N') and results[i+3].get('move_played')[1]=='x':
+            forks_executed.append(results[i+1])
 
 
-def print_blunders(results, threshold=2.0):
+
+def calculate_blunders(results, threshold=2.0):
     for i in range(1, len(results)):
         eval_after_move = results[i]['evaluation_after_move_played']
         eval_best_prev = results[i]['current_best_evaluation']
         if eval_after_move is not None and eval_best_prev is not None:
             if abs(eval_after_move - eval_best_prev) > threshold:
                 check_for_mate(results[i])  
-                check_for_fork(results[i])                 
-                res=results[i]
-                idx=i
-                print(f"  Move number: {res['move_number']}")
-                print(f"  Move played: {res['move_played']}")
-                print(f"  Fen: {res['fen_after_move_played']}")
-                print(f"  Evaluation after move played : {res['evaluation_after_move_played']}")
-                if idx > 0:
-                    print(f"  Current Best move : {res['current_best_move']}")
-                    print(f"  Current Best line : {' '.join(res['current_best_line'])}")
-                    print(f"  Current Best Evaluation : {res['current_best_evaluation']}")
-                print(f"  Next Best move : {res['next_best_move']}")
-                print(f"  Next Best line : {' '.join(res['next_best_line'])}")
-                print()
-print_blunders(results, threshold=2.0)
+                check_for_forks(results,i)                 
+                # check_for_fork_missed(results[i])                 
+                blunders.append(results[i])
+calculate_blunders(results, threshold=2.0)
 
 def print_all_moves(results):
     for idx,res in enumerate(results):
@@ -170,12 +173,44 @@ def print_all_moves(results):
             print(f"  Current Best move : {res['current_best_move']}")
             print(f"  Current Best line : {' '.join(res['current_best_line'])}")
             print(f"  Current Best Evaluation : {res['current_best_evaluation']}")
+            print(f"  Fen before : {res['fen_after_move_played']}")
         print(f"  Next Best move : {res['next_best_move']}")
         print(f"  Next Best line : {' '.join(res['next_best_line'])}")
         print()
 # print_all_moves(results)
 
+def print_all_blunders(blunders):
+    for idx,res in enumerate(blunders):
+        print(f"  Move number: {res['move_number']}")
+        print(f"  Move played: {res['move_played']}")
+        print(f"  Fen: {res['fen_after_move_played']}")
+        print(f"  Evaluation after move played : {res['evaluation_after_move_played']}")
+        if idx > 0:
+            print(f"  Current Best move : {res['current_best_move']}")
+            print(f"  Current Best line : {' '.join(res['current_best_line'])}")
+            print(f"  Current Best Evaluation : {res['current_best_evaluation']}")
+            print(f"  Fen before : {res['fen_after_move_played']}")
+        print(f"  Next Best move : {res['next_best_move']}")
+        print(f"  Next Best line : {' '.join(res['next_best_line'])}")
+        print()
+# print_all_blunders(blunders)
+
+print("mate allowed")
 print(mate_allowed)
 print()
+
+print("mate missed")
 print(mate_missed)
-print(forks)
+print()
+
+print("forks allowed")
+print(forks_allowed)
+print()
+
+print("forks missed")
+print(forks_missed)
+print()
+
+print("forks executed")
+print(forks_executed)
+print()
