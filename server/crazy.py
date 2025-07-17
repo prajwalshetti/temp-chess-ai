@@ -6,7 +6,7 @@ from io import StringIO
 STOCKFISH_PATH = r"C:\Users\shett\OneDrive\Desktop\stockfish\stockfish-windows-x86-64-avx2.exe"
 
 # Hardcoded PGN for the game
-HARDCODED_PGN = """
+HARDCODED_PGN1 = """
 [Event "?"]
 [Site "?"]
 [Date "????.??.??"]
@@ -28,8 +28,16 @@ HARDCODED_PGN = """
 11.hxg4
 """
 
+HARDCODED_PGN2 = """
+1. e4 e5  
+2. Bc4 Bc5  
+3. Qh5 Nc6  
+4. Nc3 Qf6  
+5. Kf1 Qxf2
+"""
+
 # Parse the PGN and play all moves
-pgn = StringIO(HARDCODED_PGN)
+pgn = StringIO(HARDCODED_PGN2)
 game = chess.pgn.read_game(pgn)
 if game is None:
     print("Failed to parse PGN.")
@@ -45,6 +53,13 @@ for move in game.mainline_moves():
     played_moves.append(san)
 
 results = []
+mate_in_one = []
+mate_in_two = []
+mate_in_three = []
+mate_allowed=[]
+mate_missed=[]
+forks=[]
+
 
 with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
     for idx, pos in enumerate(positions):
@@ -76,6 +91,17 @@ for i in range(1,len(results)):
     results[i]['current_best_line'] = results[i-1]['next_best_line']
     results[i]['current_best_evaluation'] = results[i-1]['evaluation_after_move_played']
 
+def check_for_mate(res):
+    if res['evaluation_after_move_played'] in [99.99,-99.99]:
+        mate_allowed.append(res)
+    elif res['current_best_evaluation'] in [99.99,-99.99]:
+        mate_missed.append(res)
+
+    
+
+def check_for_fork(res):
+    pass
+
 
 def print_blunders(results, threshold=2.0):
     for i in range(1, len(results)):
@@ -83,6 +109,8 @@ def print_blunders(results, threshold=2.0):
         eval_best_prev = results[i]['current_best_evaluation']
         if eval_after_move is not None and eval_best_prev is not None:
             if abs(eval_after_move - eval_best_prev) > threshold:
+                check_for_mate(results[i])  
+                check_for_fork(results[i])                 
                 res=results[i]
                 idx=i
                 print(f"  Move number: {res['move_number']}")
@@ -112,3 +140,7 @@ def print_all_moves(results):
         print(f"  Next Best line : {' '.join(res['next_best_line'])}")
         print()
 # print_all_moves(results)
+
+print(mate_allowed)
+print()
+print(mate_missed)
