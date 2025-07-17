@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Crown, Database, GraduationCap, User, Plus, Search, Brain, Menu, X, Target } from "lucide-react";
+import { Crown, Database, GraduationCap, User, Plus, Search, Brain, Menu, X, Target, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Navigation() {
@@ -14,6 +14,7 @@ export function Navigation() {
     { href: "/analysis", label: "Game Analysis", icon: Brain },
     { href: "/position", label: "Position Analysis", icon: Target },
     { href: "/learn", label: "Learn Chess", icon: GraduationCap },
+    { href: "/edit-board", label: "Edit Board", icon: PenTool },
     { href: "/account", label: "Account", icon: User },
   ];
 

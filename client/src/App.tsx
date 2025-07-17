@@ -13,6 +13,7 @@ import OpponentScout from "@/pages/OpponentScout";
 import GameAnalysis from "@/pages/GameAnalysis";
 import PositionAnalysis from "@/pages/PositionAnalysis";
 import NotFound from "@/pages/not-found";
+import EditChessBoard from "@/components/EditChessBoard";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/position" component={PositionAnalysis} />
       <Route path="/learn" component={LearnChess} />
       <Route path="/account" component={Account} />
+      <Route path="/edit-board" component={EditChessBoard} />
       <Route component={NotFound} />
     </Switch>
   );
