@@ -2,6 +2,7 @@ import chess
 import chess.engine
 import chess.pgn
 from io import StringIO
+import re
 
 STOCKFISH_PATH = r"C:\Users\shett\OneDrive\Desktop\stockfish\stockfish-windows-x86-64-avx2.exe"
 
@@ -37,7 +38,7 @@ HARDCODED_PGN2 = """
 """
 
 # Parse the PGN and play all moves
-pgn = StringIO(HARDCODED_PGN2)
+pgn = StringIO(HARDCODED_PGN1)
 game = chess.pgn.read_game(pgn)
 if game is None:
     print("Failed to parse PGN.")
@@ -100,7 +101,40 @@ def check_for_mate(res):
     
 
 def check_for_fork(res):
-    pass
+    # Only check for knight moves
+    best_move = res['next_best_move']
+    best_line = res['next_best_line']
+    fen = res['fen_after_move_played']
+    if not best_move or not best_move.startswith('N'):
+        return
+    # Extract the destination square from the SAN move (e.g., Nf6 -> f6)
+    m = re.search(r'([a-h][1-8])$', best_move)
+    if not m:
+        return
+    to_square = m.group(1)
+    board = chess.Board(fen)
+    try:
+        move = None
+        for legal in board.legal_moves:
+            if board.san(legal) == best_move:
+                move = legal
+                break
+        if move is None:
+            return
+        board.push(move)
+    except Exception:
+        return
+    piece = board.piece_at(chess.parse_square(to_square))
+    if not piece or piece.piece_type != chess.KNIGHT:
+        return
+    knight_attacks = board.attacks(chess.parse_square(to_square))
+    valuable_targets = 0
+    for sq in knight_attacks:
+        target = board.piece_at(sq)
+        if target and target.color != piece.color and target.piece_type != chess.PAWN:
+            valuable_targets += 1
+    if valuable_targets >= 2:
+        forks.append(res)
 
 
 def print_blunders(results, threshold=2.0):
@@ -144,3 +178,4 @@ def print_all_moves(results):
 print(mate_allowed)
 print()
 print(mate_missed)
+print(forks)
