@@ -14,8 +14,21 @@ HARDCODED_PGN2 = "1. e4 e5 2. Bc4 Bc5 3. Qh5 Nc6 4. Nc3 Qf6 5. Kf1 Qxf2"
 
 HARDCODED_PGN3 = "1. e4 e5 2. Bc4 Bd6 3. Qh5 Nc6 4. Nc3 Qf6 5. Nd1 Qxf2"
 
+HARDCODED_PGN4 = """1. e4 e5 
+2. Nf3 Nc6 
+3. Bc4 Bc5 
+4. O-O Nf6 
+5. Bb3 O-O 
+6. Ne1 h6 
+7. Kh1 Kh8 
+8. f4 exf4 
+9. a3 Ne5 
+10. d4 d5 
+11. dxc5
+"""
+
 # Parse the PGN and play all moves
-pgn = StringIO(HARDCODED_PGN3)
+pgn = StringIO(HARDCODED_PGN4)
 game = chess.pgn.read_game(pgn)
 if game is None:
     print("Failed to parse PGN.")
@@ -42,6 +55,9 @@ forks_executed = {"white": [], "black": []}
 hanging_allowed = {"white": [], "black": []}
 hanging_missed = {"white": [], "black": []}
 hanging_executed = {"white": [], "black": []}
+double_allowed = {"white": [], "black": []}
+double_missed = {"white": [], "black": []}
+double_executed = {"white": [], "black": []}
 blunders=[]
 
 
@@ -138,7 +154,6 @@ def check_for_forks(results,i,isWhite):
             else:forks_executed["white"].append(results[i+1])
 
 def check_for_hanging(results, i, isWhite):
-    print("hi")
     res = results[i]
     best_move_san = res.get('next_best_move')
     best_line = res.get('next_best_line')
@@ -154,11 +169,9 @@ def check_for_hanging(results, i, isWhite):
     except:
         return
 
-    print("hello")
     defenders = board.attackers(chess.BLACK if not isWhite else chess.WHITE, to_square)
 
     if defenders:
-        print(i,defenders)
         return
 
     if isWhite: hanging_allowed["white"].append(results[i])
@@ -172,7 +185,75 @@ def check_for_hanging(results, i, isWhite):
             if isWhite: hanging_missed["black"].append(results[i+1])
             else: hanging_missed['white'].append(results[i+1])
         
+def check_for_double(results, i, isWhite):
+    res = results[i]
+    best_move = res.get('next_best_move')
+    best_line = res.get('next_best_line')
+    fen = res.get('fen_after_move_played')
+    
+    #checking if the 3rd best move is capture or not
+    if len(best_line)<3 or 'x' not in best_line[2]:
+        return
 
+    #making the best move
+    try:
+        board = chess.Board(fen)
+        move = board.parse_san(best_move)
+        if not move:
+            return
+        to_square = move.to_square
+        board.push(move)
+    except Exception:
+        return
+
+    #checking if the piece attacks >=2 valuable pieces
+    attacks = board.attacks(to_square)
+    if isWhite:enemy_color=True
+    else : enemy_color=False
+
+    valuable_targets = set()
+    for sq in attacks:
+        target = board.piece_at(sq)
+        if target and target.color == enemy_color and target.piece_type != chess.PAWN:
+            valuable_targets.add(sq)
+
+    if len(valuable_targets) < 2:
+        return
+    
+    #third move is capturing one of the valuable pieces
+    captured_target_found = False
+    if best_line and len(best_line) >= 3:
+        try:
+            third_move_san = best_line[2]
+            temp_board = chess.Board(fen)
+            for m in temp_board.legal_moves:
+                if temp_board.san(m) == third_move_san:
+                    third_move = m
+                    if third_move.to_square in valuable_targets and third_move_san[1] == 'x':
+                        captured_target_found = True
+                        break
+        except:
+            pass
+
+    if isWhite: double_allowed["white"].append(results[i])
+    else: double_allowed["black"].append(results[i])
+
+    if i + 1 >= len(results):
+        return
+
+    user_move = results[i + 1].get("move_played")
+    engine_move = best_line[0] if best_line else None
+
+    if user_move == engine_move:
+        if isWhite:
+            double_executed["black"].append(results[i + 1])
+        else:
+            double_executed["white"].append(results[i + 1])
+    else:
+        if isWhite:
+            double_missed["black"].append(results[i + 1])
+        else:
+            double_missed["white"].append(results[i + 1])
 
 
 def calculate_blunders(results, threshold=2.0):
@@ -186,6 +267,7 @@ def calculate_blunders(results, threshold=2.0):
                 check_for_mate(results,i,isWhite)  
                 check_for_forks(results,i,isWhite)
                 check_for_hanging(results,i,isWhite)                
+                check_for_double(results, i, isWhite)
                 # check_for_fork_missed(results[i])                 
                 blunders.append(results[i])
 calculate_blunders(results, threshold=2.0)
@@ -252,4 +334,16 @@ print()
 
 print("hanging executed")
 print(hanging_executed)
+print()
+
+print("double allowed")
+print(double_allowed)
+print()
+
+print("double missed")
+print(double_missed)
+print()
+
+print("double executed")
+print(double_executed)
 print()
