@@ -278,8 +278,7 @@ def check_for_discovered(results, i, isWhite):
         return  # No check in this move
 
     board = chess.Board(fen_before)
-    print(board)
-
+    
     try:
         move = board.parse_san(best_move_san)
     except:
@@ -291,8 +290,6 @@ def check_for_discovered(results, i, isWhite):
 
     # Simulate the move
     board.push(move)
-
-    print(board)
 
     color = chess.WHITE if isWhite else chess.BLACK
     enemy_color = not color
