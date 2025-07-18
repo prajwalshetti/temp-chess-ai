@@ -27,8 +27,15 @@ HARDCODED_PGN4 = """1. e4 e5
 11. dxc5
 """
 
+HARDCODED_PGN5="""1. e4 e5
+2. Nf3 Nf6
+3. Nxe5 Nxe4
+4. Qe2 Nf6
+5. Nc6+
+"""
+
 # Parse the PGN and play all moves
-pgn = StringIO(HARDCODED_PGN4)
+pgn = StringIO(HARDCODED_PGN5)
 game = chess.pgn.read_game(pgn)
 if game is None:
     print("Failed to parse PGN.")
@@ -59,6 +66,9 @@ double_allowed = {"white": [], "black": []}
 double_missed = {"white": [], "black": []}
 double_executed = {"white": [], "black": []}
 blunders=[]
+discovered_allowed = {"white": [], "black": []}
+discovered_executed = {"white": [], "black": []}
+discovered_missed = {"white": [], "black": []}
 
 
 with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
@@ -190,6 +200,8 @@ def check_for_double(results, i, isWhite):
     best_move = res.get('next_best_move')
     best_line = res.get('next_best_line')
     fen = res.get('fen_after_move_played')
+
+    if best_move[0]=='N':return
     
     #checking if the 3rd best move is capture or not
     if len(best_line)<3 or 'x' not in best_line[2]:
@@ -256,6 +268,63 @@ def check_for_double(results, i, isWhite):
             double_missed["white"].append(results[i + 1])
 
 
+def check_for_discovered(results, i, isWhite):
+    res = results[i]
+    best_move_san = res.get("next_best_move")
+    best_line = res.get("next_best_line")
+    fen_before = res.get("fen_before_move_played")
+
+    if not best_move_san or '+' not in best_move_san:
+        return  # No check in this move
+
+    board = chess.Board(fen_before)
+    print(board)
+
+    try:
+        move = board.parse_san(best_move_san)
+    except:
+        return
+
+    moved_piece = board.piece_at(move.from_square)
+    if not moved_piece or moved_piece.piece_type == chess.PAWN:
+        return  # Skip pawns — they can’t cause discovered checks
+
+    # Simulate the move
+    board.push(move)
+
+    print(board)
+
+    color = chess.WHITE if isWhite else chess.BLACK
+    enemy_color = not color
+    king_sq = board.king(enemy_color)
+
+    if king_sq is None:
+        return
+
+    attackers = board.attackers(color, king_sq)
+
+    if len(attackers) >= 2 or (move.to_square not in attackers):
+        # Discovered check (including double check)
+        if isWhite:
+            discovered_allowed["white"].append(results[i])
+        else:
+            discovered_allowed["black"].append(results[i])
+
+        # Now check if user played the correct move
+        if i + 1 < len(results):
+            user_move = results[i + 1].get("move_played")
+            engine_move = best_line[0] if best_line else None
+            if user_move == engine_move:
+                if isWhite:
+                    discovered_executed["black"].append(results[i + 1])
+                else:
+                    discovered_executed["white"].append(results[i + 1])
+            else:
+                if isWhite:
+                    discovered_missed["black"].append(results[i + 1])
+                else:
+                    discovered_missed["white"].append(results[i + 1])
+
 def calculate_blunders(results, threshold=2.0):
     for i in range(1, len(results)):
         if i%2==0: isWhite=False
@@ -268,6 +337,7 @@ def calculate_blunders(results, threshold=2.0):
                 check_for_forks(results,i,isWhite)
                 check_for_hanging(results,i,isWhite)                
                 check_for_double(results, i, isWhite)
+                check_for_discovered(results, i, isWhite)
                 # check_for_fork_missed(results[i])                 
                 blunders.append(results[i])
 calculate_blunders(results, threshold=2.0)
@@ -346,4 +416,16 @@ print()
 
 print("double executed")
 print(double_executed)
+print()
+
+print("discovered allowed")
+print(discovered_allowed)
+print()
+
+print("discovered missed")
+print(discovered_missed)
+print()
+
+print("discovered executed")
+print(discovered_executed)
 print()
