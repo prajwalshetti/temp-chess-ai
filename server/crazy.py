@@ -8,36 +8,14 @@ import re
 STOCKFISH_PATH = r"C:\Users\shett\OneDrive\Desktop\stockfish\stockfish-windows-x86-64-avx2.exe"
 
 # Hardcoded PGN for the game
-HARDCODED_PGN1 = """
-[Event "?"]
-[Site "?"]
-[Date "????.??.??"]
-[Round "?"]
-[White "?"]
-[Black "?"]
-[Result "*"]
+HARDCODED_PGN1 = "1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. Be2 g6 5. O-O Bg7 6. Re1 Qe7 7. Nb5 O-O 8. h3 Re8 9. Nc3 Ng4"
 
-1. e4 e5
-2. Nf3 Nc6
-3. Nc3 Nf6
-4. Be2 g6
-5. O-O Bg7
-6. Re1 Qe7
-7. Nb5 O-O
-8. h3 Re8
-9. Nxc7
-"""
+HARDCODED_PGN2 = "1. e4 e5 2. Bc4 Bc5 3. Qh5 Nc6 4. Nc3 Qf6 5. Kf1 Qxf2"
 
-HARDCODED_PGN2 = """
-1. e4 e5  
-2. Bc4 Bc5  
-3. Qh5 Nc6  
-4. Nc3 Qf6  
-5. Kf1 Qxf2
-"""
+HARDCODED_PGN3 = "1. e4 e5 2. Bc4 Bd6 3. Qh5 Nc6 4. Nc3 Qf6 5. Nd1 Qxf2"
 
 # Parse the PGN and play all moves
-pgn = StringIO(HARDCODED_PGN2)
+pgn = StringIO(HARDCODED_PGN3)
 game = chess.pgn.read_game(pgn)
 if game is None:
     print("Failed to parse PGN.")
@@ -56,11 +34,14 @@ results = []
 mate_in_one = []
 mate_in_two = []
 mate_in_three = []
-mate_allowed=[]
-mate_missed=[]
-forks_missed=[]
-forks_allowed=[]
-forks_executed=[]
+mate_allowed = {"white": [], "black": []}
+mate_missed = {"white": [], "black": []}
+forks_missed = {"white": [], "black": []}
+forks_allowed = {"white": [], "black": []}
+forks_executed = {"white": [], "black": []}
+hanging_allowed = {"white": [], "black": []}
+hanging_missed = {"white": [], "black": []}
+hanging_executed = {"white": [], "black": []}
 blunders=[]
 
 
@@ -95,13 +76,16 @@ for i in range(1,len(results)):
     results[i]['current_best_evaluation'] = results[i-1]['evaluation_after_move_played']
     results[i]['fen_before_move_played']=results[i-1]['fen_after_move_played']
 
-def check_for_mate(res):
+def check_for_mate(results,i,isWhite):
+    res=results[i]
     if any('#' in move for move in res['next_best_line']):
-        mate_allowed.append(res)
+        if isWhite: mate_allowed["white"].append(res)
+        else : mate_allowed["black"].append(res)
     elif any('#' in move for move in res['current_best_line']):
-        mate_missed.append(res)
+        if isWhite: mate_missed["white"].append(res)
+        else : mate_missed["black"].append(res)
 
-def check_for_forks(results,i):
+def check_for_forks(results,i,isWhite):
     res=results[i]
     best_move = res.get('next_best_move')
     best_line=res.get('next_best_line')
@@ -134,7 +118,8 @@ def check_for_forks(results,i):
         enginefirst=best_line[0]
         enginesecond=best_line[2]
         if enginefirst.startswith('N') and enginesecond.startswith('N'):
-            forks_allowed.append(results[i])
+            if isWhite: forks_allowed["white"].append(results[i])
+            else: forks_allowed["black"].append(results[i])
         else:
             return
 
@@ -143,22 +128,64 @@ def check_for_forks(results,i):
 
         userfirst=results[i+1].get('move_played')
         if userfirst!=enginefirst:
-            forks_missed.append(results[i+1])
+            if isWhite:forks_missed["black"].append(results[i+1])
+            else:forks_missed["white"].append(results[i+1])
         elif i+3>=len(results):
-            forks_executed.append(results[i+1])
+            if isWhite:forks_executed["black"].append(results[i+1])
+            else:forks_executed["white"].append(results[i+1])
         elif results[i+3].get('move_played').startswith('N') and results[i+3].get('move_played')[1]=='x':
-            forks_executed.append(results[i+1])
+            if isWhite:forks_executed["black"].append(results[i+1])
+            else:forks_executed["white"].append(results[i+1])
+
+def check_for_hanging(results, i, isWhite):
+    print("hi")
+    res = results[i]
+    best_move_san = res.get('next_best_move')
+    best_line = res.get('next_best_line')
+    fen = res.get('fen_after_move_played')
+
+    if not best_move_san or 'x' not in best_move_san:
+        return
+
+    board = chess.Board(fen)
+    try:
+        move = board.parse_san(best_move_san)
+        to_square = move.to_square
+    except:
+        return
+
+    print("hello")
+    defenders = board.attackers(chess.BLACK if not isWhite else chess.WHITE, to_square)
+
+    if defenders:
+        print(i,defenders)
+        return
+
+    if isWhite: hanging_allowed["white"].append(results[i])
+    else: hanging_allowed["black"].append(results[i])
+
+    if i+1<len(results):
+        if results[i+1].get("move_played")==best_move_san:
+            if isWhite: hanging_executed["black"].append(results[i+1])
+            else: hanging_executed['white'].append(results[i+1])
+        else:
+            if isWhite: hanging_missed["black"].append(results[i+1])
+            else: hanging_missed['white'].append(results[i+1])
+        
 
 
 
 def calculate_blunders(results, threshold=2.0):
     for i in range(1, len(results)):
+        if i%2==0: isWhite=False
+        else : isWhite=True
         eval_after_move = results[i]['evaluation_after_move_played']
         eval_best_prev = results[i]['current_best_evaluation']
         if eval_after_move is not None and eval_best_prev is not None:
             if abs(eval_after_move - eval_best_prev) > threshold:
-                check_for_mate(results[i])  
-                check_for_forks(results,i)                 
+                check_for_mate(results,i,isWhite)  
+                check_for_forks(results,i,isWhite)
+                check_for_hanging(results,i,isWhite)                
                 # check_for_fork_missed(results[i])                 
                 blunders.append(results[i])
 calculate_blunders(results, threshold=2.0)
@@ -213,4 +240,16 @@ print()
 
 print("forks executed")
 print(forks_executed)
+print()
+
+print("hanging allowed")
+print(hanging_allowed)
+print()
+
+print("hanging missed")
+print(hanging_missed)
+print()
+
+print("hanging executed")
+print(hanging_executed)
 print()
