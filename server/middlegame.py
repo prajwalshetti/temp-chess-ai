@@ -349,6 +349,11 @@ def run_analysis_on_supabase_games(userid,lichess_id):
 
 # === ENTRY POINT ===
 if __name__ == "__main__":
-    userid = "cw-usr-1"
-    lichess_id = "damodar111"
-    run_analysis_on_supabase_games(userid,lichess_id)
+    if len(sys.argv) != 3:
+        print("Usage: python3 middlegame_analyzer.py <userid> <lichess_id>")
+        sys.exit(1)
+
+    userid = sys.argv[1]
+    lichess_id = sys.argv[2]
+
+    run_analysis_on_supabase_games(userid, lichess_id)

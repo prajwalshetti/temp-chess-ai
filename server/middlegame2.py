@@ -333,6 +333,8 @@ def calculate_blunders(results, threshold=2.0):
         eval_before = results[i]['current_best_evaluation']
 
         if eval_after is not None and eval_before is not None:
+            if abs(eval_before) > 10:
+                continue
             if abs(eval_after - eval_before) > threshold:
                 is_white = (i % 2 == 1)
                 check_for_mate(results, i, is_white, mate_allowed, mate_missed)
@@ -473,6 +475,15 @@ def run_middlegame_analysis(userid, lichess_id):
                     # Run tactical pattern detection
                     for i in range(1, len(results)):
                         is_white = (i % 2 == 1)
+                        eval_after = results[i]['evaluation_after_move_played']
+                        eval_before = results[i]['current_best_evaluation']
+
+                        if eval_after is None or eval_before is None:
+                            continue
+                        if abs(eval_before) > 10:
+                            continue
+                        if abs(eval_after - eval_before) <= 2.0:
+                            continue
 
                         check_for_mate(results, i, is_white, mate_allowed,
                                        mate_missed)
@@ -492,43 +503,78 @@ def run_middlegame_analysis(userid, lichess_id):
                     blunders, mate_blunders_allowed, mate_blunders_missed = calculate_blunders(
                         results)
 
-                    # === Format results for upload: flat list for user's color with metadata ===
-                    blunder_total = (
-                        len(mate_allowed[player_color]) +
-                        len(mate_missed[player_color]) +
-                        len(forks_allowed[player_color]) +
-                        len(forks_missed[player_color]) +
-                        len(hanging_allowed[player_color]) +
-                        len(hanging_missed[player_color]) +
-                        len(double_allowed[player_color]) +
-                        len(double_missed[player_color]) +
-                        len(discovered_allowed[player_color]) +
-                        len(discovered_missed[player_color])
-                    )
+                    blunder_total = (len(mate_allowed[player_color]) +
+                                     len(mate_missed[player_color]) +
+                                     len(forks_allowed[player_color]) +
+                                     len(forks_missed[player_color]) +
+                                     len(hanging_allowed[player_color]) +
+                                     len(hanging_missed[player_color]) +
+                                     len(double_allowed[player_color]) +
+                                     len(double_missed[player_color]) +
+                                     len(discovered_allowed[player_color]) +
+                                     len(discovered_missed[player_color]))
                     middlegame_analysis = {
-                        "analyzed_at": datetime.now().isoformat(),
-                        "player_color": player_color,
-                        "total_moves": len(results) - 1,
+                        "analyzed_at":
+                        datetime.now().isoformat(),
+                        "player_color":
+                        player_color,
+                        "total_moves":
+                        len(results) - 1,
                         "blunders": {
                             "total": blunder_total,
                             "threshold": 2.0
                         },
-                        "mate_allowed": [r["move_number"] for r in mate_allowed[player_color]],
-                        "mate_missed": [r["move_number"] for r in mate_missed[player_color]],
-                        "forks_allowed": [r["move_number"] for r in forks_allowed[player_color]],
-                        "forks_missed": [r["move_number"] for r in forks_missed[player_color]],
-                        "forks_executed": [r["move_number"] for r in forks_executed[player_color]],
-                        "hanging_allowed": [r["move_number"] for r in hanging_allowed[player_color]],
-                        "hanging_missed": [r["move_number"] for r in hanging_missed[player_color]],
-                        "hanging_executed": [r["move_number"] for r in hanging_executed[player_color]],
-                        "double_allowed": [r["move_number"] for r in double_allowed[player_color]],
-                        "double_missed": [r["move_number"] for r in double_missed[player_color]],
-                        "double_executed": [r["move_number"] for r in double_executed[player_color]],
-                        "discovered_allowed": [r["move_number"] for r in discovered_allowed[player_color]],
-                        "discovered_missed": [r["move_number"] for r in discovered_missed[player_color]],
-                        "discovered_executed": [r["move_number"] for r in discovered_executed[player_color]],
+                        "mate_allowed":
+                        [r["move_number"] for r in mate_allowed[player_color]],
+                        "mate_missed":
+                        [r["move_number"] for r in mate_missed[player_color]],
+                        "forks_allowed": [
+                            r["move_number"]
+                            for r in forks_allowed[player_color]
+                        ],
+                        "forks_missed":
+                        [r["move_number"] for r in forks_missed[player_color]],
+                        "forks_executed": [
+                            r["move_number"]
+                            for r in forks_executed[player_color]
+                        ],
+                        "hanging_allowed": [
+                            r["move_number"]
+                            for r in hanging_allowed[player_color]
+                        ],
+                        "hanging_missed": [
+                            r["move_number"]
+                            for r in hanging_missed[player_color]
+                        ],
+                        "hanging_executed": [
+                            r["move_number"]
+                            for r in hanging_executed[player_color]
+                        ],
+                        "double_allowed": [
+                            r["move_number"]
+                            for r in double_allowed[player_color]
+                        ],
+                        "double_missed": [
+                            r["move_number"]
+                            for r in double_missed[player_color]
+                        ],
+                        "double_executed": [
+                            r["move_number"]
+                            for r in double_executed[player_color]
+                        ],
+                        "discovered_allowed": [
+                            r["move_number"]
+                            for r in discovered_allowed[player_color]
+                        ],
+                        "discovered_missed": [
+                            r["move_number"]
+                            for r in discovered_missed[player_color]
+                        ],
+                        "discovered_executed": [
+                            r["move_number"]
+                            for r in discovered_executed[player_color]
+                        ],
                     }
-
                     # Update game with middlegame analysis
                     update_data = {"middlegame_analysis": middlegame_analysis}
                     match_conditions = {"id": game_id}

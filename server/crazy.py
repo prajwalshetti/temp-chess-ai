@@ -33,9 +33,17 @@ HARDCODED_PGN5="""1. e4 e5
 4. Qe2 Nf6
 5. Nc6+
 """
+HARDCODED_PGN6="""1. e4 e6 2. Qf3 e5 3. Bc4 Nf6 4. Nh3 h6 5. O-O Be7 6. Qc3 Nc6 7. Re1 d6 8. Re3 Be6
+9. Na3 Qd7 10. Bb5 O-O 11. Qd3 a6 12. Ba4 b5 13. Nxb5 axb5 14. Bxb5 Qe8 15. Qc3
+Bd7 16. Rg3 Nxe4 17. Qf3 Nxg3 18. hxg3 Nd4 19. Bc6 Nxf3+ 20. gxf3 Bxc6 21. d3
+Qc8 22. g4 h5 23. g5 Qxh3 24. g6 Rfb8 25. a4 Rb4 26. Ra3 Raxa4 27. Rc3 Bd7
+28. Rxc7 fxg6 29. Rxd7 Qxd7 30. Bh6 Kh7 31. Bd2 Rxb2 32. Bc3 Rxc2 33. Bb4 Raa2
+34. Bc3 Qb5 35. d4 Qc4 36. dxe5 Qb3 37. exd6 Re2 38. dxe7 Qxc3 39. f4 Rxf2
+40. f5 gxf5 41. e8=Q Rg2+ 42. Kf1 Qf3+ 43. Ke1 Qe4+ 44. Qxe4 Rg1# 0-1
+"""
 
 # Parse the PGN and play all moves
-pgn = StringIO(HARDCODED_PGN5)
+pgn = StringIO(HARDCODED_PGN6)
 game = chess.pgn.read_game(pgn)
 if game is None:
     print("Failed to parse PGN.")
