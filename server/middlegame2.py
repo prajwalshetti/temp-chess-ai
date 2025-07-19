@@ -503,7 +503,7 @@ def run_middlegame_analysis(userid, lichess_id):
                         len(double_allowed[player_color]) +
                         len(double_missed[player_color]) +
                         len(discovered_allowed[player_color]) +
-                        len(discovered_missed[player_color]) +
+                        len(discovered_missed[player_color])
                     )
                     middlegame_analysis = {
                         "analyzed_at": datetime.now().isoformat(),
