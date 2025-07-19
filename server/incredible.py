@@ -1,14 +1,27 @@
 import os
-import chess
-import chess.pgn
-import chess.engine
+import json
+import sys
+import requests
 from io import StringIO
 
-# === CONFIG ===
-PGN_FILE_PATH = "games.pgn"
-STOCKFISH_PATH = r"C:\Users\shett\OneDrive\Desktop\stockfish\stockfish-windows-x86-64-avx2.exe"
+# Chess library imports - using python-chess
+try:
+    import chess
+    import chess.pgn
+    import chess.engine
+except ImportError:
+    print(
+        "❌ Error: python-chess library not found. Please install: pip install python-chess"
+    )
+    sys.exit(1)
 
-# === UTILITY FUNCTIONS ===
+# === CONFIG ===
+SUPABASE_URL = "https://gkkrualuovkaxncgeqxc.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdra3J1YWx1b3ZrYXhuY2dlcXhjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTY5MjM4MSwiZXhwIjoyMDY3MjY4MzgxfQ.F0Ea9w_Lyi3s6oS8FCoMsPvPWjoO3sYij0538HsDIC4"
+STOCKFISH_PATH = "stockfish"  # System PATH
+
+
+# === PIECE COUNTING ===
 def piece_counts(board):
     white = {"k": 0, "q": 0, "r": 0, "b": 0, "n": 0, "p": 0}
     black = {"k": 0, "q": 0, "r": 0, "b": 0, "n": 0, "p": 0}
@@ -19,6 +32,7 @@ def piece_counts(board):
         else:
             black[sym] += 1
     return white, black
+
 
 def bishop_square_color(board):
     white_color = None
@@ -32,123 +46,287 @@ def bishop_square_color(board):
         return None
     return white_color == black_color
 
-# === ENDGAME DETECTORS ===
-def detect_rrp(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and w["r"] == 2 and all(w[x] == 0 for x in ["q", "b", "n"]) and w["p"] >= 1 and
-            b["k"] == 1 and b["r"] == 2 and all(b[x] == 0 for x in ["q", "b", "n"]) and b["p"] >= 1)
 
-def detect_rnp(board):
-    w, b = piece_counts(board)
-    return ((w["k"] == 1 and w["r"] == 1 and w["n"] == 1 and all(w[x] == 0 for x in ["q", "b"]) and w["p"] >= 1 and
-             all(b[x] == 0 for x in ["q", "r", "n", "b"]) and b["k"] == 1) or
-            (b["k"] == 1 and b["r"] == 1 and b["n"] == 1 and all(b[x] == 0 for x in ["q", "b"]) and b["p"] >= 1 and
-             all(w[x] == 0 for x in ["q", "r", "n", "b"]) and w["k"] == 1))
+# === ENDGAME DETECTORS ===
+def detect_rrp(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["r"] == 2 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["q", "b", "n"]) and x["k"] == 1
+            and x["r"] == 2 and x["p"] >= 1 and all(x[k] == 0
+                                                    for k in ["q", "b", "n"]))
+
+
+def detect_rnp(b):
+    w, x = piece_counts(b)
+    return ((w["k"] == 1 and w["r"] == 1 and w["n"] == 1
+             and all(w[k] == 0 for k in ["q", "b"]) and w["p"] >= 1
+             and x["k"] == 1 and all(x[k] == 0 for k in ["q", "r", "n", "b"]))
+            or (x["k"] == 1 and x["r"] == 1 and x["n"] == 1
+                and all(x[k] == 0 for k in ["q", "b"]) and x["p"] >= 1
+                and w["k"] == 1 and all(w[k] == 0
+                                        for k in ["q", "r", "n", "b"])))
+
 
 def detect_qrp(board):
-    w, b = piece_counts(board)
-    return ((w["k"] == 1 and w["q"] == 1 and w["r"] == 1 and all(w[x] == 0 for x in ["b", "n"]) and w["p"] >= 1 and
-             all(b[x] == 0 for x in ["q", "r", "b", "n"]) and b["k"] == 1) or
-            (b["k"] == 1 and b["q"] == 1 and b["r"] == 1 and all(b[x] == 0 for x in ["b", "n"]) and b["p"] >= 1 and
-             all(w[x] == 0 for x in ["q", "r", "b", "n"]) and w["k"] == 1))
+    piece_map = board.piece_map()
+    white = {"k": 0, "q": 0, "r": 0, "p": 0, "b": 0, "n": 0}
+    black = {"k": 0, "q": 0, "r": 0, "p": 0, "b": 0, "n": 0}
+    for _, piece in piece_map.items():
+        symbol = piece.symbol().lower()
+        if piece.color == chess.WHITE:
+            white[symbol] += 1
+        else:
+            black[symbol] += 1
+    white_ok = (white["k"] == 1 and white["q"] == 1 and white["r"] == 1
+                and white["p"] >= 1 and white["b"] == 0 and white["n"] == 0)
+    black_ok = (black["k"] == 1 and black["q"] == 1 and black["r"] == 1
+                and black["p"] >= 1 and black["b"] == 0 and black["n"] == 0)
+    return white_ok and black_ok
 
-def detect_qnp(board):
-    w, b = piece_counts(board)
-    return ((w["k"] == 1 and w["q"] == 1 and w["n"] == 1 and all(w[x] == 0 for x in ["r", "b"]) and w["p"] >= 1 and
-             all(b[x] == 0 for x in ["q", "n", "r", "b"]) and b["k"] == 1) or
-            (b["k"] == 1 and b["q"] == 1 and b["n"] == 1 and all(b[x] == 0 for x in ["r", "b"]) and b["p"] >= 1 and
-             all(w[x] == 0 for x in ["q", "n", "r", "b"]) and w["k"] == 1))
 
-def detect_rsbp(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and w["r"] == 1 and w["b"] == 1 and all(w[x] == 0 for x in ["n", "q"]) and w["p"] >= 1 and
-            b["k"] == 1 and b["r"] == 1 and b["b"] == 1 and all(b[x] == 0 for x in ["n", "q"]) and b["p"] >= 1 and
-            bishop_square_color(board) == True)
+def detect_qnp(b):
+    w, x = piece_counts(b)
+    return ((w["k"] == 1 and w["q"] == 1 and w["n"] == 1
+             and all(w[k] == 0 for k in ["r", "b"]) and w["p"] >= 1
+             and x["k"] == 1 and all(x[k] == 0 for k in ["q", "n", "r", "b"]))
+            or (x["k"] == 1 and x["q"] == 1 and x["n"] == 1
+                and all(x[k] == 0 for k in ["r", "b"]) and x["p"] >= 1
+                and w["k"] == 1 and all(w[k] == 0
+                                        for k in ["q", "n", "r", "b"])))
 
-def detect_robp(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and w["r"] == 1 and w["b"] == 1 and all(w[x] == 0 for x in ["n", "q"]) and w["p"] >= 1 and
-            b["k"] == 1 and b["r"] == 1 and b["b"] == 1 and all(b[x] == 0 for x in ["n", "q"]) and b["p"] >= 1 and
-            bishop_square_color(board) == False)
 
-def detect_qp(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and w["q"] == 1 and all(w[x] == 0 for x in ["r", "b", "n"]) and w["p"] >= 1 and
-            b["k"] == 1 and b["q"] == 1 and all(b[x] == 0 for x in ["r", "b", "n"]) and b["p"] >= 1)
+def detect_rsbp(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["r"] == 1 and w["b"] == 1 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["n", "q"]) and x["k"] == 1
+            and x["r"] == 1 and x["b"] == 1 and x["p"] >= 1
+            and all(x[k] == 0
+                    for k in ["n", "q"]) and bishop_square_color(b) == True)
 
-def detect_rp(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and w["r"] == 1 and all(w[x] == 0 for x in ["q", "b", "n"]) and w["p"] >= 1 and
-            b["k"] == 1 and b["r"] == 1 and all(b[x] == 0 for x in ["q", "b", "n"]) and b["p"] >= 1)
 
-def detect_np(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and w["n"] == 1 and all(w[x] == 0 for x in ["q", "r", "b"]) and w["p"] >= 1 and
-            b["k"] == 1 and b["n"] == 1 and all(b[x] == 0 for x in ["q", "r", "b"]) and b["p"] >= 1)
+def detect_robp(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["r"] == 1 and w["b"] == 1 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["n", "q"]) and x["k"] == 1
+            and x["r"] == 1 and x["b"] == 1 and x["p"] >= 1
+            and all(x[k] == 0
+                    for k in ["n", "q"]) and bishop_square_color(b) == False)
 
-def detect_sbp(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and w["b"] == 1 and all(w[x] == 0 for x in ["r", "n", "q"]) and w["p"] >= 1 and
-            b["k"] == 1 and b["b"] == 1 and all(b[x] == 0 for x in ["r", "n", "q"]) and b["p"] >= 1 and
-            bishop_square_color(board) == True)
 
-def detect_obp(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and w["b"] == 1 and all(w[x] == 0 for x in ["r", "n", "q"]) and w["p"] >= 1 and
-            b["k"] == 1 and b["b"] == 1 and all(b[x] == 0 for x in ["r", "n", "q"]) and b["p"] >= 1 and
-            bishop_square_color(board) == False)
+def detect_qp(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["q"] == 1 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["r", "b", "n"]) and x["k"] == 1
+            and x["q"] == 1 and x["p"] >= 1 and all(x[k] == 0
+                                                    for k in ["r", "b", "n"]))
 
-def detect_kp(board):
-    w, b = piece_counts(board)
-    return (w["k"] == 1 and all(w[x] == 0 for x in ["q", "r", "b", "n"]) and w["p"] >= 1 and
-            b["k"] == 1 and all(b[x] == 0 for x in ["q", "r", "b", "n"]) and b["p"] >= 1)
 
-# === MAIN ANALYSIS LOOP ===
-def main():
-    with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
-        with open(PGN_FILE_PATH, "r", encoding="utf-8") as pgn_file:
-            game_number = 0
-            summary = {}
-            while True:
-                game = chess.pgn.read_game(pgn_file)
-                if game is None:
-                    break
-                game_number += 1
-                result = game.headers.get("Result", "*")
-                board = game.board()
+def detect_rp(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["r"] == 1 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["q", "b", "n"]) and x["k"] == 1
+            and x["r"] == 1 and x["p"] >= 1 and all(x[k] == 0
+                                                    for k in ["q", "b", "n"]))
 
-                detected = []
-                for i, move in enumerate(game.mainline_moves(), start=1):
-                    board.push(move)
 
-                    detectors = [
-                        ("RRP", detect_rrp), ("RNP", detect_rnp), ("QRP", detect_qrp),
-                        ("QNP", detect_qnp), ("RSBP", detect_rsbp), ("ROBP", detect_robp),
-                        ("QP", detect_qp), ("RP", detect_rp), ("NP", detect_np),
-                        ("SBP", detect_sbp), ("OBP", detect_obp), ("KP", detect_kp),
-                    ]
+def detect_np(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["n"] == 1 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["q", "r", "b"]) and x["k"] == 1
+            and x["n"] == 1 and x["p"] >= 1 and all(x[k] == 0
+                                                    for k in ["q", "r", "b"]))
 
-                    for label, func in detectors:
-                        if label in [d[0] for d in detected]:
-                            continue  # Already detected
-                        if func(board):
-                            info = engine.analyse(board, chess.engine.Limit(depth=12))
-                            eval_cp = info["score"].white().score(mate_score=10000) / 100.0
-                            detected.append((label, i, eval_cp))
-                            break  # detect one at a time to keep move order
 
-                for (label, move_no, eval_cp) in detected:
-                    print(f"Game {game_number}: {label} at move {move_no}, Eval: {eval_cp:+.2f}, Result: {result}")
-                    if label not in summary:
-                        summary[label] = {"won": 0, "lost": 0}
-                    if (result == "1-0" and eval_cp > 0) or (result == "0-1" and eval_cp < 0):
-                        summary[label]["won"] += 1
+def detect_sbp(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["b"] == 1 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["r", "n", "q"]) and x["k"] == 1
+            and x["b"] == 1 and x["p"] >= 1 and all(x[k] == 0
+                                                    for k in ["r", "n", "q"])
+            and bishop_square_color(b) == True)
+
+
+def detect_obp(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["b"] == 1 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["r", "n", "q"]) and x["k"] == 1
+            and x["b"] == 1 and x["p"] >= 1 and all(x[k] == 0
+                                                    for k in ["r", "n", "q"])
+            and bishop_square_color(b) == False)
+
+
+def detect_kp(b):
+    w, x = piece_counts(b)
+    return (w["k"] == 1 and w["p"] >= 1
+            and all(w[k] == 0 for k in ["q", "r", "b", "n"]) and x["k"] == 1
+            and x["p"] >= 1 and all(x[k] == 0 for k in ["q", "r", "b", "n"]))
+
+
+def analyze_endgames_for_user(userid, lichess_id):
+    """Analyze endgames for a specific user's games"""
+    print(
+        f"[Endgame Analysis] 🔍 Analyzing endgames for {lichess_id} ({userid})")
+
+    # Fetch user's games from Supabase
+    headers = {
+        'apikey': SUPABASE_KEY,
+        'Authorization': f'Bearer {SUPABASE_KEY}',
+        'Content-Type': 'application/json'
+    }
+
+    # Get games for this specific user
+    response = requests.get(
+        f"{SUPABASE_URL}/rest/v1/lichess_games?select=id,game,result,lichess_id&lichess_id=eq.{lichess_id}",
+        headers=headers)
+
+    if response.status_code != 200:
+        print(f"❌ Failed to fetch games: {response.status_code}")
+        return
+
+    rows = response.json()
+    print(f"[Endgame Analysis] 📊 Found {len(rows)} games to analyze")
+
+    # Use system Stockfish
+    stockfish_path = "stockfish"
+
+    try:
+        with chess.engine.SimpleEngine.popen_uci(stockfish_path) as engine:
+            analyzed_count = 0
+
+            for row in rows:
+                game_id = row["id"]
+                pgn_raw = row.get("game")
+
+                if not pgn_raw or not isinstance(pgn_raw,
+                                                 str) or not pgn_raw.strip():
+                    print(f"⚠️ Skipping row {game_id} — empty PGN.")
+                    continue
+
+                try:
+                    game = chess.pgn.read_game(StringIO(pgn_raw))
+                    if not game:
+                        print(f"⚠️ Invalid PGN in row {game_id}")
+                        continue
+
+                    white_player = game.headers.get("White")
+                    black_player = game.headers.get("Black")
+
+                    if lichess_id == white_player:
+                        player_color = "white"
+                    elif lichess_id == black_player:
+                        player_color = "black"
                     else:
-                        summary[label]["lost"] += 1
+                        print(
+                            f"⚠️ Skipping {game_id} — lichess_id not found in PGN."
+                        )
+                        continue
 
-            print("\n=== Summary of Endgames ===")
-            for label, stats in summary.items():
-                print(f"{label}: Won = {stats['won']}, Lost = {stats['lost']}")
+                    # Result from PGN
+                    pgn_result = game.headers.get("Result", "*")
+
+                    if pgn_result == "1-0":
+                        outcome_final = "won" if player_color == "white" else "lost"
+                    elif pgn_result == "0-1":
+                        outcome_final = "won" if player_color == "black" else "lost"
+                    elif pgn_result == "1/2-1/2":
+                        outcome_final = "draw"
+                    else:
+                        outcome_final = "unknown"
+
+                    board = game.board()
+                    moves = list(game.mainline_moves())
+                    detections = []
+
+                    # Analyze each position for endgame patterns
+                    for i, move in enumerate(moves):
+                        board.push(move)
+
+                        # Check all endgame patterns
+                        for label, func in [
+                            ("RRP", detect_rrp),
+                            ("RNP", detect_rnp),
+                            ("QRP", detect_qrp),
+                            ("QNP", detect_qnp),
+                            ("RSBP", detect_rsbp),
+                            ("ROBP", detect_robp),
+                            ("QP", detect_qp),
+                            ("RP", detect_rp),
+                            ("NP", detect_np),
+                            ("SBP", detect_sbp),
+                            ("OBP", detect_obp),
+                            ("KP", detect_kp),
+                        ]:
+                            # Skip if already detected
+                            if label in [d[0] for d in detections]:
+                                continue
+
+                            if func(board):
+                                # Analyze position with Stockfish
+                                info = engine.analyse(
+                                    board, chess.engine.Limit(depth=12))
+                                eval_cp = info["score"].white().score(
+                                    mate_score=10000) / 100.0
+
+                                # Only consider relatively balanced endgames
+                                if -3 <= eval_cp <= 3:
+                                    detections.append((label, i + 1, eval_cp))
+                                    break
+
+                    # Format results
+                    formatted = []
+                    for label, move_no, eval_cp in detections:
+                        formatted.append({
+                            "type": label,
+                            "move_no": move_no,
+                            "eval": round(eval_cp, 2),
+                            "result": pgn_result,
+                            "outcome": outcome_final
+                        })
+
+                    # Update database with endgame analysis
+                    update_data = {
+                        "endgame_analysis": formatted,
+                        "result": pgn_result
+                    }
+
+                    update_response = requests.patch(
+                        f"{SUPABASE_URL}/rest/v1/lichess_games?id=eq.{game_id}",
+                        headers=headers,
+                        json=update_data)
+
+                    if update_response.status_code == 204:
+                        analyzed_count += 1
+                        print(
+                            f"✅ Row {game_id} → {len(formatted)} endgames detected — outcome: {outcome_final}"
+                        )
+                    else:
+                        print(
+                            f"❌ Failed to update row {game_id}: {update_response.status_code}"
+                        )
+
+                except Exception as e:
+                    print(f"❌ Error analyzing game {game_id}: {str(e)}")
+                    continue
+
+            print(
+                f"[Endgame Analysis] 🎉 COMPLETED: {analyzed_count} games analyzed for {lichess_id}"
+            )
+
+    except Exception as e:
+        print(f"❌ Stockfish engine error: {str(e)}")
+        return
+
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: python3 endgame_analyzer.py <userid> <lichess_id>")
+        sys.exit(1)
+
+    userid = sys.argv[1]
+    lichess_id = sys.argv[2]
+
+    analyze_endgames_for_user(userid, lichess_id)
+
 
 if __name__ == "__main__":
     main()
