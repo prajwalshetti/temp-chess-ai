@@ -7,7 +7,7 @@ from datetime import datetime
 # === Supabase CONFIG ===
 SUPABASE_URL = "https://gkkrualuovkaxncgeqxc.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdra3J1YWx1b3ZrYXhuY2dlcXhjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTY5MjM4MSwiZXhwIjoyMDY3MjY4MzgxfQ.F0Ea9w_Lyi3s6oS8FCoMsPvPWjoO3sYij0538HsDIC4"
-lichess_token = "lip_AnI4xopEsEcji2XoMeOn"
+lichess_token = ""
 
 # === Supabase HTTP client functions ===
 def supabase_select(table, select_fields="*", filters=None, order_by=None, limit=None):
